@@ -70,7 +70,7 @@ test.after(async () => { await browser?.close(); server?.close(); });
 // opts are Playwright context options, plus fixedTime (a date the page's clock stays at)
 // and prepare (a function that runs on the page before the first load, so a stub is in place
 // before the app can call the real network).
-/* size50: true leaves text sizes as the app finds them (the 4.121.0 default and the one-time move). Without it, songs with no size are
+/* size50: true leaves text sizes as the app finds them (the 5.2.0 default and the one-time move). Without it, songs with no size are
    seeded at 100% and the one-time move is marked done, so every other test sees the sizes it was written for. */
 export async function phone(t, lib = LIB, { fixedTime, home = false, prepare, size50 = false, ...opts } = {}) {
   if (!size50 && Array.isArray(lib?.songs)) lib = { ...lib, songs: lib.songs.map(s => s.size === undefined ? { ...s, size: 1 } : s) };

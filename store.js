@@ -49,7 +49,7 @@ function writeMain(json) {
   return true;
 }
 
-/* 4.121.0 (Graham, 2026-11-23): the text size now goes down to 50% and new songs start there. Once, a song still at the old
+/* 5.2.0 (Graham, 2026-11-23): the text size now goes down to 50% and new songs start there. Once, a song still at the old
    default (size exactly 1) moves to 0.5; any other size stays. The flag keeps it from running again, so a song you set back to 100% later stays. */
 const SIZE50_FLAG = "tabs.size50.v1";
 function size50(lib) {
@@ -57,8 +57,9 @@ function size50(lib) {
     if (localStorage.getItem(SIZE50_FLAG)) return lib;
     let moved = 0;
     for (const s of lib?.songs || []) if (s.size === 1) { s.size = 0.5; moved++; }
+    /* save first; the flag only after the save worked, so a failed save tries again on the next start */
+    if (moved) { Tabs.save(lib); if (Tabs.flush() === false) return lib; }
     localStorage.setItem(SIZE50_FLAG, "1");
-    if (moved) { Tabs.save(lib); Tabs.flush(); }
   } catch { /* storage blocked: leave sizes as they are */ }
   return lib;
 }

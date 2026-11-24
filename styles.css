@@ -6017,3 +6017,14 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
 :root:is([data-look="neon"], [data-look="festival"]) .pf-learn { min-height: 44px; min-width: 44px; margin-top: auto; padding: 0 12px; border: 0; border-radius: 999px; background: var(--rr-amber); color: var(--rr-on-amber); font: 700 13px / 1 var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) .pf-stats-page .foot { color: var(--rr-text-2); }
 :root:is([data-look="neon"], [data-look="festival"]) :is(.pf-ccard, .pf-learn, .pf-stats-page .pf-drill, .pf-jump, .pf-ch-top .ib):focus-visible { outline: 2px solid var(--rr-chord); outline-offset: 2px; }
+
+/* 5.2.0: below about 340 px the centred Play met Loop. The right pair (and Speed with the set dial) tighten to 44 px
+   targets with a 2 px gap, and the bars take 10 px sides, so nothing in either bar overlaps at 320 px. */
+@media (max-width: 340px) {
+  .gg-sb { min-width: 44px; min-height: 44px; padding: 2px 0; }
+  .gg-knobs { gap: 2px; }
+  :root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar { padding-left: 10px; padding-right: 10px; }
+  :root:is([data-look="neon"], [data-look="festival"]) .app.viewer .player.rr-amp { padding-left: 10px; padding-right: 10px; }
+  :root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp #pw-loop { margin-right: 46px; }
+  html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .player.rr-amp .setdial { margin-left: 46px; min-width: 44px; padding: 2px 0; }
+}

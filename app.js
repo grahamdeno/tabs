@@ -171,7 +171,7 @@ function renderViewer(id) {
   setTimeout(() => { if (viewing === song) timeLines(song, lyricLines); }, 700);
   if (song.transpose === undefined) song.transpose = data.settings.transpose || 0;
   if (song.speed === undefined) song.speed = data.settings.startSpeed || SPEEDS.medium; // then each song keeps its own
-  if (song.size === undefined) song.size = 0.5; /* 4.121.0: new songs start at 50% */
+  if (song.size === undefined) song.size = 0.5; /* 5.2.0: new songs start at 50% */
   song.opened = Date.now();
   Tabs.save(data);
 
