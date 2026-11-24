@@ -49,7 +49,21 @@ function writeMain(json) {
   return true;
 }
 
-async function loadLibrary() {
+/* 4.121.0 (Graham, 2026-11-23): the text size now goes down to 50% and new songs start there. Once, a song still at the old
+   default (size exactly 1) moves to 0.5; any other size stays. The flag keeps it from running again, so a song you set back to 100% later stays. */
+const SIZE50_FLAG = "tabs.size50.v1";
+function size50(lib) {
+  try {
+    if (localStorage.getItem(SIZE50_FLAG)) return lib;
+    let moved = 0;
+    for (const s of lib?.songs || []) if (s.size === 1) { s.size = 0.5; moved++; }
+    localStorage.setItem(SIZE50_FLAG, "1");
+    if (moved) { Tabs.save(lib); Tabs.flush(); }
+  } catch { /* storage blocked: leave sizes as they are */ }
+  return lib;
+}
+async function loadLibrary() { return size50(await loadLibrary0()); }
+async function loadLibrary0() {
   let main = null;
   try { main = await libTx("readonly", st => st.get("lib")); where.db = true; }
   catch { where.db = false; }
@@ -161,4 +175,4 @@ async function backupNow() {
   return true;
 }
 
-export { ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError, problems, storageKept, where };
+export { SIZE50_FLAG, ago, backupNow, copyDiagnostics, loadLibrary, needsBackup, noteError, problems, storageKept, where };

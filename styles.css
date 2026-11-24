@@ -6037,7 +6037,7 @@ body.tabbed .tm-page { bottom: var(--tabs, 96px); }
 /* The Gig's control bar, 4.108.0 (Graham, 2026-11-19): a dark grille panel with a chrome edge, like an amp's control strip.
    Speed on the left, a round Pause in the middle lit by an amber lamp ring, and Loop and Tools as small knobs on the right.
    It fades with the other controls while you play, and steps aside while paused (the page's own bar is there then). */
-:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; width: min(100%, 400px); margin: 0 auto; padding: 10px 14px 8px; border-radius: 16px;
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; width: min(100%, 400px); margin: 0 auto; padding: 10px 14px 8px; border-radius: 16px;
   background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .025) 0 2px, transparent 2px 5px), linear-gradient(#1A1715, #0E0C0B);
   box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, 0 8px 18px rgba(0, 0, 0, .5); }
 :root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar small { display: block; margin-top: 4px; font: 600 var(--type-footnote, 13px) / 1.15 var(--sans); color: #EADBC0; text-align: center; }
@@ -6061,7 +6061,7 @@ body.held .gig .gg-bar { display: none; }
    Gig's while playing. Play keeps its spoken name; its label shows small under the button. */
 :root:is([data-look="neon"], [data-look="festival"]) .app.viewer .pw.glass:has(.rr-amp) { background: repeating-linear-gradient(45deg, rgba(255, 255, 255, .025) 0 2px, transparent 2px 5px), linear-gradient(#1A1715, #0E0C0B); border: 0; border-radius: 16px; overflow: visible;
   box-shadow: inset 0 0 0 1px #000, inset 0 0 0 2.5px #8E8A84, inset 0 0 0 3.5px #2A2622, 0 8px 18px rgba(0, 0, 0, .5); background-color: #141210; }
-:root:is([data-look="neon"], [data-look="festival"]) .app.viewer .player.rr-amp { display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: none; align-items: center; height: auto; padding: 8px 14px 6px; gap: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) .app.viewer .player.rr-amp { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); grid-template-areas: none; align-items: center; height: auto; padding: 8px 14px 6px; gap: 0; }
 :root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp > * { grid-area: auto; }
 :root:is([data-look="neon"], [data-look="festival"]) .player.rr-amp .gg-speed { grid-column: 1; grid-row: 1; justify-self: start; }
 html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .player.rr-amp #play { grid-column: 2; grid-row: 1; flex: none; width: 60px; height: 60px; min-width: 0; padding: 0; border-radius: 50%; color: #EADBC0; font-size: 0;
