@@ -6178,7 +6178,7 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
 :root[data-look="festival"] .rn-legbar { background: #F6EFE2; }
 :root:is([data-look="neon"], [data-look="festival"]) .rn-legline {
   flex: 1 1 auto; min-width: 0; margin: 0; overflow: hidden; white-space: nowrap;
-  font: 600 var(--type-headline) / 1.2 "Space Grotesk", var(--sans); color: var(--rr-text);
+  font: 600 var(--type-headline) / 1.2 "Sora", var(--sans); color: var(--rr-text);
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rn-legline :is(b, small, .rn-sep) { font: inherit; color: inherit; }
 .rn-skip {
@@ -6199,13 +6199,13 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--screen-h, 100dv
 :root:is([data-look="neon"], [data-look="festival"]) .rn-now-name {
   flex: 1 1 auto; min-width: 44px; min-height: 44px; display: flex; align-items: center; margin: 0; padding: 0 4px;
   border: 0; background: none; color: var(--rr-plate-text); text-align: left; overflow: hidden;
-  font: 600 var(--type-headline) / 1.2 "Space Grotesk", var(--sans); -webkit-tap-highlight-color: transparent;
+  font: 600 var(--type-headline) / 1.2 "Sora", var(--sans); -webkit-tap-highlight-color: transparent;
 }
 :root:is([data-look="neon"], [data-look="festival"]) .rn-now-tx { display: block; min-width: 0; max-width: 100%; overflow: hidden; white-space: nowrap; }
 :root:is([data-look="neon"], [data-look="festival"]) .rn-now .btn.primary.rn-now-go {
   flex: none; box-sizing: border-box; width: auto; min-width: 104px; height: 46px; min-height: 44px; padding: 0 8px;
   border-width: 0 24px; border-image: var(--pick-narrow) 0 28 fill / 0 24px / 0 stretch;
-  font: 700 16px / 1 "Space Grotesk", var(--sans);
+  font: 700 16px / 1 "Sora", var(--sans);
 }
 /* Road labels wrap on spaces, or shrink to one line. They never break inside a word. */
 :root:is([data-look="neon"], [data-look="festival"]) :is(.rn-legbar, .rn-now, .rn-stage, .rd-path.rn) :is(*, *::before, *::after) {
