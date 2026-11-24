@@ -51,7 +51,7 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     for (const [n, v] of Object.entries({ chip: "999px", control: "10px", card: "16px", strip: "18px", sheet: "24px", plate: "12px" })) assert.equal(await prop(page, "--r-" + n), v, `--r-${n}`);
     assert.equal(await prop(page, "--r"), "16px"); assert.equal(await prop(page, "--r-bar"), "18px"); assert.equal(await prop(page, "--margin"), "16px");
     assert.equal((await prop(page, "--rr-base")).toUpperCase(), baseHex);
-    assert.equal((await prop(page, "--rr-amber-text")).toUpperCase(), label === "Light" ? "#763A00" : "#FFB547");
+    assert.equal((await prop(page, "--rr-amber-text")).toUpperCase(), label === "Light" ? "#065F5B" : "#20E0D0");
 
     /* the type tokens work as font sizes and follow --sys-px */
     const sizes = () => page.evaluate(names => names.map(n => { const e = document.createElement("i"); e.style.fontSize = `var(--type-${n})`; document.body.appendChild(e); const v = parseFloat(getComputedStyle(e).fontSize); e.remove(); return Math.round(v * 10) / 10; }), TYPE);
@@ -152,7 +152,7 @@ test("Road Ready: the Merch table and Settings use the new names, and no screen 
   assert.equal(await first("neon"), "rgb(20, 18, 16)", "the dark swatch starts with #141210");
   await page.click('.mc-look[data-id="festival"]'); /* Try it on opens the sheet; its line describes the look */
   await page.waitForFunction(() => document.documentElement.dataset.look === "festival");
-  assert.match(await page.innerText("body"), /cream tolex, chrome piping and warm amber/);
+  assert.match(await page.innerText("body"), /cream tolex, chrome piping and cool teal/);
   assert.doesNotMatch(await page.innerText("body"), /Festival Poster|Neon Midnight/);
 });
 
