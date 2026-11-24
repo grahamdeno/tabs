@@ -28,8 +28,7 @@ for (const [look, theme] of [["Dark", "dark"], ["Light", "light"], ["Green Room"
     await page.waitForSelector(".rd-path"); await settled(page);
     await noLouie(page, look);
     assert.equal(await page.locator("#rd-bubble, .rr-say").count(), 0, `${look}: no message on the Road (a saved Green Room or Headliner is read as Light or Dark)`);
-    assert.equal(await page.locator("#rd-tonight, .rd-tonight").count(), 1, `${look}: the Gig button is there`);
-    assert.ok(await page.locator("#rd-tonight, .rd-tonight").first().isVisible(), `${look}: the Gig button shows`);
+    assert.equal(await page.locator("#rd-tonight, .rd-tonight").count(), 0, `${look}: no Tonight bar on the neck`);
   });
 }
 
@@ -42,7 +41,7 @@ for (const ax of [1, 2, 3]) {
       await settled(page);
       await noLouie(page, `${theme}, large text ${ax}`);
       assert.equal(await page.locator("#rd-bubble").count(), 0, `${theme} ${ax}: no message on the Road (one-row header)`);
-      assert.equal(await page.locator("#rd-tonight").count(), 1, `${theme} ${ax}: the Gig button is there`);
+      assert.equal(await page.locator("#rd-tonight").count(), 0, `${theme} ${ax}: no Tonight bar on the Road`);
     }
   });
 }

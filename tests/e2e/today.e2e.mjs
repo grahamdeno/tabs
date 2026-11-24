@@ -17,12 +17,10 @@ const lib = (extra = {}, today = false) => ({ ...LIB, songs: songs(today), setti
 test("Today: on a rainy day a slow song that opens with a tap", { skip: skip() }, async t => {
   const page = await phone(t, lib());
   let asked = 0;
-  await page.route(/api\.open-meteo\.com/, r => { asked++; r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
-  /* The first load may still be writing today's forecast. Clear it as the next page starts, once, so that write cannot skip the fetch. */
-  await page.addInitScript(() => { if (!sessionStorage.getItem("wxcleared")) { localStorage.removeItem("tabs.wx.v1"); sessionStorage.setItem("wxcleared", "1"); } });
-  await page.reload();
-  await page.waitForFunction(() => { const c = JSON.parse(localStorage.getItem("tabs.wx.v1") || "null"); return c && c.code === 61; });
-  await page.waitForSelector("#nudge");
+  await page.route(/api\.open-meteo\.com/, r => { asked++; return r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
+  /* clear the saved forecast before the app starts, so the reload is the one fetch of the day */
+  await page.addInitScript(() => { if (!sessionStorage.getItem("wx-cleared")) { sessionStorage.setItem("wx-cleared", "1"); localStorage.removeItem("tabs.wx.v1"); } });
+  await page.reload(); await page.waitForSelector("#nudge");
   assert.equal(await page.locator("#today .t-dots, #t-stat").count(), 0, "4.20.0: the streak lives in the stat bar, not here");
   const h = new Date().getHours();
   if (h < 18) assert.match(await page.innerText("#nudge"), /Rainy day, perfect for a slow song\s+Harbor Lights/i);
@@ -35,7 +33,7 @@ test("Today: on a rainy day a slow song that opens with a tap", { skip: skip() }
 test("Today: a forecast that arrives late still shows when the week has no plays (2.11.2)", { skip: skip() }, async t => {
   const quiet = { ...lib(), songs: LIB.songs.slice(0, 2).map(s => ({ ...s, favorite: false, status: undefined, playLog: log(15) })) };
   const page = await phone(t, quiet);
-  await page.route(/api\.open-meteo\.com/, async r => { await new Promise(res => setTimeout(res, 300)); r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
+  await page.route(/api\.open-meteo\.com/, async r => { await new Promise(res => setTimeout(res, 300)); return r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
   await page.evaluate(() => localStorage.removeItem("tabs.wx.v1"));
   await page.reload(); await page.waitForSelector("#nudge");
   assert.match(await page.innerText("#nudge"), /Rainy day, perfect for a slow song/i);
