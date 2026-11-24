@@ -13,7 +13,7 @@ test("4.85.0 a player who never made a guitarist is asked once on the Road, and 
   const page = await phone(t, { ...NOME, songs: PLAYED(LIB.songs) }, { home: true });
   await page.waitForSelector(".gm");
   assert.match(await page.innerText(".gm"), /Who's playing tonight\?/);
-  assert.match(await page.innerText(".gm"), /I drew you a guitarist/, "Louie asks");
+  assert.match(await page.innerText(".gm"), /I picked you a guitarist/, "Louie says so");
   await page.click('.gm [data-k="genre"][data-v="punk"]');
   await page.click("#gm-ok");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).me?.genre === "punk");
@@ -91,7 +91,7 @@ test("painted-only: every place that draws a player draws a painting", { skip: s
   const page = await phone(t, { ...LIB, songs: PLAYED(LIB.songs), me: { genre: "jazz", who: "w", lefty: true } }, { home: true });
   await page.waitForSelector("#rd-bubble, .rr-stats");
   const svgs = await page.evaluate(async () => { const g = await import("./guitarist.js"); return [g.you(JSON.parse(localStorage.getItem("tabs-v1")), { size: 120 }), g.you(JSON.parse(localStorage.getItem("tabs-v1")), { crop: "bust" }), g.rival("Sarah", "Opener")]; });
-  for (const v of svgs) assert.match(v, /art\/guitarist-painted\/genres\/[a-z-]+\.webp/);
+  for (const v of svgs) assert.match(v, /art\/guitarist-painted\/genres\/[a-z0-9-]+\.webp/);
   assert.match(svgs[0], /jazz-w/); assert.match(svgs[0], /scale\(-1 1\)/, "mirrored for a left-handed player");
   await hash(page, "#/charts"); await page.waitForSelector(".ch-row");
   assert.ok(await page.locator(".ch-row image[href*='guitarist-painted']").count() >= 6, "the chart rows are paintings");
