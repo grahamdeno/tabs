@@ -18,8 +18,11 @@ test("Today: on a rainy day a slow song that opens with a tap", { skip: skip() }
   const page = await phone(t, lib());
   let asked = 0;
   await page.route(/api\.open-meteo\.com/, r => { asked++; r.fulfill({ status: 200, contentType: "application/json", headers: cors, body: JSON.stringify({ daily: { weather_code: [61], temperature_2m_max: [16] } }) }); });
-  await page.evaluate(() => localStorage.removeItem("tabs.wx.v1"));
-  await page.reload(); await page.waitForSelector("#nudge");
+  /* The first load may still be writing today's forecast. Clear it as the next page starts, once, so that write cannot skip the fetch. */
+  await page.addInitScript(() => { if (!sessionStorage.getItem("wxcleared")) { localStorage.removeItem("tabs.wx.v1"); sessionStorage.setItem("wxcleared", "1"); } });
+  await page.reload();
+  await page.waitForFunction(() => { const c = JSON.parse(localStorage.getItem("tabs.wx.v1") || "null"); return c && c.code === 61; });
+  await page.waitForSelector("#nudge");
   assert.equal(await page.locator("#today .t-dots, #t-stat").count(), 0, "4.20.0: the streak lives in the stat bar, not here");
   const h = new Date().getHours();
   if (h < 18) assert.match(await page.innerText("#nudge"), /Rainy day, perfect for a slow song\s+Harbor Lights/i);
