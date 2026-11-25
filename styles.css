@@ -5144,6 +5144,8 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
 :root:is([data-look="neon"], [data-look="festival"]) .rr-stats button:focus-visible { outline: 2px solid var(--rr-amber); outline-offset: -2px; }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-stats .rr-st-ic { flex: none; width: 22px; height: 22px; color: var(--rr-amber-text); }
 :root:is([data-look="neon"], [data-look="festival"]) .rr-stats .h-streak.off .rr-st-ic { color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-stats .rr-st-pic { width: 24px; height: 24px; margin: -1px; object-fit: contain; -webkit-user-drag: none; user-select: none; pointer-events: none; } /* painted stats icons: 24 px drawn, 22 px of room, so the numbers keep their place */
+:root:is([data-look="neon"], [data-look="festival"]) .rr-stats .h-streak.off .rr-st-pic { filter: grayscale(.8) opacity(.6); } /* no streak: the guitar fades, as the line icon greyed */
 :root:is([data-look="neon"], [data-look="festival"]) .rr-stats .h-streak.go .rr-st-ic { animation: rr-rock .42s ease-in-out; }
 @keyframes rr-rock { 30% { transform: rotate(-14deg); } 70% { transform: rotate(10deg); } }
 @media (prefers-reduced-motion: reduce) { :root:is([data-look="neon"], [data-look="festival"]) .rr-stats .h-streak.go .rr-st-ic { animation: none; } }

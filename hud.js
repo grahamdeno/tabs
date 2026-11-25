@@ -41,19 +41,24 @@ export function statBar() {
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${COIN}<span>$${n(tips)}</span>${lab("tips", "TIPS")}</button>
   </div>`;
 }
-/* ---- the one-row Road header (Grok, 2026-11-19): three stats, each a line icon then a number, spread across one 44 pt row with
+/* ---- the one-row Road header (Grok, 2026-11-19): three stats, each an icon (a painting since the stats icons pass) then a number, spread across one 44 pt row with
    no labels, cards, pills or outlines. Streak and fans stay on the Road (Graham's call); streak opens a small sheet, fans open
    the Tour Map; the venue is the sign at the start of the leg, which also opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
 const LINE = body => `<svg class="rr-st-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
+/* Grok, 2026-11-25: the three Road stats are small paintings (art/stats/, painted by tools/stats/paint.py at 3x of 24 pt): a sunburst
+   acoustic for the streak, a cream torn ticket stub for fans and a brass coin stamped with a pick for tips. Each is decorative
+   (empty alt, aria-hidden), so VoiceOver reads only the button's label and number. They draw at 24 px with a -1 px margin, so each
+   takes the 22 px the line icon took and the numbers stay where they were. */
+const PIC = f => `<img class="rr-st-ic rr-st-pic" src="art/stats/stat-${f}.webp" alt="" aria-hidden="true" width="24" height="24" decoding="async" draggable="false">`;
 const ST_ICON = {
-  /* a guitar: the streak */
-  streak: LINE(`<path d="M14.5 9.5l5-5M18 3l3 3"/><path d="M13.2 10.8c-1.6-1.6-4.3-1.1-5 .9-.3.8-1 1.3-1.9 1.4-2.4.3-3.5 3.3-1.8 5.1l1.2 1.2c1.8 1.8 4.8.6 5.1-1.8.1-.9.6-1.6 1.4-1.9 2-.7 2.5-3.4.9-5z"/><circle cx="10" cy="14" r="1.4"/>`),
-  /* a music note: songs you can play */
+  /* a painted guitar: the streak */
+  streak: PIC("guitar"),
+  /* a music note: songs you can play (not in the row since 2026-11-19) */
   songs: LINE(`<path d="M9 18V5.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>`),
-  /* a ticket: fans */
-  fans: LINE(`<path d="M3 7.5h18v3a2 2 0 0 0 0 3v3H3v-3a2 2 0 0 0 0-3z"/><path d="M15 7.5v9" stroke-dasharray="1.6 2"/>`),
-  /* a coin with a dollar sign: tips */
-  tips: LINE(`<circle cx="12" cy="12" r="9"/><path d="M14.8 9.2c-.6-.8-1.6-1.2-2.8-1.2-1.6 0-2.7.8-2.7 2 0 2.8 5.6 1.4 5.6 4.4 0 1.3-1.2 2.1-2.9 2.1-1.3 0-2.4-.5-3-1.4M12 6.5v1.5M12 16.5V18"/>`)
+  /* a cream ticket stub: fans */
+  fans: PIC("ticket"),
+  /* a brass coin: tips */
+  tips: PIC("coin")
 };
 export function rrStats() {
   settleStats();
