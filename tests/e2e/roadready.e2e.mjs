@@ -610,7 +610,7 @@ test("4.108.1 the Road scrolls up and down only, never sideways, in Dark and Lig
 
 /* the stats icons (Grok): three small paintings in Dark and Light, decorative, loaded, 24 px drawn in the 22 px the line icons took */
 for (const theme of ["dark", "light"]) {
-  test(`stats icons (${theme}): a week card, Tour Map hexes and a merch tee, decorative, with the labels and numbers as they were`, { skip: skip() }, async t => {
+  test(`stats icons (${theme}): a lit candle, Tour Map hexes and a merch tee, decorative, with the labels and numbers as they were`, { skip: skip() }, async t => {
     const page = await road(t, theme, MID);
     await page.waitForFunction(() => [...document.querySelectorAll(".rr-stats img.rr-st-ic")].every(i => i.complete && i.naturalWidth > 0));
     const got = await page.evaluate(() => [...document.querySelectorAll(".rr-stats button")].map(b => {
@@ -619,7 +619,10 @@ for (const theme of ["dark", "light"]) {
         w: ir.width, h: ir.height, room: ir.width + parseFloat(c.marginLeft) + parseFloat(c.marginRight), gap: sr.left - (ir.right + parseFloat(c.marginRight)), mid: Math.abs((ir.top + ir.bottom) / 2 - (sr.top + sr.bottom) / 2),
         label: b.getAttribute("aria-label"), text: b.innerText.trim(), svg: b.querySelectorAll("svg").length };
     }));
-    assert.deepEqual(got.map(x => [x.id, x.src]), [["h-streak", "art/stats/stat-streak.webp"], ["h-fans", "art/stats/stat-map.webp"], ["h-tips", "art/stats/stat-merch.webp"]]);
+    const days = parseInt(got[0].text, 10);
+    const streakSrc = days ? "art/stats/stat-streak.webp" : "art/stats/stat-streak-off.webp";
+    assert.deepEqual(got.map(x => [x.id, x.src]), [["h-streak", streakSrc], ["h-fans", "art/stats/stat-map.webp"], ["h-tips", "art/stats/stat-merch.webp"]]);
+    assert.equal(await page.evaluate(() => document.getElementById("h-streak").classList.contains("off")), days === 0, "the unlit candle is used only when the streak is out");
     for (const x of got) {
       assert.equal(x.tag, "IMG"); assert.equal(x.alt, "", `${x.id}: decorative`); assert.equal(x.hidden, "true", `${x.id}: hidden from VoiceOver`); assert.equal(x.svg, 0, `${x.id}: no line icon left`);
       assert.equal(x.nw, 72, `${x.id}: the 3x picture loaded`); assert.deepEqual([x.w, x.h], [24, 24], `${x.id}: drawn at 24 pt`);

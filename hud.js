@@ -46,13 +46,15 @@ export function statBar() {
    the Tour Map; the venue is the sign at the start of the leg, which also opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
 const LINE = body => `<svg class="rr-st-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
 /* Grok, 2026-11-25: the three Road stats are small paintings (art/stats/, painted by tools/stats/paint.py at 3x of 24 pt), each
-   picturing what a tap opens: a cream week card of night pips for the streak, a cluster of Tour Map hexes for fans, and a hanging
-   merch tee for tips. Each is decorative (empty alt, aria-hidden), so VoiceOver reads only the button's label and number. They draw
-   at 24 px with a -1 px margin, so each takes the 22 px the line icon took and the numbers stay where they were. */
+   picturing what a tap opens: a lit stage candle for the streak (unlit, with a wisp of smoke, when the streak is out), a cluster of
+   Tour Map hexes for fans, and a hanging merch tee for tips. Each is decorative (empty alt, aria-hidden), so VoiceOver reads only
+   the button's label and number. They draw at 24 px with a -1 px margin, so each takes the 22 px the line icon took and the numbers
+   stay where they were. */
 const PIC = f => `<img class="rr-st-ic rr-st-pic" src="art/stats/stat-${f}.webp" alt="" aria-hidden="true" width="24" height="24" decoding="async" draggable="false">`;
 const ST_ICON = {
-  /* the seven-day streak card */
+  /* a lit stage candle: nights in a row still burning; the unlit picture is used when the streak is out */
   streak: PIC("streak"),
+  streakOff: PIC("streak-off"),
   /* a music note: songs you can play (not in the row since 2026-11-19) */
   songs: LINE(`<path d="M9 18V5.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>`),
   /* the Tour Map: hexes you hold */
@@ -64,7 +66,7 @@ export function rrStats() {
   settleStats();
   const st = streakOf(playSongs(data)), fans = fansNow(data), tips = tipsOf(data);
   return `<div class="hud rr-stats" role="group" aria-label="Your stats">
-    <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Show your streak">${ST_ICON.streak}<span>${st.days}</span></button>
+    <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Show your streak">${st.days ? ST_ICON.streak : ST_ICON.streakOff}<span>${st.days}</span></button>
     <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans. Open the Tour Map">${ST_ICON.fans}<span>${n(fans)}</span></button>
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${ST_ICON.tips}<span>$${n(tips)}</span></button>
   </div>`;

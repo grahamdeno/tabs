@@ -1,4 +1,4 @@
-# Painted stats-row icons for Louie: the streak card (nights in a row), the Tour Map, the Merch table.
+# Painted stats-row icons for Louie: a lit stage candle for the streak (unlit with a wisp of smoke when the streak is out), the Tour Map, the Merch table.
 # Painted at 4x of the 72 px export (3x of 24 pt), then downsampled. Grok's art: run from the repo root as
 #   python3 tools/stats/paint.py <out-dir>   (needs numpy, scipy and Pillow; writes stat-<name>.webp and a large PNG to look at)
 import numpy as np
@@ -77,50 +77,92 @@ def C(h): h = h.lstrip("#"); return np.array([int(h[i:i + 2], 16) / 255 for i in
 def mix(a, b, t): t = np.clip(t, 0, 1)[..., None] if np.ndim(t) else t; return a * (1 - t) + b * t
 OUT = C("3a2416")  # warm espresso outline, reads on cream and on black
 
-# ---------------- streak: the seven-day card the streak opens ----------------
-def streak():
+# ---------------- streak: a lit stage candle (nights in a row still burning) ----------------
+def flame_sd(x, y, cx, cy, w, h):
+    """Teardrop flame: narrower toward the tip (up). Not a perfect SDF, good enough for a soft brush."""
+    py = (y - cy) / h
+    px = (x - cx) / (w * np.clip(0.22 + 0.95 * (py + 0.55), 0.18, 1.15))
+    # body
+    return (px * px + (py * 1.05) ** 2) - 1
+
+def paint_flame(cv, cx, cy, w, h, halo=True, scale=1.0):
+    w, h = w * scale, h * scale
+    d = flame_sd(xx, yy, cx, cy, w, h)
+    mid = d * min(w, h)
+    core = flame_sd(xx, yy, cx, cy + h * 0.16, w * 0.42, h * 0.52) * min(w, h)
+    # A tight, mostly-opaque fringe only: a wash halo stains the cream tolex in Light.
+    if halo:
+        cv.put(C("ff9a20"), soft(mid - 5, 5) * 0.85)
+    cv.put(OUT, soft(mid - 6, 2) * 0.9)
+    cv.put(C("e24a10"), soft(mid, 2.0))
+    cv.put(C("ff8a1a"), soft(mid + 8, 2))
+    cv.put(C("ffd24a"), soft(mid + 18, 2))
+    cv.put(C("fff4b8"), soft(core, 2.2))
+    gl = np.exp(-(((xx - cx + w * 0.12) / (w * 0.32)) ** 2 + ((yy - cy + h * 0.12) / (h * 0.32)) ** 2))
+    cv.put(C("ffffff"), gl * 0.6 * soft(mid + 12, 2))
+    return mid
+
+# ---------- 1. lit stage candle in a brass holder ----------
+def candle(lit=True):
     cv = Canvas()
-    ang = np.deg2rad(-7)
-    u, v = rot(xx, yy, 144, 150, ang)
-    plate = box_sd(u, v, 0, 4, 122, 78, 16)
-    # a second leaf under the plate, like a short stack of show cards
-    back = box_sd(u, v, 8, 12, 118, 74, 16)
-    whole = smin(plate, back, 6)
-    m = soft(whole, 1.8)
-    drop_shadow(cv, m, off=(6, 6), blur=5, op=0.5)
-    cv.put(OUT, soft(whole - 7, 2))
-    # the back leaf is a slightly deeper cream
-    fib = noise((0.7, 6), 1, 31) * 0.5 + noise(3, 1, 32) * 0.5
-    back_col = mix(C("e4c99a"), C("c9a56e"), 0.25 + 0.08 * fib)
-    cv.put(back_col, soft(back, 1.6) * (1 - soft(plate, 1.2) * 0.85))
-    paper = mix(C("f6edd6"), C("e2c89a"), np.clip(((u / 140) ** 2 + (v / 90) ** 2) * 0.7, 0, 1))
-    paper = paper * (1 + 0.025 * fib[..., None])
-    # engraved plate sheen
-    lit = np.clip(0.55 - 0.35 * ((u / 122) * 0.4 + (v / 78) * 0.8), 0, 1)
-    paper = mix(paper, C("fffaf0"), lit * 0.25)
-    cv.put(paper, soft(plate, 1.6))
-    # thin gold rule, inset, like the cream engraved plates
-    rule = np.abs(box_sd(u, v, 0, 4, 108, 64, 12)) - 2.2
-    cv.put(C("b8893c"), soft(rule, 1.3) * 0.85)
-    # seven night pips: played days are warm gold, two missed stay empty, today (last) is a touch larger and brighter
-    played = [1, 1, 0, 1, 1, 0, 1]
-    xs = np.linspace(-96, 96, 7)
-    for i, px in enumerate(xs):
-        rad = 15 if i == 6 else 13.5
-        pip = ellipse_sd(u, v, px, 4, rad, rad)
-        if played[i]:
-            pk = shade(-np.clip(pip, -8, 0), k=0.8)
-            gold = mix(C("b07a22"), C("f3d27a"), 0.45 + 0.4 * pk)
-            if i == 6: gold = mix(gold, C("ffe9a8"), 0.25)
-            cv.put(OUT, soft(pip - 3.5, 1.3))
-            cv.put(gold, soft(pip, 1.3))
-            gl = np.exp(-(((u - px + 3) / 5) ** 2 + ((v - 4 + 4) / 4) ** 2))
-            cv.put(C("fff6d8"), gl * 0.65 * soft(pip + 1, 1.5))
-        else:
-            cv.put(OUT, soft(pip - 2.8, 1.3) * 0.9)
-            well = ellipse_sd(u, v, px, 5.5, rad - 3.6, rad - 3.6)
-            cv.put(C("d4b888"), soft(well, 1.2))
+    ang = np.deg2rad(-4)
+    u, v = rot(xx, yy, 144, 168, ang)
+    # a real brass cup: bowl, thick rim, short foot
+    bowl = ellipse_sd(u, v, 0, 78, 62, 24)
+    bowl = np.maximum(bowl, v - 92)          # cut the bottom of the ellipse into a cup
+    bowl = np.maximum(bowl, -(v - 68))
+    inner = ellipse_sd(u, v, 0, 78, 44, 16)
+    inner = np.maximum(inner, v - 86)
+    bowl = np.maximum(bowl, -inner)          # hollow
+    rim = np.abs(ellipse_sd(u, v, 0, 68, 62, 16)) - 7
+    rim = np.maximum(rim, np.abs(v - 68) - 9)
+    foot = ellipse_sd(u, v, 0, 100, 30, 11)
+    stem = box_sd(u, v, 0, 92, 12, 10, 4)
+    holder = np.minimum.reduce([bowl, rim, foot, stem])
+    # chunky pillar, slight taper, fills the icon
+    taper = 1.0 + np.clip((v + 20) / 600, -0.08, 0.12)
+    wax = box_sd(u / taper, v, 0, -4, 42, 72, 14)
+    top = ellipse_sd(u, v, 0, -72, 42, 14)
+    wax = smin(wax, top, 10)
+    drip = ellipse_sd(u, v, 34, -28, 11, 26)
+    wax = smin(wax, drip, 8)
+    wick = box_sd(u, v, 0, -82, 3.4, 12, 1.4)
+    solid = np.minimum(wax, holder)
+    drop_shadow(cv, soft(solid, 2), off=(6, 6), blur=5, op=0.5)
+    # outline the solid wax and holder only, then the wick, then the flame on top
+    cv.put(OUT, soft(solid - 6.5, 2))
+    pk = shade(-np.clip(holder, -10, 0), k=0.8)
+    cv.put(mix(C("8a5f1c"), C("f3d27a"), 0.38 + 0.5 * pk), soft(holder, 1.5))
+    cv.put(C("fff0b8"), soft(rim, 1.3) * np.clip(0.45 + pk, 0, 1) * 0.75)
+    litc = shade(-np.clip(wax, -16, 0), k=0.45)
+    waxc = mix(C("e2c48a"), C("fff6df"), 0.4 + 0.4 * litc)
+    if lit:
+        glow = np.exp(-((v + 50) / 48) ** 2) * np.exp(-(u / 55) ** 2)
+        waxc = mix(waxc, C("ffd27a"), glow * 0.3)
+    cv.put(waxc, soft(wax, 1.6))
+    pool = ellipse_sd(u, v, 0, -72, 34, 11)
+    cv.put(C("ffe7b0") if lit else C("e8d4a4"), soft(pool, 1.4) * 0.9)
+    cv.put(OUT, soft(wick - 3, 1.3) * 0.8)
+    cv.put(C("2a1a10"), soft(wick, 1.2))
+    if lit:
+        cx, cy = 146, 52
+        paint_flame(cv, cx, cy, 36, 64, halo=True)
+    else:
+        cv.put(C("1a120c"), soft(ellipse_sd(u, v, 0, -92, 4.2, 4.2), 1.3))
+        smx, smy = rot(xx, yy, 150, 48, np.deg2rad(8))
+        wisp = np.abs(smx - 8 * np.sin((30 - smy) / 18)) - (3.0 + 0.028 * np.clip(-smy, 0, 80))
+        wisp = np.maximum(wisp, smy - 6)
+        wisp = np.maximum(wisp, -smy - 88)
+        fade = np.clip((30 - smy) / 100, 0, 1)
+        cv.put(C("9a8f84"), soft(wisp, 3.2) * 0.55 * fade)
     return cv
+
+
+def streak():
+    return candle(True)
+
+def streak_off():
+    return candle(False)
 
 # ---------------- tour map: a cluster of hexes, the one you hold lit ----------------
 def tourmap():
@@ -218,4 +260,4 @@ def export(cv, name, out_dir, out=72):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2: sys.exit("usage: paint.py <out-dir> (never art/ itself: art/stats/ pictures are kept, not overwritten)")
-    for nm, f in (("streak", streak), ("map", tourmap), ("merch", merch)): export(f(), nm, sys.argv[1])
+    for nm, f in (("streak", streak), ("streak-off", streak_off), ("map", tourmap), ("merch", merch)): export(f(), nm, sys.argv[1])
