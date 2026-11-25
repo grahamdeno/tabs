@@ -3919,7 +3919,7 @@ test("stats icons: the Road's streak, fans and tips are small paintings, decorat
   /* each picture is decorative: empty alt and aria-hidden, so VoiceOver reads only the button's label */
   assert.match(hud, /<img class="rr-st-ic rr-st-pic" src="art\/stats\/stat-\$\{f\}\.webp" alt="" aria-hidden="true"/);
   for (const [k, f] of [["streak", "streak"], ["streakOff", "streak-off"], ["fans", "map"], ["tips", "merch"]]) assert.match(hud, new RegExp(`${k}: PIC\\("${f}"\\)`), `${k} is the ${f}`);
-  assert.match(hud, /st\.days \? ST_ICON\.streak : ST_ICON\.streakOff/, "no streak: the unlit candle");
+  assert.match(hud, /st\.days \? ST_ICON\.streak : ST_ICON\.streakOff/, "no streak: the charcoal ember");
   /* the labels and numbers are as they were */
   assert.match(hud, /aria-label="\$\{n\(fans\)\} fans\. Open the Tour Map">\$\{ST_ICON\.fans\}<span>\$\{n\(fans\)\}<\/span>/);
   assert.match(hud, /aria-label="\$\{n\(tips\)\} dollars in tips\. Open the Merch table">\$\{ST_ICON\.tips\}<span>\$\$\{n\(tips\)\}<\/span>/);

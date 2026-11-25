@@ -46,13 +46,13 @@ export function statBar() {
    the Tour Map; the venue is the sign at the start of the leg, which also opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
 const LINE = body => `<svg class="rr-st-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
 /* Grok, 2026-11-25: the three Road stats are small paintings (art/stats/, painted by tools/stats/paint.py at 3x of 24 pt), each
-   picturing what a tap opens: a lit stage candle for the streak (unlit, with a wisp of smoke, when the streak is out), a cluster of
-   Tour Map hexes for fans, and a hanging merch tee for tips. Each is decorative (empty alt, aria-hidden), so VoiceOver reads only
-   the button's label and number. They draw at 24 px with a -1 px margin, so each takes the 22 px the line icon took and the numbers
-   stay where they were. */
+   picturing what a tap opens: a standalone painted flame for the streak (the same silhouette as a charcoal ember when the streak is
+   out), a cluster of Tour Map hexes for fans, and a hanging merch tee for tips. Each is decorative (empty alt, aria-hidden), so
+   VoiceOver reads only the button's label and number. They draw at 24 px with a -1 px margin, so each takes the 22 px the line icon
+   took and the numbers stay where they were. */
 const PIC = f => `<img class="rr-st-ic rr-st-pic" src="art/stats/stat-${f}.webp" alt="" aria-hidden="true" width="24" height="24" decoding="async" draggable="false">`;
 const ST_ICON = {
-  /* a lit stage candle: nights in a row still burning; the unlit picture is used when the streak is out */
+  /* a painted flame: nights in a row still burning; the charcoal ember is used when the streak is out */
   streak: PIC("streak"),
   streakOff: PIC("streak-off"),
   /* a music note: songs you can play (not in the row since 2026-11-19) */

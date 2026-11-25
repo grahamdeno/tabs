@@ -1,4 +1,4 @@
-# Painted stats-row icons for Louie: a lit stage candle for the streak (unlit with a wisp of smoke when the streak is out), the Tour Map, the Merch table.
+# Painted stats-row icons for Louie: a standalone painted flame for the streak (the same silhouette as a charcoal ember when the streak is out), the Tour Map, the Merch table.
 # Painted at 4x of the 72 px export (3x of 24 pt), then downsampled. Grok's art: run from the repo root as
 #   python3 tools/stats/paint.py <out-dir>   (needs numpy, scipy and Pillow; writes stat-<name>.webp and a large PNG to look at)
 import numpy as np
@@ -77,92 +77,62 @@ def C(h): h = h.lstrip("#"); return np.array([int(h[i:i + 2], 16) / 255 for i in
 def mix(a, b, t): t = np.clip(t, 0, 1)[..., None] if np.ndim(t) else t; return a * (1 - t) + b * t
 OUT = C("3a2416")  # warm espresso outline, reads on cream and on black
 
-# ---------------- streak: a lit stage candle (nights in a row still burning) ----------------
-def flame_sd(x, y, cx, cy, w, h):
-    """Teardrop flame: narrower toward the tip (up). Not a perfect SDF, good enough for a soft brush."""
+# ---------------- streak: a standalone painted flame (a charcoal ember when the streak is out) ----------------
+def tongue(x, y, cx, cy, w, h, lean=0.0):
+    """Teardrop, tip up, sheared by lean (positive leans the tip to the right). Returns approx pixel SD."""
+    base = cy + h
+    t = np.clip((base - y) / (2 * h + 1e-6), 0, 1)
+    xs = x - lean * (t * t) * w * 2.4
     py = (y - cy) / h
-    px = (x - cx) / (w * np.clip(0.22 + 0.95 * (py + 0.55), 0.18, 1.15))
-    # body
-    return (px * px + (py * 1.05) ** 2) - 1
+    taper = np.clip(0.16 + 0.95 * (py + 0.55), 0.14, 1.2)
+    px = (xs - cx) / (w * taper)
+    return (px * px + (py * 1.02) ** 2 - 1) * min(w, h)
 
-def paint_flame(cv, cx, cy, w, h, halo=True, scale=1.0):
-    w, h = w * scale, h * scale
-    d = flame_sd(xx, yy, cx, cy, w, h)
-    mid = d * min(w, h)
-    core = flame_sd(xx, yy, cx, cy + h * 0.16, w * 0.42, h * 0.52) * min(w, h)
-    # A tight, mostly-opaque fringe only: a wash halo stains the cream tolex in Light.
-    if halo:
-        cv.put(C("ff9a20"), soft(mid - 5, 5) * 0.85)
-    cv.put(OUT, soft(mid - 6, 2) * 0.9)
-    cv.put(C("e24a10"), soft(mid, 2.0))
-    cv.put(C("ff8a1a"), soft(mid + 8, 2))
-    cv.put(C("ffd24a"), soft(mid + 18, 2))
-    cv.put(C("fff4b8"), soft(core, 2.2))
-    gl = np.exp(-(((xx - cx + w * 0.12) / (w * 0.32)) ** 2 + ((yy - cy + h * 0.12) / (h * 0.32)) ** 2))
-    cv.put(C("ffffff"), gl * 0.6 * soft(mid + 12, 2))
-    return mid
+def union_tongues(specs, scale=1.0, ox=0.0, oy=0.0, k=16):
+    d = None
+    for cx, cy, w, h, lean in specs:
+        t = tongue(xx, yy, ox + cx, oy + cy, w * scale, h * scale, lean)
+        d = t if d is None else smin(d, t, k * scale)
+    return d
 
-# ---------- 1. lit stage candle in a brass holder ----------
-def candle(lit=True):
+# Three licking tongues, the main one leaning right: a slight asymmetric flicker.
+FLAME = [
+    (148, 150, 78, 138,  0.32),
+    (104, 184, 46,  88, -0.22),
+    (194, 204, 42,  68,  0.48),
+]
+
+def paint_fire(lit=True, inner_scale=0.55, inner_shift=(8, 16)):
     cv = Canvas()
-    ang = np.deg2rad(-4)
-    u, v = rot(xx, yy, 144, 168, ang)
-    # a real brass cup: bowl, thick rim, short foot
-    bowl = ellipse_sd(u, v, 0, 78, 62, 24)
-    bowl = np.maximum(bowl, v - 92)          # cut the bottom of the ellipse into a cup
-    bowl = np.maximum(bowl, -(v - 68))
-    inner = ellipse_sd(u, v, 0, 78, 44, 16)
-    inner = np.maximum(inner, v - 86)
-    bowl = np.maximum(bowl, -inner)          # hollow
-    rim = np.abs(ellipse_sd(u, v, 0, 68, 62, 16)) - 7
-    rim = np.maximum(rim, np.abs(v - 68) - 9)
-    foot = ellipse_sd(u, v, 0, 100, 30, 11)
-    stem = box_sd(u, v, 0, 92, 12, 10, 4)
-    holder = np.minimum.reduce([bowl, rim, foot, stem])
-    # chunky pillar, slight taper, fills the icon
-    taper = 1.0 + np.clip((v + 20) / 600, -0.08, 0.12)
-    wax = box_sd(u / taper, v, 0, -4, 42, 72, 14)
-    top = ellipse_sd(u, v, 0, -72, 42, 14)
-    wax = smin(wax, top, 10)
-    drip = ellipse_sd(u, v, 34, -28, 11, 26)
-    wax = smin(wax, drip, 8)
-    wick = box_sd(u, v, 0, -82, 3.4, 12, 1.4)
-    solid = np.minimum(wax, holder)
-    drop_shadow(cv, soft(solid, 2), off=(6, 6), blur=5, op=0.5)
-    # outline the solid wax and holder only, then the wick, then the flame on top
-    cv.put(OUT, soft(solid - 6.5, 2))
-    pk = shade(-np.clip(holder, -10, 0), k=0.8)
-    cv.put(mix(C("8a5f1c"), C("f3d27a"), 0.38 + 0.5 * pk), soft(holder, 1.5))
-    cv.put(C("fff0b8"), soft(rim, 1.3) * np.clip(0.45 + pk, 0, 1) * 0.75)
-    litc = shade(-np.clip(wax, -16, 0), k=0.45)
-    waxc = mix(C("e2c48a"), C("fff6df"), 0.4 + 0.4 * litc)
+    d = union_tongues(FLAME, 1.0, 0, 0, k=18)
+    d_in = union_tongues(FLAME, inner_scale, inner_shift[0], inner_shift[1], k=14)
+    d_core = union_tongues(FLAME, inner_scale * 0.55, inner_shift[0] + 2, inner_shift[1] + 16, k=12)
+    drop_shadow(cv, soft(d, 2), off=(6, 8), blur=6, op=0.52)
+    cv.put(OUT, soft(d - 5.5, 2))
     if lit:
-        glow = np.exp(-((v + 50) / 48) ** 2) * np.exp(-(u / 55) ** 2)
-        waxc = mix(waxc, C("ffd27a"), glow * 0.3)
-    cv.put(waxc, soft(wax, 1.6))
-    pool = ellipse_sd(u, v, 0, -72, 34, 11)
-    cv.put(C("ffe7b0") if lit else C("e8d4a4"), soft(pool, 1.4) * 0.9)
-    cv.put(OUT, soft(wick - 3, 1.3) * 0.8)
-    cv.put(C("2a1a10"), soft(wick, 1.2))
-    if lit:
-        cx, cy = 146, 52
-        paint_flame(cv, cx, cy, 36, 64, halo=True)
+        # layered fire, all opaque so Light's cream tolex is not stained by a glow
+        cv.put(C("9a1c08"), soft(d, 1.8))
+        cv.put(C("d4300c"), soft(d + 6, 4.0))
+        cv.put(C("f05610"), soft(d + 16, 5.0))
+        cv.put(C("ff8a18"), soft(d + 30, 5.0))
+        cv.put(C("ffc230"), soft(d_in, 3.0))
+        cv.put(C("ffe66a"), soft(d_in + 10, 4.0))
+        cv.put(C("fff6c4"), soft(d_core, 3.5))
+        gl = np.exp(-(((xx - (S/2 + inner_shift[0] + 4)) / 24) ** 2 + ((yy - (S/2 + 30)) / 30) ** 2))
+        cv.put(C("ffffff"), gl * 0.5 * soft(d_core + 2, 2))
     else:
-        cv.put(C("1a120c"), soft(ellipse_sd(u, v, 0, -92, 4.2, 4.2), 1.3))
-        smx, smy = rot(xx, yy, 150, 48, np.deg2rad(8))
-        wisp = np.abs(smx - 8 * np.sin((30 - smy) / 18)) - (3.0 + 0.028 * np.clip(-smy, 0, 80))
-        wisp = np.maximum(wisp, smy - 6)
-        wisp = np.maximum(wisp, -smy - 88)
-        fade = np.clip((30 - smy) / 100, 0, 1)
-        cv.put(C("9a8f84"), soft(wisp, 3.2) * 0.55 * fade)
+        # same silhouette: mid charcoal that still reads on black tolex, with a dull ember core
+        pk = shade(-np.clip(d, -16, 0), k=0.4)
+        cv.put(mix(C("7a7068"), C("a09890"), 0.45 + 0.55 * pk), soft(d, 1.8))
+        cv.put(C("6a5648"), soft(d_in, 2.5) * 0.85)
+        cv.put(C("7a5a48"), soft(d_core, 3.0) * 0.55)
     return cv
 
-
 def streak():
-    return candle(True)
+    return paint_fire(True)
 
 def streak_off():
-    return candle(False)
+    return paint_fire(False)
 
 # ---------------- tour map: a cluster of hexes, the one you hold lit ----------------
 def tourmap():
