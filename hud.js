@@ -45,20 +45,20 @@ export function statBar() {
    no labels, cards, pills or outlines. Streak and fans stay on the Road (Graham's call); streak opens a small sheet, fans open
    the Tour Map; the venue is the sign at the start of the leg, which also opens the Tour Map. Same ids as the stat bar, so bindStatBar wires them. ---- */
 const LINE = body => `<svg class="rr-st-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${body}</svg>`;
-/* Grok, 2026-11-25: the three Road stats are small paintings (art/stats/, painted by tools/stats/paint.py at 3x of 24 pt): a sunburst
-   acoustic for the streak, a cream torn ticket stub for fans and a brass coin stamped with a pick for tips. Each is decorative
-   (empty alt, aria-hidden), so VoiceOver reads only the button's label and number. They draw at 24 px with a -1 px margin, so each
-   takes the 22 px the line icon took and the numbers stay where they were. */
+/* Grok, 2026-11-25: the three Road stats are small paintings (art/stats/, painted by tools/stats/paint.py at 3x of 24 pt), each
+   picturing what a tap opens: a cream week card of night pips for the streak, a cluster of Tour Map hexes for fans, and a hanging
+   merch tee for tips. Each is decorative (empty alt, aria-hidden), so VoiceOver reads only the button's label and number. They draw
+   at 24 px with a -1 px margin, so each takes the 22 px the line icon took and the numbers stay where they were. */
 const PIC = f => `<img class="rr-st-ic rr-st-pic" src="art/stats/stat-${f}.webp" alt="" aria-hidden="true" width="24" height="24" decoding="async" draggable="false">`;
 const ST_ICON = {
-  /* a painted guitar: the streak */
-  streak: PIC("guitar"),
+  /* the seven-day streak card */
+  streak: PIC("streak"),
   /* a music note: songs you can play (not in the row since 2026-11-19) */
   songs: LINE(`<path d="M9 18V5.5l10-2V16"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/>`),
-  /* a cream ticket stub: fans */
-  fans: PIC("ticket"),
-  /* a brass coin: tips */
-  tips: PIC("coin")
+  /* the Tour Map: hexes you hold */
+  fans: PIC("map"),
+  /* the Merch table: a hanging tee */
+  tips: PIC("merch")
 };
 export function rrStats() {
   settleStats();
