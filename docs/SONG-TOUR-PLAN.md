@@ -118,4 +118,14 @@ bundled songs (song words can't ship with the app).
 
 ## Surprises
 
-None yet.
+Found while building (Sonnet, 2026-11-26). None stopped the build; each is a call Opus or Graham should confirm.
+
+1. **The word "easy".** The plan calls the first stop the easy version. The playbook (rule 17) bans "easy" in product words, so the stop is named "Play it now" and the replays "Play with Bm".
+2. **Stand-in plays credit no chords.** A play with stand-ins still counts as a play, but `logPlay` gives the journal a copy of the song with no chords. Otherwise five stand-in plays would have made Bm count as known without it being played.
+3. **The next skill tour is drawn open beside the song tour.** The Tour draws the leg after the current one grayed and locked (Grok, 5.3.0). When the song tour is the current one, the next skill tour is drawn in full and open instead, so the song tour never holds it back. Opus may want Grok to look at how that reads.
+4. **Swap is only offered on the first stop, before Get it.** Later it would throw away stops already done. The plan does not say.
+5. **A fetched sheet can disagree with the pick.** After Get it, the new chords are worked out again from the sheet that came back. If it has fewer than 2 or more than 4, the song stays in the Songbook (the player added it) and Louie picks another for the tour, with a line saying so.
+6. **`practice.js` needed no change.** It already opens a chord lesson (`c:<chord>`) and a switch drill (`s:<a>-<b>`) for any chord that has a shape; a test covers it.
+7. **`knownChords` also reads finished chord lessons that are not on the neck** (`c:Bm` in `data.skills.done`), so a song tour's chords count as known.
+8. **`CLAUDE.md` is not updated** (outside the Touch list). Its "Where things are" table needs a row for `core/songtour.js`.
+9. **No key:** the Songbook pick needs a song whose chords are 2 to 4 unknown plus at least one you play. A Songbook song is never offered to two tours.

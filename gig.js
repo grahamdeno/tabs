@@ -15,7 +15,7 @@
 // playing (not dragged past, not paused); see gigStart in core/game.js and docs/NO-CATCH-PLAN.md.
 // At the end: Show complete, under the backdrop you wear (4.66.0, Change picks another you own), with the bonus fans,
 // tips, the crowd, the song's stars, the song you played and Encore (play it again for double bonus fans).
-import { roadPath, venueNow, guitarShown, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
+import { TOUR_RUN, tourPlayed, roadPath, venueNow, guitarShown, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, roadNote, gigStart, showPlayed, showPaused, showWhole, catchTargets, catchStart, catchAt, catchClose, gigCrowd, knownChords, gigDone, questsSettle, bandParts, bandMeet, streakOf, playSongs, playableSongs, merchTip, Tabs } from "./core.js";
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, onLeave, haptic } from "./ui.js";
 import { guitarSVG, guitarPic } from "./fretboard.js";
@@ -339,6 +339,8 @@ function showComplete() {
   if (g.catch) { g.catch.cur = g.catch.targets.length; const rest = catchClose(g.catch).missed; if (rest.length && !g.paused) { for (const i of rest) g.played.add(i); showPlayed(g.score, rest.length); } }
   const full = !g.slowed;
   const { fans, tips, stretch, stars, starFans, request, battle, cover, doubled } = gigDone(data, g.song.id, g.score, g.encore, Date.now(), { song: g.song, full });
+  /* 5.9.0 Song tours: a song tour stop played to the end is done (the headline makes the song Solid) */
+  const run = TOUR_RUN.cur, tourDone = run && run.song === g.song.id && g.score.total > 0 && g.score.played >= Math.ceil(g.score.total * 0.9) ? tourPlayed(data, run) : null;
   const earned = questsSettle(data); /* Tour quests: tonight's setlist and the month's tour */
   const joined = bandMeet(data); /* Your band: who joined with this show */
   const tip = merchTip(data); /* the Merch table (4.14.0): something you can now afford, said once */
@@ -369,6 +371,7 @@ function showComplete() {
       ${request ? `<p>Request line: a fan asked for this one. <b>2x bonus fans</b></p>` : ""}
       ${opened ? `<p><b>Opening night: done!</b> Your streak starts tonight.</p>` : ""}
       ${earned.map(x => `<p>${esc(x.label)}: <b>+${x.fans} fans</b></p>`).join("")}
+      ${tourDone ? `<p>Song tour: <b>${esc(tourDone.name)} done</b>${tourDone.finished ? `. ${esc(tourDone.title)} is Solid now and its chords count as yours` : ""}</p>` : ""}
       ${road.length ? `<p>Your tour: ${road.map(r => r.done ? `<b>${esc(r.chord)} chord done</b>` : `${esc(r.chord)} chord, <b>${r.n} of ${KNOW_PLAYS}</b> songs`).join(", ")}</p>` : ""}
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
