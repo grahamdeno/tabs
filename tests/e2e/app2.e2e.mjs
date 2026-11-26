@@ -479,16 +479,16 @@ test("2.25.0 speed dial is a meter: the needle swings with the length, and whole
 /* 5.7.0 (Graham, 2026-11-26): in Dark and Light the filters are one plain segmented row (All, Can play, Almost, Sets) once there are
    five songs; the chosen one is filled in the accent colour with no lamp or glow, and Tabs, Learning and Favorites are in the sort menu */
 const FIVE = ["c", "d", "e"].map((id, i) => ({ id, title: "Song " + id, artist: "A", key: "G", format: i === 0 ? "tab" : "chords", body: "[Verse]\nG C\nla", favorite: i === 1 }));
-test("2.25.0 filter chips: the selected one is filled in the accent colour (5.7.0: the segmented row, no lamps or glow)", { skip: skip() }, async t => {
+test("2.25.0 filter chips: the chosen one stands out (5.8.0: words, the chosen one underlined in the accent colour, no fill, lamp or glow)", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, ...FIVE] });
   await page.waitForSelector("#chips.sb-seg");
+  const line = sel => page.evaluate(s => getComputedStyle(document.querySelector(s)).boxShadow, sel);
   const fill = sel => page.evaluate(s => getComputedStyle(document.querySelector(s)).backgroundColor, sel);
-  const go = await page.evaluate(() => { const d = document.createElement("i"); d.style.color = "var(--rr-amber)"; document.body.appendChild(d); const c = getComputedStyle(d).color; d.remove(); return c; });
-  assert.equal(await fill("#chips [data-f='all']"), go);
-  assert.notEqual(await fill("#chips [data-f='near']"), go);
-  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector("#chips [data-f='all']")).boxShadow), "none", "no glow");
-  await page.click("#chips [data-f='near']"); await until(async () => (await fill("#chips [data-f='near']")) === go);
-  assert.notEqual(await fill("#chips [data-f='all']"), go);
+  assert.match(await line("#chips [data-f='all']"), /inset/, "the chosen one is underlined");
+  assert.equal(await line("#chips [data-f='near']"), "none");
+  assert.equal(await fill("#chips [data-f='all']"), "rgba(0, 0, 0, 0)", "no fill");
+  await page.click("#chips [data-f='near']"); await until(async () => /inset/.test(await line("#chips [data-f='near']")));
+  assert.equal(await line("#chips [data-f='all']"), "none");
 });
 
 test("4.20.1 Songbook filters: one row that fits (5.7.0: Sets in the row), Tabs and Favorites in the sort menu", { skip: skip() }, async t => {

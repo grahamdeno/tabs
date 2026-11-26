@@ -48,8 +48,8 @@ for (const [label, theme, scheme, lookId, baseHex, rgb] of [
     for (const n of RR) assert.notEqual(await prop(page, "--rr-" + n), "", `--rr-${n} is set`);
     for (const n of TYPE) assert.notEqual(await prop(page, "--type-" + n), "", `--type-${n} is set`);
     for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) assert.equal(await prop(page, "--sp-" + n), [4, 8, 12, 16, 20, 24, 32, 40][n - 1] + "px");
-    for (const [n, v] of Object.entries({ chip: "999px", control: "10px", card: "16px", strip: "18px", sheet: "24px", plate: "12px" })) assert.equal(await prop(page, "--r-" + n), v, `--r-${n}`);
-    assert.equal(await prop(page, "--r"), "16px"); assert.equal(await prop(page, "--r-bar"), "18px"); assert.equal(await prop(page, "--margin"), "16px");
+    for (const [n, v] of Object.entries({ chip: "999px", control: "6px", card: "8px", strip: "10px", sheet: "14px", plate: "6px" } /* 5.8.0: less rounding */)) assert.equal(await prop(page, "--r-" + n), v, `--r-${n}`);
+    assert.equal(await prop(page, "--r"), "8px"); assert.equal(await prop(page, "--r-bar"), "10px"); assert.equal(await prop(page, "--margin"), "16px");
     assert.equal((await prop(page, "--rr-base")).toUpperCase(), baseHex);
     assert.equal((await prop(page, "--rr-amber-text")).toUpperCase(), label === "Light" ? "#065F5B" : "#20E0D0");
 

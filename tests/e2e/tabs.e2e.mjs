@@ -53,7 +53,7 @@ for (const [look, theme] of [["Road Ready dark", "dark"], ["Road Ready light", "
         otherLit: getComputedStyle(off.querySelector(".tb-on")).opacity, src: lit.getAttribute("src"), nw: lit.naturalWidth, knob: knob.width,
         under: getComputedStyle(on, "::after").content };
     });
-    assert.equal(r.radius, "18px", "radius 18");
+    assert.equal(r.radius, "10px", "radius 10 (5.8.0: less rounding; 18 before)");
     assert.match(r.bg, dark ? /grille-dark\.webp/ : /grille-light\.webp/, "the grille cloth for this look");
     assert.match(r.pipe, /linear-gradient/, "chrome edge");
     assert.ok(r.side >= 8 && r.gapBelow >= 8, "floats 8 px in from the sides and above the bottom");

@@ -214,7 +214,7 @@ The journal keeps `days` (`{ "YYYY-MM-DD": seconds }`, last 60 days) and `daysFr
 | Key | Holds |
 |---|---|
 | `tabs.nextseen.v1` | The last 60 songs Play next suggested (2.13.1) |
-| `tabs.nx.songbook.v1` | The last Play next list for the Songbook's "Songs you can play next" (5.7.0): `{ at, list: [{ title, artist, chords, new, why }] }`, at most 6. Written only when Play next answers; the Songbook never asks the AI on its own. No lyrics and no keys; not in backups |
+| `tabs.nx.songbook.v1` | The last Play next list for the Songbook's "Songs you can play next" (5.7.0): `{ at, list: [{ title, artist, chords, new, why, art }] }`, at most 6 (`art`, an https album cover, since 5.8.0). Written only when Play next answers; the Songbook never asks the AI on its own. No lyrics and no keys; not in backups |
 | `tabs.spot.v1` | The practice spot `{lat, lon}` rounded to 0.01 degrees (about a kilometre), never in a backup. With a spot set, the Tour Map loads tiles from `tile.openstreetmap.org`; Leaflet (vendor/leaflet-1.9.4) draws it (2.50.0) |
 
 ### No longer used

@@ -300,27 +300,28 @@ function lyricHit(line, q) {
   if (from) { const sp = line.indexOf(" ", from); from = sp >= 0 && sp < i ? sp + 1 : from; } /* start on a whole word */
   return `“${from ? "…" : ""}${esc(line.slice(from, i))}<mark>${esc(line.slice(i, i + n))}</mark>${esc(line.slice(i + n))}”`;
 }
-/* 5.7.0 Songbook rows in Dark and Light (Graham, 2026-11-26): a cover tile with the title's first letter, the title, the artist with
-   the song's chords (a chord you don't play yet is marked), the key, and three dots for how well you know it. */
+/* Songbook rows in Dark and Light. 5.8.0 (Graham, 2026-11-26, "even less information, and use the album covers"): the album cover
+   (or a tile with the title's first letter when a song has none), the title and the artist; on the right the key in a small outlined
+   tag and a heart for a favourite. How well you know it and whether you can play it are still said to VoiceOver. */
 const SB_TINT = ["#2F5D62", "#6B3E2E", "#3D4A6B", "#5A5A2E", "#5B3456", "#40513B", "#6B5A2E", "#2E4F6B"];
 const sbTint = t => { let h = 0; for (const c of String(t || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0; return SB_TINT[h % SB_TINT.length]; };
-const MASTERY = { learning: 1, solid: 2, got: 3 };
-function sbRow(s, hit, stat) {
-  const f = fitOf(s), miss = new Set(f.missing), lv = MASTERY[s.status] || 0;
-  const chords = s.format === "tab" ? "Tab" : sheetChords(s.body).slice(0, 6).map(c => miss.has(c) ? `<b class="miss" title="Not played yet">${esc(c)}</b>` : esc(c)).join(" ");
-  const sub = hit ? `<span class="hit">${hit}</span>` : `<span class="sb-ar">${esc(s.artist || "Unknown artist")}</span>${stat ? `<span class="sb-st">${esc(stat)}</span>` : chords ? `<span class="sb-ch">${chords}</span>` : ""}`;
+const songArt = s => { const a = s.listen?.art || s.art || ""; return /^https:\/\//.test(a) ? a : ""; };
+function sbRow(s, hit) {
+  const f = fitOf(s), art = songArt(s);
   const say = `${STATUS[s.status] || "New"}${f.can ? ", can play" : f.missing.length === 1 ? `, needs ${f.missing[0]}` : ""}`;
+  const cover = art ? `<img class="sb-cv sb-art" src="${esc(art)}" alt="" aria-hidden="true" width="48" height="48" loading="lazy" decoding="async">`
+    : `<span class="sb-cv" aria-hidden="true" style="--tint:${sbTint(s.title)}">${esc((s.title || "?").trim().charAt(0).toUpperCase())}</span>`;
   return `<button class="row rr-line sb-row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
-    <span class="sb-cv" aria-hidden="true" style="--tint:${sbTint(s.title)}">${esc((s.title || "?").trim().charAt(0).toUpperCase())}</span>
-    <div class="txt"><div class="t">${esc(s.title)}${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}</div><div class="a">${sub}</div></div>
-    <span class="sb-r"><span class="k">${esc(keyOf(s))}</span><span class="sb-dots" role="img" aria-label="${esc(say)}">${[1, 2, 3].map(i => `<i class="${i <= lv ? "on" : ""}"></i>`).join("")}</span></span>
+    ${cover}
+    <div class="txt"><div class="t">${esc(s.title)}</div><div class="a">${hit ? `<span class="hit">${hit}</span>` : `<span class="sb-ar">${esc(s.artist || "Unknown artist")}</span>`}<span class="vh">, ${esc(say)}</span></div></div>
+    <span class="sb-r"><span class="k">${esc(keyOf(s))}</span>${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : `<i class="heart-sp" aria-hidden="true"></i>`}</span>
   </button>`;
 }
 function songRow(s, hit) {
   const wk = playsThisWeek(s), sort = data.settings.sort, n = playCount(s);
   const when = sort === "recent" && lastPlayed(s) ? ago(new Date(lastPlayed(s)).toISOString()) : "";
   const stat = sort === "most" && n ? `${n} play${n === 1 ? "" : "s"}` : when ? `Played ${when}` : wk && `Played ${wk}× this week`;
-  if (rrTab()) return sbRow(s, hit, stat);
+  if (rrTab()) return sbRow(s, hit);
   const sub = hit ? `<span class="hit">${hit}</span>`
     : [esc(s.artist || "Unknown artist"), s.status !== "learning" && STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, stat].filter(Boolean).join(" · ");
   return `<button class="row${rrTab() ? " rr-line" : ""}" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
@@ -593,7 +594,8 @@ function sbMore(show) {
   const nx = !show || !ai ? "" : `<section class="sb-next" aria-label="Songs you can play next">
       <div class="sb-nh"><h2>Songs you can play next</h2><small>with the chords you know</small></div>
       <div class="list glass sb-nl">${list.length ? list.map((x, i) => `<div class="sb-ni">
-        <span class="txt"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist || "")}${(x.chords || []).length ? ` · <span class="sb-ch">${x.chords.slice(0, 6).map(c => (x.new || []).includes(c) ? `<b class="miss">${esc(c)}</b>` : esc(c)).join(" ")}</span>` : ""}</span></span>
+        ${/^https:\/\//.test(x.art || "") ? `<img class="sb-cv sb-art" src="${esc(x.art)}" alt="" aria-hidden="true" width="48" height="48" loading="lazy">` : `<span class="sb-cv" aria-hidden="true" style="--tint:${sbTint(x.title)}">${esc(String(x.title).trim().charAt(0).toUpperCase())}</span>`}
+        <span class="txt"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist || "")}${(x.new || []).length ? ` · one new chord, ${esc(x.new[0])}` : ""}</span></span>
         <button class="sb-add" data-nx="${i}" aria-label="Add ${esc(x.title)}">Add</button></div>`).join("") + `<button class="row sb-nmore" id="sb-nmore"><span class="txt"><span class="t">More ideas</span></span>${icon("chev", "chev")}</button>`
         : `<button class="row sb-nmore" id="sb-nmore"><span class="txt"><span class="t">Find songs you can play next</span><span class="a">Ideas that use the chords you know</span></span>${icon("chev", "chev")}</button>`}</div>
     </section>`;

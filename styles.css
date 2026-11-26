@@ -1909,8 +1909,9 @@ body { background: var(--bg); font-family: var(--sans); }
   --type-mono: calc(var(--sys-px, 17px) * 1.176);      --type-mono-w: 600;      /* IBM Plex Mono: tuner and tempo */
   /* spacing and radii */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 40px;
-  --r-chip: 999px; --r-control: 10px; --r-card: 16px; --r-strip: 18px; --r-sheet: 24px; --r-plate: 12px;
-  --r: 16px; --r-bar: 18px; --margin: 16px;
+  /* 5.8.0 (Graham, 2026-11-26): less rounding everywhere (were control 10, card 16, strip 18, sheet 24, plate 12, r 16, bar 18) */
+  --r-chip: 999px; --r-control: 6px; --r-card: 8px; --r-strip: 10px; --r-sheet: 14px; --r-plate: 6px;
+  --r: 8px; --r-bar: 10px; --margin: 16px;
   /* surfaces. The tolex is a 512 px bitmap tile (art/surfaces/, shown at 256 px); the grille cloth and raised panels are still drawn in code. */
   --mesh: repeating-linear-gradient(45deg, rgba(0,0,0,.28) 0 1px, transparent 1px 3px), repeating-linear-gradient(-45deg, rgba(255,255,255,.05) 0 1px, transparent 1px 3px), var(--rr-mesh); /* grille cloth, for the tab bar (step 04) */
   --tolex-card: linear-gradient(180deg, rgba(255,255,255,.08) 0 1px, transparent 1px calc(100% - 1px), rgba(0,0,0,.3) calc(100% - 1px)), var(--rr-card); /* a raised panel: 1 px highlight on top, 1 px shadow below */
@@ -6127,3 +6128,45 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .p
 :root:is([data-look="neon"], [data-look="festival"]) .sb-bk svg { flex: none; width: 16px; height: 16px; }
 :root:is([data-look="neon"], [data-look="festival"]) .sb-bkgo { min-height: 44px; padding: 0 6px; margin: -10px 0; border: 0; background: none; color: var(--rr-amber-text); font: 600 var(--type-footnote) / 1 var(--sans); }
 body.searching #sb-more { display: none; }
+
+/* ---- 5.8.0 Songbook, the calm pass (Graham, 2026-11-26: "simple and elegant like the home page"): no boxes. Louie's hint is one quiet
+   line, the filters are words with a teal underline, and the songs are one list with thin lines between them, like the neck's frets. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint { margin: var(--sp-2) 0 var(--sp-2); padding: 0; min-height: 52px; border: 0; border-radius: 0; background: none; box-shadow: none; gap: 10px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .rr-badge { width: 28px; height: 28px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-open { padding-right: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-dots { margin: -14px 0 -14px -15px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-dot i { width: 5px; height: 5px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips.sb-seg { display: flex; gap: 22px; padding: 0 2px; margin: 0 0 var(--sp-3); border: 0; border-bottom: 1px solid var(--rr-hairline); border-radius: 0; background: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips.sb-seg .chip { flex: none; min-height: 44px; padding: 0; border-radius: 0; color: var(--rr-text-2); font: 600 var(--type-subhead) / 1 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips.sb-seg .chip small { font-weight: 500; color: inherit; opacity: .8; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips.sb-seg .chip.on { background: none; color: var(--rr-text); box-shadow: inset 0 -2px 0 var(--rr-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .lib-count { margin-top: 0; font-size: var(--type-footnote); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list.glass:has(.sb-row) { gap: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list.glass:has(.sb-row) .sw { border-radius: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list .row.rr-line.sb-row { min-height: 64px; padding: 10px 2px; gap: 14px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--rr-hairline) 70%, transparent); border-radius: 0; background: none; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-cv { width: 40px; height: 40px; border-radius: 10px; font-size: 16px; background: color-mix(in srgb, var(--tint) 75%, var(--rr-base)); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-row .t { font: 600 var(--type-body) / 1.25 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-row .a { font: 500 var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); margin-top: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-dots i { width: 6px; height: 6px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list.glass.sb-nl { background: none; border: 0; border-radius: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-nl > * { border-bottom: 1px solid color-mix(in srgb, var(--rr-hairline) 70%, transparent); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-nl > * + * { border-top: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app :is(.sb-ni, .sb-nl .sb-nmore) { padding-left: 2px; padding-right: 0; }
+
+/* 5.8.0: less rounding on the Road Ready surfaces that set their own corner (cards, bars, the Songbook's Add) */
+:root:is([data-look="neon"], [data-look="festival"]) :is(.rr-card, .pf-block, .rr-me-tiles, .rr-merch, .pf-ccard) { border-radius: var(--r-card); }
+:root:is([data-look="neon"], [data-look="festival"]) .rr-on-btn { border-radius: var(--r-control); }
+:root:is([data-look="neon"], [data-look="festival"]) .gig .gg-bar, :root:is([data-look="neon"], [data-look="festival"]) .app.viewer .pw.glass:has(.rr-amp) { border-radius: var(--r-bar); }
+:root:is([data-look="neon"], [data-look="festival"]) .sb-add { border-radius: var(--r-control); }
+/* 5.8.0 Songbook rows: the album cover, the title and the artist; the key in a small outlined tag and a heart on the right */
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-cv { width: 48px; height: 48px; border-radius: 4px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app img.sb-cv.sb-art { flex: none; object-fit: cover; background: var(--rr-card); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-r { flex-direction: row; align-items: center; gap: 14px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .rr-line.sb-row .sb-r .k { min-width: 30px; padding: 3px 6px; box-sizing: border-box; text-align: center; border: 1px solid var(--rr-hairline); border-radius: 3px; font: 500 var(--type-caption) / 1.2 var(--readout); letter-spacing: .04em; color: var(--rr-text-2); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-r .heart { width: 22px; height: 22px; fill: var(--rr-amber); stroke: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-row .t { font: 500 var(--type-body) / 1.25 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list .row.rr-line.sb-row { min-height: 68px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-r .heart-sp { width: 22px; height: 22px; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.list.glass, .set-group, .set-group.glass, .pf-card) { border-radius: var(--r-card); }
+:root:is([data-look="neon"], [data-look="festival"]) body.tabbed #tabs { border-radius: var(--r-bar); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list.glass:has(.sb-row) { border-radius: 0; }
