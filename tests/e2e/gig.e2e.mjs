@@ -86,7 +86,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a show from Play to Show complete, with a 
   assert.match(await page.innerText(".gc-list"), /Played \d+ chord change/, "4.91.0: the changes played through");
   assert.ok(await page.locator(".gc-song .gc-ch.got").count() > 0, "the song you played lists the changes played");
   assert.doesNotMatch(await page.innerText(".gc-list"), /no pausing/, "it was paused, so not the whole song");
-  assert.match(await page.innerText(".gc-list"), /The Road: [\s\S]*E chord, 1 of 5 songs/, "4.83.0: what the song did on the Road");
+  assert.match(await page.innerText(".gc-list"), /Your tour: [\s\S]*E chord, 1 of 5 songs/, "4.83.0: what the song did on the Road");
   /* Road Ready 06 (Graham, 2026-11-18): no backdrop on Show complete in Dark and Light; Green Room keeps it (its own test below) */
   assert.equal(await page.locator(".gc-hero, #gc-bdc").count(), 0, "no backdrop or Change in Road Ready");
   assert.match(await page.innerText(".gc-list"), /Double set: 2x XP on this show\. 1 more to go\./);

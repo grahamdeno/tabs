@@ -92,7 +92,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.equal(await page.innerText(".rr-case-card .rr-card-h"), "Guitars\n3 guitars");
     const gs = await page.$$eval(".rr-gtr", els => els.map(li => { const im = li.querySelector("img"), r = im.getBoundingClientRect(); const tf = getComputedStyle(im).transform; return { label: li.getAttribute("aria-label"), h: Math.round(r.height), w: r.width, nw: im.naturalWidth, nh: im.naturalHeight, tf, hidden: im.getAttribute("aria-hidden"), on: li.classList.contains("is-on") }; }));
     assert.equal(gs.length, 3);
-    assert.deepEqual(gs.map(g => g.label), ["Porch, your first guitar", "Cornerstone, earned on Leg 1, Open chords", "Club Slab, earned on Leg 2, Chord switches"], "2026-11-23: headlining a leg earns the next leg's guitar");
+    assert.deepEqual(gs.map(g => g.label), ["Porch, your first guitar", "Cornerstone, earned on Tour 1, Open chords", "Club Slab, earned on Tour 2, Chord switches"], "2026-11-23: headlining a leg earns the next leg's guitar");
     for (const g of gs) { assert.ok(g.nh > g.nw, `${g.label}: the picture is upright (headstock up)`); assert.ok(!/matrix\(/.test(g.tf) || /matrix\([^,]+, 0, 0,/.test(g.tf), `${g.label}: not turned`); assert.equal(g.hidden, "true"); assert.ok(Math.abs(g.w / g.h - g.nw / g.nh) < 0.05, `${g.label}: natural shape`); }
     assert.equal(gs.filter(g => g.on).length, 1, "one guitar in the cradle");
     /* criterion 3: game money and real money are apart */

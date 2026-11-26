@@ -55,7 +55,7 @@ test("Settings > Look: Light and Dark only, and a saved Green Room or Headliner 
   await page.click("#s-theme [data-t='light']"); await page.waitForFunction(() => document.documentElement.dataset.look === "festival");
   assert.deepEqual(await look(), ["light", "festival", "rgb(246, 239, 226)"], "Light is Road Ready light");
   assert.equal((await themeColor()).toLowerCase(), "#f6efe2", "the status bar wears Road Ready light");
-  assert.match(await page.innerText(".foot"), /Light is Road Ready light and Dark is Road Ready dark/, "the Look page names the two looks");
+  assert.match(await page.innerText(".foot"), /Auto follows your phone between Light and Dark/, "5.7.0: the Look page names Light and Dark (no Road Ready names)");
   assert.doesNotMatch(await page.innerText("body"), /Green Room|Headliner|Festival Poster|Neon Midnight/);
   await page.evaluate(async () => { const app = await import("./app.js"); app.data.settings.theme = "headliner"; app.applyTheme(); });
   assert.equal((await look())[1], "neon", "a saved Headliner follows the dark phone");

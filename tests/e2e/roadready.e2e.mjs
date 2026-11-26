@@ -144,9 +144,9 @@ test("Road Ready: the Merch table and Settings use the new names, and no screen 
   await page.evaluate(() => { location.hash = "#/merch/looks"; });
   await page.waitForSelector(".mc-look");
   const text = await page.innerText("body");
-  assert.match(text, /Road Ready light/); assert.match(text, /Road Ready dark/);
+  assert.match(text, /\bLight\b/); assert.match(text, /\bDark\b/); assert.doesNotMatch(text, /Road Ready/, "5.7.0: the looks are Light and Dark");
   assert.doesNotMatch(text, /Festival Poster|Neon Midnight/);
-  assert.equal(await page.locator(".mc-look b", { hasText: "Road Ready dark" }).count(), 1);
+  assert.equal(await page.locator(".mc-look b", { hasText: /^Dark$/ }).count(), 1);
   const first = id => page.evaluate(i => getComputedStyle(document.querySelector(`.mc-look[data-id="${i}"] .mc-sw i`)).backgroundColor, id);
   assert.equal(await first("festival"), "rgb(246, 239, 226)", "the light swatch starts with #F6EFE2");
   assert.equal(await first("neon"), "rgb(20, 18, 16)", "the dark swatch starts with #141210");
@@ -395,7 +395,7 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.ok(neck.gutter.length >= 1, "the stop numbers are in the gutter");
     assert.equal(neck.side, 0, "no side bubble and no gutter title");
     assert.ok(neck.gold >= 12, "the leg change is a thick gold fret");
-    assert.match(neck.label, /Leg 1 · Open chords/);
+    assert.match(neck.label, /Tour 1 · Open chords/);
     assert.equal(await page.getAttribute(".rd-node.cur", "aria-label"), "Show 6 of 10, The Am chord, current. Double tap to open.");
     assert.equal(await page.locator("#app svg.louie, #app .louie").count(), 0, "no Louie on the Road");
     if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/rr02-${label}.png` });
@@ -416,7 +416,7 @@ test("Road Ready 02: a finished leg ends on a gold fret, and the next leg is gra
   }));
   assert.ok(m.gold >= 1, "the leg change is a gold fret");
   assert.match(m.cur, /^Show 1 of 11,/);
-  assert.match(m.next, /Leg 3/);
+  assert.match(m.next, /Tour 3/);
   assert.equal(m.peek, 0, "no empty fret stub under the gold");
   assert.ok(m.dim >= 5, "the next leg's stops are on the neck");
   assert.equal(m.dimGlow, 0, "a grayed stop does not glow");
@@ -424,10 +424,10 @@ test("Road Ready 02: a finished leg ends on a gold fret, and the next leg is gra
   assert.ok(m.stops > 10, "the finished leg stays on the neck with the one you are on");
   await page.evaluate(() => {
     const path = document.getElementById("rd-path");
-    const mark = [...document.querySelectorAll(".rn-lat")].find(m => m.dataset.title === "Leg 2");
+    const mark = [...document.querySelectorAll(".rn-lat")].find(m => m.dataset.title === "Tour 2");
     path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
   });
-  await page.waitForFunction(() => /Leg 2/.test(document.getElementById("rn-legline").innerText));
+  await page.waitForFunction(() => /Tour 2/.test(document.getElementById("rn-legline").innerText));
 });
 
 test("Road Ready 02: every stop and header control does what it did, and each is at least 44 by 44", { skip: skip() }, async t => {
@@ -443,7 +443,7 @@ test("Road Ready 02: every stop and header control does what it did, and each is
   assert.equal(await page.evaluate(() => document.activeElement.id), "sk-x", "focus is on Done");
   await page.click("#sk-x"); await page.waitForSelector(".sk-card", { state: "detached" });
   await page.click("#h-tips"); await page.waitForFunction(() => location.hash === "#/merch"); await back();
-  assert.match(await page.getAttribute("#h-fans", "aria-label"), /fans\. Open the Tour Map$/);
+  assert.match(await page.getAttribute("#h-fans", "aria-label"), /fans\. Open the Map$/);
   await page.click("#h-fans"); await page.waitForFunction(() => location.hash === "#/playmap"); await back();
   await page.click(".rd-node.cur"); await page.waitForSelector(".rd-pop.now");
   assert.match(await page.innerText(".rd-pop.now"), /The Am chord[\s\S]*START/, "the stop card, as before");
@@ -471,7 +471,7 @@ test("Road Ready 02: a screen reader meets the three stats, then the leg and its
   });
   assert.deepEqual(order.slice(0, 3), ["h-streak", "h-fans", "h-tips"]);
   assert.ok(order.includes("stop"), "the stops are buttons");
-  assert.match(await page.innerText(".rd-legmark >> nth=0"), /Leg 1/);
+  assert.match(await page.innerText(".rd-legmark >> nth=0"), /Tour 1/);
   assert.match(await page.innerText(".rn-now-tx"), /Am/);
   assert.equal(await page.getAttribute("#rn-now-open", "aria-label"), "Am, open this stop");
   assert.equal(await page.getAttribute("#rn-now-start", "aria-label"), "Start Am");
@@ -574,7 +574,7 @@ test("Road Ready 06: a headlined leg shows the new guitar in its case, with the 
     assert.equal(await page.locator(".sc-corner, .rr-gcase").count(), 0, "no velvet case and no chrome corners");
     assert.match(await page.getAttribute(".gs-item.is-on img", "src"), /art\/guitars\/streak\/cornerstone-road\.webp/, "Cornerstone, the crisp full picture, is the one in the cradle");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
-    assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Leg 2, Chord switches/);
+    assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Tour 2, Chord switches/);
     assert.equal(await page.locator(".gs-back").count(), 1, "the A-frame stand");
     const c = await page.evaluate(() => {
       const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);
@@ -630,11 +630,11 @@ for (const theme of ["dark", "light"]) {
       assert.ok(x.mid < 1, `${x.id}: the icon is centred on the number`);
     }
     assert.match(got[0].label, /^Gig streak \d+ days?.*\. Show your streak$/); assert.match(got[0].text, /^\d+$/);
-    assert.match(got[1].label, /^[\d,]+ fans\. Open the Tour Map$/); assert.match(got[1].text, /^[\d,]+$/);
+    assert.match(got[1].label, /^[\d,]+ fans\. Open the Map$/); assert.match(got[1].text, /^[\d,]+$/);
     assert.match(got[2].label, /^[\d,]+ dollars in tips\. Open the Merch table$/); assert.match(got[2].text, /^\$[\d,]+$/);
     /* VoiceOver's view: each stat is one button named by its label, with no image in the tree */
     const ax = await page.locator("header.rr-head").ariaSnapshot();
     assert.doesNotMatch(ax, /img/, "no image in the accessibility tree");
-    assert.match(ax, /button "[\d,]+ fans\. Open the Tour Map"/);
+    assert.match(ax, /button "[\d,]+ fans\. Open the Map"/);
   });
 }

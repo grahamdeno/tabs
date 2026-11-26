@@ -1983,7 +1983,7 @@ test("Tour quests (4.5.0): the month's tour, tonight's setlist and the request l
   assert.deepEqual(C.questState(data, now + 86400e3).goals.map(x => x.claimed), [false, false, false]);
   /* 20 shows finish the tour */
   data.songs[1].playLog.days["2026-10-05"] = 9;
-  assert.equal(C.questsSettle(data, now).find(x => /October Tour/.test(x.label)).fans, 100);
+  assert.equal(C.questsSettle(data, now).find(x => /October challenge/.test(x.label)).fans, 100);
   const kept = C.cleanQuests(JSON.parse(JSON.stringify(data.quests)));
   assert.deepEqual(kept, data.quests, "kept through a save");
   assert.equal(C.cleanQuests({ fans: -4, got: ["x"] }), null);
@@ -3612,7 +3612,7 @@ test("Road Ready 9b: a locked part can't be bought, an open one can, and a bough
   let d = earnedB(2); /* Coffeehouse: shop parts are open, custom parts are not */
   assert.deepEqual(C.buildSave(d, "open", { guard: "leopard" }), { why: "locked", id: "leopard" }); assert.equal(d.merch.tspent, undefined, "a locked part costs nothing"); assert.equal(d.builds, undefined);
   assert.deepEqual(C.buildSave(d, "open", { top: "koa" }), { why: "locked", id: "koa" });
-  assert.deepEqual(C.buildSave(d, "scales", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built (2026-11-23: Leg 1 earns Cornerstone, so Club Slab)");
+  assert.deepEqual(C.buildSave(d, "scales", { paint: "seafoam" }), { why: "none" }, "a guitar you haven't earned can't be built (2026-11-23: Tour 1 earns Cornerstone, so Club Slab)");
   assert.equal(C.buildCost(d, "open", { paint: "seafoam", wear: "played" }), 65, "the running total is the new parts");
   d.merch.tips = 0; assert.deepEqual(C.buildSave(d, "open", { paint: "seafoam" }), { why: "tips", cost: 25 });
   d = earnedB(2);
@@ -3868,7 +3868,7 @@ test("Road Ready header: no songs stat, fans open the Tour Map, streak opens a s
   assert.match(css, /\.sk-card #sk-x[^}]*min-height: 44px/, "the close button is at least 44 pt");
 });
 
-test("2026-11-23: one rule for owned guitars: after Leg 1 the case, the builder and buildSave all accept Cornerstone", () => {
+test("2026-11-23: one rule for owned guitars: after Tour 1 the case, the builder and buildSave all accept Cornerstone", () => {
   const data = { songs: [], sets: [], trash: [], settings: {} };
   assert.deepEqual(C.guitarsOwned(data), ["open"], "5.5.0: Porch is yours from the first launch");
   assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: C.GUITAR_START }], "it is the guitar you start with, not one earned on a leg");
@@ -3879,11 +3879,11 @@ test("2026-11-23: one rule for owned guitars: after Leg 1 the case, the builder 
   C.skillDone(data, "k:open");
   const said = C.guitarNew(data);
   assert.equal(said.guitar.name, "Cornerstone", "the sheet announces Cornerstone");
-  assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: C.GUITAR_START }, { id: "switch", li: 0 }], "5.5.0: Porch from the start, Cornerstone earned on Leg 1");
+  assert.deepEqual(C.roadGuitars(data), [{ id: "open", li: C.GUITAR_START }, { id: "switch", li: 0 }], "5.5.0: Porch from the start, Cornerstone earned on Tour 1");
   assert.ok(C.guitarsOwned(data).includes("switch"), "the case and the builder (both read guitarsOwned) hold Cornerstone");
   assert.ok(C.guitarsOwned(data).filter(id => C.BUILD_TAKES[id]).includes("switch"), "the builder's list includes Cornerstone");
   assert.notDeepEqual(C.buildSave(data, "switch", {}), { why: "none" }, "buildSave accepts Cornerstone");
-  assert.deepEqual(C.buildSave(data, "scales", {}), { why: "none" }, "Club Slab waits for Leg 2");
+  assert.deepEqual(C.buildSave(data, "scales", {}), { why: "none" }, "Club Slab waits for Tour 2");
   assert.deepEqual(C.guitarsEarned(data), ["open"], "guitarsEarned stays the headlined legs");
 });
 
@@ -3921,7 +3921,7 @@ test("stats icons: the Road's streak, fans and tips are small paintings, decorat
   for (const [k, f] of [["streak", "streak"], ["streakOff", "streak-off"], ["fans", "map"], ["tips", "merch"]]) assert.match(hud, new RegExp(`${k}: PIC\\("${f}"\\)`), `${k} is the ${f}`);
   assert.match(hud, /st\.days \? ST_ICON\.streak : ST_ICON\.streakOff/, "no streak: the charcoal ember");
   /* the labels and numbers are as they were */
-  assert.match(hud, /aria-label="\$\{n\(fans\)\} fans\. Open the Tour Map">\$\{ST_ICON\.fans\}<span>\$\{n\(fans\)\}<\/span>/);
+  assert.match(hud, /aria-label="\$\{n\(fans\)\} fans\. Open the Map">\$\{ST_ICON\.fans\}<span>\$\{n\(fans\)\}<\/span>/);
   assert.match(hud, /aria-label="\$\{n\(tips\)\} dollars in tips\. Open the Merch table">\$\{ST_ICON\.tips\}<span>\$\$\{n\(tips\)\}<\/span>/);
   /* drawn at 24 px with a -1 px margin: 22 px of room, the same as the line icon, so the numbers don't move */
   assert.match(css, /\.rr-stats \.rr-st-pic \{ width: 24px; height: 24px; margin: -1px;/);

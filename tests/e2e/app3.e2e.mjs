@@ -585,7 +585,7 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1, hlseen: 1 } }, { home: true });
   await page.waitForSelector(".rn-neck");
   assert.equal(await page.locator(".rn-neck").count(), 1, "one rosewood neck for the legs you can see");
-  assert.match(await page.innerText(".rn-legbar"), /Leg 1/);
+  assert.match(await page.innerText(".rn-legbar"), /Tour 1/);
   assert.equal(await page.locator(".rn-bubble").count(), 0, "no name bubble in the gutter");
   assert.equal(await page.locator(".rn-now").count(), 1, "one now plate, for the current stop");
   assert.equal(await page.locator(".rd-node.headline .rn-pearl").count() >= 1, true, "the headline is an inlay");
