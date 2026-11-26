@@ -180,7 +180,7 @@ function renderViewer(id) {
   const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
   /* 4.66.0: a show started from Tour or Charts comes back there with the page's own Back */
   const via = gigFrom?.id === song.id ? gigFrom.from : "";
-  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : via === "tour" ? { to: "#/tour", label: "Back to the Tour" } : via === "charts" ? { to: "#/charts", label: "Back to the Charts" } : lastHome === "road" || via === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to the Songbook" };
+  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : via === "tour" ? { to: "#/tour", label: "Back to the challenge" } : via === "charts" ? { to: "#/charts", label: "Back to the Charts" } : lastHome === "road" || via === "road" ? { to: "#/", label: "Back to the Tour" } : { to: "#/library", label: "Back to the Songbook" };
   diag.pinned = null; diag.scrolling = false; diag.block = null;
   /* One song screen (4.2.0): the song at the top (back, title, favorite), its chips, the song map,
      the chords, the sheet, and at the bottom Tools and Play. Play opens the Gig. */
@@ -506,11 +506,13 @@ function chordSVG(name, scale = 1, { named = true, shape = null } = {}) {
    Tools scales that up or down. Measured once per draw, each line laid out on one line. */
 const FIT_MIN = 14, FIT_MAX = 22;
 /* Full-size lyrics (Grok, 2026-11-19, approved by Graham): in Dark and Light every line is laid out once at the spec's current-line
-   size (34 pt at the default text size), wrapping between words onto a second line when it needs to. Each line keeps that space
-   all the time and is drawn smaller inside it by a transform from its top left corner: 26 for the next line and on the song page,
+   size (28 pt at the default text size since 5.7.0; 34 before), wrapping between words onto a second line when it needs to. Each line keeps that space
+   all the time and is drawn smaller inside it by a transform from its top left corner: 25 for the next line and on the song page,
    22 for the others while playing. So nothing moves, reflows or rewraps when play starts or the line moves on, and the reading
    line stays where Apple Music expects it. Green Room and Headliner keep one line per lyric, sized to the widest. */
-const LYRIC_RR = 34;
+/* 5.7.0 (Graham, 2026-11-26): the line you're on grows to 28, not 34, so every line is laid out nearer the size it is drawn at
+   and the words run close to the right edge (25 on the song page and for the next line, 22 for the others). */
+const LYRIC_RR = 28, LYRIC_NEXT = 25, LYRIC_SUNG = 22;
 let fitWait = false;
 function fitText(sheet, song) {
   const base = 17 * sysText;
@@ -564,10 +566,10 @@ function fitSlots(sheet, song) {
     do { size -= 2; el.style.fontSize = size.toFixed(1) + "px"; } while (size - 2 >= floor && rowsOf(el, size) > 2);
     sizes[i] = size;
   });
-  /* then write: drawn at 26 (next, and the song page) and 22 (the others), never bigger than the line was laid out */
+  /* then write: drawn at 25 (next, and the song page) and 22 (the others), never bigger than the line was laid out */
   lines.forEach((el, i) => {
-    el.style.setProperty("--lyr-next", Math.min(1, 26 / LYRIC_RR * top / sizes[i]).toFixed(3));
-    el.style.setProperty("--lyr-sung", Math.min(1, 22 / LYRIC_RR * top / sizes[i]).toFixed(3));
+    el.style.setProperty("--lyr-next", Math.min(1, LYRIC_NEXT / LYRIC_RR * top / sizes[i]).toFixed(3));
+    el.style.setProperty("--lyr-sung", Math.min(1, LYRIC_SUNG / LYRIC_RR * top / sizes[i]).toFixed(3));
   });
   if (document.fonts?.status === "loading" && !fitWait) { fitWait = true; document.fonts.ready.then(() => { fitWait = false; if (viewing === song && $("sheet") === sheet) redraw?.(); }); }
 }
@@ -779,7 +781,7 @@ function loopName(song) {
 }
 /* Practice mode (3.21.0): the Practice chip under the title turns it on (a song you're learning starts
    with it on). It brings one Practice row to the bar: the section to loop, the speed, Build up, and
-   off. Practice time counts on the Tour Map; off, the song plays straight through. */
+   off. Practice time counts on the Map; off, the song plays straight through. */
 const activeLoop = song => practicing(song) && song.loop ? song.loop : null;
 function setPracticing(song, on) {
   const def = song.status === "learning";

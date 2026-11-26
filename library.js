@@ -127,12 +127,19 @@ export function chipsHTML() {
   if (!data.songs.length) return "";
   const hasFav = data.songs.some(s => s.favorite), hasTab = data.songs.some(s => s.format === "tab"), hasLearn = data.songs.some(s => s.status === "learning");
   const can = canPlayCount(), near = nearCount();
-  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn) || (filter === "can" && !can) || (filter === "near" && !near)) filter = "all";
+  if ((filter === "fav" && !hasFav) || (filter === "tab" && !hasTab) || (filter === "learn" && !hasLearn) || (!rrTab() && ((filter === "can" && !can) || (filter === "near" && !near)))) filter = "all";
   /* 4.20.1: one row that always fits. Sets is a button in the header and Tabs is a choice in the sort menu. */
   const chip = (f, label, aria = "") => `<button class="chip ${filter === f ? "on" : ""}" data-f="${f}"${aria ? ` aria-label="${aria}"` : ""}>${label}</button>`;
   /* each filter says whether it is the chosen one (aria-pressed), so the fill isn't the only signal; Almost (4.105.0) stays when a song is one chord away */
   const pressed = h => h.replace(/data-f="(\w+)"/, (m, f) => `${m} aria-pressed="${filter === f}"`);
   const rr = rrTab();
+  /* 5.7.0 Songbook (Graham, 2026-11-26): in Dark and Light one plain segmented row, All, Can play, Almost and Sets, each with its
+     count; Learning, Favorites and Tabs only are in the sort menu. The row waits until there are five songs or a set. */
+  if (rr) {
+    if (data.songs.length < 5 && !data.sets.length && filter !== "sets") return "";
+    const seg = (f, label, n, aria) => `<button class="chip${filter === f ? " on" : ""}" data-f="${f}" aria-pressed="${filter === f}" aria-label="${aria}">${label}${n === "" ? "" : `<small>${n}</small>`}</button>`;
+    return `<div class="chips rr-chips sb-seg" id="chips" role="group" aria-label="Show">${seg("all", "All", data.songs.length, `All, ${data.songs.length} songs`)}${seg("can", "Can play", can, `Can play, ${can} songs`)}${seg("near", "Almost", near, `Almost, ${near} songs one chord away`)}${seg("sets", "Sets", data.sets.length || "", `Sets${data.sets.length ? `, ${data.sets.length}` : ""}`)}</div>`;
+  }
   return `<div class="chips${rr ? " rr-chips" : ""}" id="chips">${[chip("all", rr ? `All<small>${data.songs.length}</small>` : "All", rr ? `All, ${data.songs.length} songs` : ""), can && chip("can", `Can play<small>${can}</small>`, `Can play, ${can} songs`), near && chip("near", `Almost<small>${near}</small>`, `Almost, ${near} songs one chord away`), hasLearn && chip("learn", "Learning"), hasFav && chip("fav", icon("heart"), "Favorites")].filter(Boolean).map(pressed).join("")}</div>`;
 }
 /* Tonight's drawer holds the same Library; it registers how to repaint itself here. */
@@ -141,23 +148,26 @@ export const refreshLibrary = () => route().name === "road" ? homeHooks.refresh?
 
 export function renderLibrary() {
   chipsHTML(); /* settles a filter that no longer has songs */
-  const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
+  /* 5.7.0: in Dark and Light Sets is in the filter row; while that row waits (under five songs and no set) Sets stays in the header,
+     so a set can always be made. The tuner is a plain 44 px circle with no dot (the label still says when it hasn't been used lately) */
+  const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() || rrTab() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
-      <div class="head-l">${filter === "sets" ? `<button class="sh-btn" id="libback" aria-label="Back to all songs">${icon("back")}</button>` : rrTab() ? "" : `<button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button>`}<h1 class="title script">${filter === "sets" ? "Sets" : "Songbook"}</h1></div>
+      <div class="head-l">${filter === "sets" ? `<button class="sh-btn" id="libback" aria-label="Back to all songs">${icon("back")}</button>` : rrTab() ? "" : `<button class="sh-btn" id="libback" aria-label="Back to the Tour">${icon("back")}</button>`}<h1 class="title script">${filter === "sets" ? "Sets" : "Songbook"}</h1></div>
       <div class="row-btns">
-        <button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets" aria-pressed="${filter === "sets"}">${icon("list")}Sets</button>
-        ${tunerBtn("ib chunky-tune")}
+        ${rrTab() && chipsHTML() ? "" : `<button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets" aria-pressed="${filter === "sets"}">${icon("list")}Sets</button>`}
+        ${tunerBtn(rrTab() ? "ib sb-tune" : "ib chunky-tune")}
       </div>
     </div>
     ${todayHTMLOrSpot()}
     ${chipsHTML()}
-    ${needsBackup() ? `<div class="bk glass" id="bk">
+    ${needsBackup() && rrTab() ? "" : needsBackup() ? `<div class="bk glass" id="bk">
       <span class="tile">${icon("cloud")}</span>
       <div class="bk-t"><b>Back up your library</b><span>${data.settings.lastBackup ? `Last backup ${ago(data.settings.lastBackup)}` : "Not backed up yet"}. Save it to iCloud Drive.</span></div>
       <div class="bk-b"><button class="btn sm" id="bk-later">Later</button><button class="btn sm primary" id="bk-go">Back up</button></div>
     </div>` : ""}
     <div id="list"></div>
+    ${rrTab() ? `<div id="sb-more"></div>` : ""}
     <div class="dock-fade"></div>
     <div class="dock kb">
       <label class="cmd glass float">
@@ -174,6 +184,7 @@ export function renderLibrary() {
   $("tunerbtn")?.addEventListener("click", () => openTuner("standard", () => route().name === "library" && renderLibrary()));
   $("bk-later")?.addEventListener("click", () => { data.settings.backupSnooze = Date.now() + 2 * 86400000; Tabs.save(data); $("bk").remove(); });
   $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
+  /* 5.7.0: the quiet backup line under the list in Dark and Light (bound in sbMore) */
   app.querySelectorAll("[data-f]").forEach(b => b.onclick = () => { filter = b.dataset.f; renderLibrary(); });
   const q = $("q");
   const enterSearch = () => {
@@ -289,10 +300,27 @@ function lyricHit(line, q) {
   if (from) { const sp = line.indexOf(" ", from); from = sp >= 0 && sp < i ? sp + 1 : from; } /* start on a whole word */
   return `“${from ? "…" : ""}${esc(line.slice(from, i))}<mark>${esc(line.slice(i, i + n))}</mark>${esc(line.slice(i + n))}”`;
 }
+/* 5.7.0 Songbook rows in Dark and Light (Graham, 2026-11-26): a cover tile with the title's first letter, the title, the artist with
+   the song's chords (a chord you don't play yet is marked), the key, and three dots for how well you know it. */
+const SB_TINT = ["#2F5D62", "#6B3E2E", "#3D4A6B", "#5A5A2E", "#5B3456", "#40513B", "#6B5A2E", "#2E4F6B"];
+const sbTint = t => { let h = 0; for (const c of String(t || "")) h = (h * 31 + c.charCodeAt(0)) >>> 0; return SB_TINT[h % SB_TINT.length]; };
+const MASTERY = { learning: 1, solid: 2, got: 3 };
+function sbRow(s, hit, stat) {
+  const f = fitOf(s), miss = new Set(f.missing), lv = MASTERY[s.status] || 0;
+  const chords = s.format === "tab" ? "Tab" : sheetChords(s.body).slice(0, 6).map(c => miss.has(c) ? `<b class="miss" title="Not played yet">${esc(c)}</b>` : esc(c)).join(" ");
+  const sub = hit ? `<span class="hit">${hit}</span>` : `<span class="sb-ar">${esc(s.artist || "Unknown artist")}</span>${stat ? `<span class="sb-st">${esc(stat)}</span>` : chords ? `<span class="sb-ch">${chords}</span>` : ""}`;
+  const say = `${STATUS[s.status] || "New"}${f.can ? ", can play" : f.missing.length === 1 ? `, needs ${f.missing[0]}` : ""}`;
+  return `<button class="row rr-line sb-row" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
+    <span class="sb-cv" aria-hidden="true" style="--tint:${sbTint(s.title)}">${esc((s.title || "?").trim().charAt(0).toUpperCase())}</span>
+    <div class="txt"><div class="t">${esc(s.title)}${s.favorite ? `<svg class="heart" viewBox="0 0 24 24" aria-label="Favorite" role="img">${I.heart}</svg>` : ""}</div><div class="a">${sub}</div></div>
+    <span class="sb-r"><span class="k">${esc(keyOf(s))}</span><span class="sb-dots" role="img" aria-label="${esc(say)}">${[1, 2, 3].map(i => `<i class="${i <= lv ? "on" : ""}"></i>`).join("")}</span></span>
+  </button>`;
+}
 function songRow(s, hit) {
   const wk = playsThisWeek(s), sort = data.settings.sort, n = playCount(s);
   const when = sort === "recent" && lastPlayed(s) ? ago(new Date(lastPlayed(s)).toISOString()) : "";
   const stat = sort === "most" && n ? `${n} play${n === 1 ? "" : "s"}` : when ? `Played ${when}` : wk && `Played ${wk}× this week`;
+  if (rrTab()) return sbRow(s, hit, stat);
   const sub = hit ? `<span class="hit">${hit}</span>`
     : [esc(s.artist || "Unknown artist"), s.status !== "learning" && STATUS[s.status] && `<span class="st ${s.status}">${STATUS[s.status]}</span>`, stat].filter(Boolean).join(" · ");
   return `<button class="row${rrTab() ? " rr-line" : ""}" data-id="${esc(s.id)}"${s.id === lastOpened ? ' style="view-transition-name: song-title"' : ""}>
@@ -318,10 +346,15 @@ function fitOf(s) {
 const canPlayCount = () => data.songs.filter(s => fitOf(s).can).length;
 /* 4.105.0 (agreed Songbook): Almost, the songs one chord away from playable */
 const nearCount = () => data.songs.filter(s => !fitOf(s).can && fitOf(s).missing.length === 1).length;
+/* 5.7.0: in Dark and Light, Learning only and Favorites only join Tabs only in this menu (they were filters) */
+const ONLY = { tab: ["tabs", "Tabs only"], learn: ["learn", "Learning only"], fav: ["fav", "Favorites only"] };
 const sortBy = sort => {
-  const tabs = data.songs.some(s => s.format === "tab"), tabsOnly = filter === "tab" && tabs;
-  const opts = Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort && !tabsOnly ? "selected" : ""}>${v}</option>`).join("") + (tabs ? `<option value="tabs" ${tabsOnly ? "selected" : ""}>Tabs only</option>` : "");
-  return `<label class="sortby">${esc(tabsOnly ? "Tabs only" : SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${opts}</select></label>`;
+  const tabs = data.songs.some(s => s.format === "tab"), rr = rrTab();
+  const has = { tab: tabs, learn: rr && data.songs.some(s => s.status === "learning"), fav: rr && data.songs.some(s => s.favorite) };
+  const only = ONLY[filter] && has[filter] ? filter : "";
+  const opts = Object.entries(SORTS).map(([k, v]) => `<option value="${k}" ${k === sort && !only ? "selected" : ""}>${v}</option>`).join("")
+    + Object.entries(ONLY).filter(([f]) => has[f]).map(([f, [v, label]]) => `<option value="${v}" ${only === f ? "selected" : ""}>${label}</option>`).join("");
+  return `<label class="sortby">${esc(only ? ONLY[only][1] : SORTS[sort])}${icon("chev", "chev")}<select id="sort" aria-label="Sort songs">${opts}</select></label>`;
 };
 // A–Z index on the right edge of a long list: touch or drag to jump to a letter.
 function bindIndex(list, sorted, sort) {
@@ -473,6 +506,7 @@ function catalogSearch(term) {
 }
 export function renderList() {
   document.body.classList.toggle("sr-lock", searching && !query.trim()); /* 4.49.1: the search screen holds still until you type */
+  sbMore(false); /* filled again at the end of the plain list */
   const list = $("list"), drawer = route().name === "road";
   document.querySelector(".azx")?.remove(); document.body.classList.remove("has-azx");
   if (!data.songs.length) {
@@ -536,12 +570,38 @@ export function renderList() {
   if (q) catalogSearch(query.trim());
   $("sort")?.addEventListener("change", e => {
     if (e.target.value === "tabs") filter = "tab";
-    else { data.settings.sort = e.target.value; if (filter === "tab") filter = "all"; Tabs.save(data); }
+    else if (e.target.value === "learn" || e.target.value === "fav") filter = e.target.value;
+    else { data.settings.sort = e.target.value; if (ONLY[filter]) filter = "all"; Tabs.save(data); }
     renderLibrary();
   });
   bindRows(list);
   bindFind(list);
   if (!drawer) bindIndex(list, sorted, q ? "" : sort);
+  sbMore(!q && !searching && filter === "all");
+}
+/* 5.7.0 Songbook (Graham, 2026-11-26), Dark and Light: under the list, "Songs you can play next" and one quiet backup line.
+   What can I play next asks the AI, so the page never asks on its own: it shows the last suggestions it got (kept on this phone
+   by findai.js), or one row that opens the feature. No AI key, no section. */
+const NX_SAVED = "tabs.nx.songbook.v1";
+function savedNext() {
+  try { const j = JSON.parse(localStorage.getItem(NX_SAVED) || "null"); return Array.isArray(j?.list) ? j.list.filter(x => x && typeof x.title === "string").slice(0, 3) : []; } catch { return []; }
+}
+function sbMore(show) {
+  const box = $("sb-more");
+  if (!box) return;
+  const ai = !!aiKey() && data.songs.length > 0, list = ai ? savedNext().filter(x => !inSongbook(x)) : [];
+  const nx = !show || !ai ? "" : `<section class="sb-next" aria-label="Songs you can play next">
+      <div class="sb-nh"><h2>Songs you can play next</h2><small>with the chords you know</small></div>
+      <div class="list glass sb-nl">${list.length ? list.map((x, i) => `<div class="sb-ni">
+        <span class="txt"><span class="t">${esc(x.title)}</span><span class="a">${esc(x.artist || "")}${(x.chords || []).length ? ` · <span class="sb-ch">${x.chords.slice(0, 6).map(c => (x.new || []).includes(c) ? `<b class="miss">${esc(c)}</b>` : esc(c)).join(" ")}</span>` : ""}</span></span>
+        <button class="sb-add" data-nx="${i}" aria-label="Add ${esc(x.title)}">Add</button></div>`).join("") + `<button class="row sb-nmore" id="sb-nmore"><span class="txt"><span class="t">More ideas</span></span>${icon("chev", "chev")}</button>`
+        : `<button class="row sb-nmore" id="sb-nmore"><span class="txt"><span class="t">Find songs you can play next</span><span class="a">Ideas that use the chords you know</span></span>${icon("chev", "chev")}</button>`}</div>
+    </section>`;
+  const bk = show && needsBackup() ? `<p class="sb-bk" id="bk">${icon("cloud")}<span>${data.settings.lastBackup ? "Not backed up this week." : "Not backed up yet."}</span><button class="sb-bkgo" id="bk-go">Back up</button></p>` : "";
+  box.innerHTML = nx + bk;
+  $("sb-nmore")?.addEventListener("click", () => nextSongs());
+  box.querySelectorAll("[data-nx]").forEach(b => b.onclick = () => findAI().then(m => m.learnNext(list[+b.dataset.nx])));
+  $("bk-go")?.addEventListener("click", async () => { if (await backupNow()) { $("bk")?.remove(); toast("Backed up"); } });
 }
 // swipe a song in the list. Left shows Delete (a long swipe deletes
 // at once; Undo brings it back, and it stays in Recently deleted for 30

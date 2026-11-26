@@ -33,7 +33,7 @@ sees, and what teaches them anything.
 
 | Screen | What a new person sees | What teaches them | Problem |
 |---|---|---|---|
-| The Road, first launch | Leg 1 "Open chords", the G chord finger dot glowing, Louie's bubble "Let's play your first song" with a Gig: Harbor Lights button | The halo | **Two first steps compete**: Louie says play a song, the glowing dot says learn the G chord |
+| The Road, first launch | Tour 1 "Open chords", the G chord finger dot glowing, Louie's bubble "Let's play your first song" with a Gig: Harbor Lights button | The halo | **Two first steps compete**: Louie says play a song, the glowing dot says learn the G chord |
 | | "You can play 0 of your 1 song" | | Starts the player on a zero |
 | | Stat bar: a shield with 1, a guitar with 0, a ticket with 0 | Nothing | No labels; nothing says what they are or that they open pages |
 | | A pink dot on the tab bar on every screen (on More until Road Ready 04, on Me now) | Nothing | It means "not tuned in the last few hours", but it looks like "something new". It never clears unless you tune |
@@ -55,7 +55,7 @@ sees, and what teaches them anything.
 | Me | Rows: Your band, Charts and duets, Merch table, Tuner, Support Louie; a Settings gear at the top right (Road Ready 04; the More sheet is gone) | | The Songbook is a tab now, so nothing hides in a sheet |
 | Your profile | Garage, level 1, 0 of 25 badges | On screen | Fine |
 | Merch table | Louie: "Play a few shows and come back. The fans pay for all of this." | On screen | **Good model**: Louie explains the page in one line. Every new page should have this |
-| Tour Map | Rivals' corners, "Plant your flag on a real map", "Pull up for your scene" | On screen | Fine |
+| Map | Rivals' corners, "Plant your flag on a real map", "Pull up for your scene" | On screen | Fine |
 | Settings | Keys: AI off, Apple Music off, Language practice not picked | | Nothing anywhere tells a new person what the AI key or Apple Music would add |
 | Search | The search list tip | Tip | Works |
 
@@ -102,7 +102,7 @@ anything a person found on their own is skipped.
 
 ### First month
 
-1. The venue opens the Tour Map (after about 5 songs played through).
+1. The venue opens the Map (after about 5 songs played through).
 2. Tour's request line and tonight's setlist (first visit to Tour after the tutorial leg).
 3. Charts and the rival battle (after the first Gig).
 4. Song duels (the Challenge button after a good show; Charts' Friends list).
@@ -124,7 +124,7 @@ anything a person found on their own is skipped.
    The mic pill says it is listening, but not why.
 3. **Everything opens on day one.** Tour, a full chart of rivals with a battle, 27 band silhouettes, the
    Merch table. Each page is good; all six at once before a single song is a lot.
-4. **The stat bar is three hidden doors.** Venue opens the Tour Map, fans open the Merch table, the streak
+4. **The stat bar is three hidden doors.** Venue opens the Map, fans open the Merch table, the streak
    opens Your profile. No labels and nothing says they're buttons; two of those pages have no other door
    from the Road.
 5. **The setup steps** (Home Screen, microphone, backups, AI key) aren't explained anywhere.
@@ -166,7 +166,7 @@ and on the song screen, where you play.
 | 1 | Tap a stop for its card (Start, Play again) | Tap a stop; tap again or elsewhere to close | None (the halo invites it; Road Ready: the glowing trapezoid and its callout) | The first thing a new player must do. If the halo isn't enough on a phone, a one-time "Tap the glowing dot" from Louie |
 | 2 | The streak opens Your profile | Tap the guitar in the stat bar (Road Ready: the Fans pill, which shows the streak) | None (Road Ready: labelled) | Right after the first song played through, when the streak first lights |
 | 3 | Tips open the Merch table | Tap the tips (Road Ready: the Tips pill) | None (Road Ready: labelled) | When tips first reach the price of the cheapest thing (Rain check) |
-| 4 | The venue opens the Tour Map | Tap the venue (Road Ready: the venue plate) | None | After the first few songs, when there are hexagons to see |
+| 4 | The venue opens the Map | Tap the venue (Road Ready: the venue plate) | None | After the first few songs, when there are hexagons to see |
 | 5 | Other songs that fit (headline) | Tap a headline pick, then Other songs that fit | None (it's on the card) | Visible once the card is open; no tip needed |
 
 ### Song page (paused)
@@ -266,16 +266,16 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 | 2 | Tap a key to hear that string | Tap a tuning key | Listed | First open, after the meter tip |
 | 3 | Instrument, tuning, Guided and Chromatic in the top menu | Tap the pill | None | Visible enough; leave it |
 
-### Tour, Tour Map, Charts, Band, Merch, Profile
+### Tour, Map, Charts, Band, Merch, Profile
 
 | # | Page | Hidden feature | How you do it | Coverage | Why here |
 |---|---|---|---|---|---|
-| 1 | Tour Map | Pull the sheet up for your scene this week | Drag the sheet up | On screen ("Pull up for your scene") | Fine as is |
+| 1 | Map | Pull the sheet up for your scene this week | Drag the sheet up | On screen ("Pull up for your scene") | Fine as is |
 | 2 | Profile | Tap a passport stamp for its diagram | Tap | None | First visit to the passport |
 | 3 | Band | Tap a friend to hear them say something | Tap a card | None | When the second friend joins |
 | 4 | Merch | Try it on before buying a finish | The Try it on button | Visible; Louie explains the page | No tip |
 | 5 | Charts | Who moves up and down on Monday | Read the chart | Visible | No tip |
-| 6 | Tour Map | Rivals are simulated; Forget my spot | Info button | Visible | No tip |
+| 6 | Map | Rivals are simulated; Forget my spot | Info button | Visible | No tip |
 | 7 | Profile | Edit your guitarist: genre, man or woman, left-handed, dice | The Edit your guitarist button on the player card | Visible; the first step of Opening night (or a one-time Road sheet) shows the same picker | No tip. The maker's first screen says the rest is on Your profile |
 | 8 | Profile | Your look follows the venue; patches are earned (a leg headlined, badges), up to five worn | Nothing to do: it changes by itself; pick the patches in the maker | None | No tip; it's a surprise when the first jacket arrives at the Coffeehouse |
 | 9 | Merch | Gear, backdrops and looks (hats were removed 2026-11-23) | The Merch table tabs | Visible | No tip |
@@ -324,4 +324,4 @@ The tab bar has five tabs: Road, Songbook, Rehearse, Tour and Me. The More sheet
 | More > Songbook | The Songbook tab (`#/library`) |
 | More > Support Louie | Me > Support Louie |
 | Merch table (from your tips in the stat bar) | Also Me > Merch table |
-| Settings copy "Tour Map (in More)" | "Tour Map (open it from your venue on Me)" |
+| Settings copy "Map (in More)" | "Map (open it from your venue on Me)" |

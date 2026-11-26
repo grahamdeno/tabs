@@ -369,7 +369,7 @@ function showComplete() {
       ${request ? `<p>Request line: a fan asked for this one. <b>2x bonus fans</b></p>` : ""}
       ${opened ? `<p><b>Opening night: done!</b> Your streak starts tonight.</p>` : ""}
       ${earned.map(x => `<p>${esc(x.label)}: <b>+${x.fans} fans</b></p>`).join("")}
-      ${road.length ? `<p>The Road: ${road.map(r => r.done ? `<b>${esc(r.chord)} chord done</b>` : `${esc(r.chord)} chord, <b>${r.n} of ${KNOW_PLAYS}</b> songs`).join(", ")}</p>` : ""}
+      ${road.length ? `<p>Your tour: ${road.map(r => r.done ? `<b>${esc(r.chord)} chord done</b>` : `${esc(r.chord)} chord, <b>${r.n} of ${KNOW_PLAYS}</b> songs`).join(", ")}</p>` : ""}
       ${ps.of ? `<p>You can play <b>${ps.now} of your ${ps.of}</b> songs</p>` : ""}
       ${st.days ? `<p>Gig streak: <b>${st.days} night${st.days === 1 ? "" : "s"}</b></p>` : ""}
     </div>
