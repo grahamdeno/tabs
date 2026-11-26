@@ -6174,7 +6174,7 @@ body.searching #sb-more { display: none; }
 /* Song tours (5.9.0): a stand-in chord on the sheet and the card while Louie picks. Shape and a mark, never colour alone. */
 .sheet .c.standin { outline: 2px dashed currentColor; outline-offset: 2px; border-radius: 6px; }
 .sheet .c.standin .si { font-style: normal; font-size: .7em; margin-left: .2em; opacity: .8; }
-.rd-tourfind { margin: 12px 16px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line, currentColor); background: var(--card, transparent); }
+.rd-tourfind { margin: 12px 16px; padding: 14px 16px; border-radius: var(--r-card, 8px); border: 1px solid var(--line, currentColor); background: var(--card, transparent); }
 .rd-tourfind p { margin: 4px 0 0; overflow-wrap: anywhere; }
 .rd-tourfind .btn { min-height: 44px; min-width: 44px; margin-top: 10px; }
 .rd-pop [data-tourswap] { min-height: 44px; }
