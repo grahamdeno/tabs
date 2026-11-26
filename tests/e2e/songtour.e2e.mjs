@@ -96,6 +96,7 @@ test("story 2: Swap loads a new pick under the same rules and earlier picks are 
   assert.equal(calls.pick.length, 2);
   assert.match(calls.pick[1].content, /Already tried: pier lights\|the cape fear/, "the earlier pick goes along");
   assert.match(calls.pick[1].sys, /2 to 4 chords/, "the same rules");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songTour?.legs?.open?.pick?.title === "Harbour Two"); /* saves land after the screen changes */
   assert.deepEqual((await stored(page)).songTour.legs.open.skipped, ["pier lights|the cape fear"]);
 });
 
