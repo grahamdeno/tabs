@@ -284,17 +284,17 @@ window.onYouTubeIframeAPIReady && window.onYouTubeIframeAPIReady();`;
 });
 
 test("rounds: the headline plays the whole song with every chord; when it passes the song is Solid and its chords are known", { skip: skip() }, async t => {
-  const d = withLessons(SEEDED({ done: ["r:open-1", "r:open-2", "r:open-3"] }, { bpm: 120 })); d.settings = { ...d.settings };
+  const d = withLessons(SEEDED({ done: ["r:open-1", "r:open-2", "r:open-3"] })); d.settings = { ...d.settings };
   const { page } = await home(t, d, { key: false, opts: mic });
   await page.waitForSelector('.rn-stop.cur[data-stop="h:open"]');
   await open(page);
   assert.equal(await page.locator("#round .rnd-rest").count(), 0, "every chord is played");
-  await page.click('#round [data-speed="1"]'); await follow(page);
+  await follow(page); /* 60% at 200 bpm: a beat every half second, the same as the pretend guitar strums */
   /* the pretend guitar is a real-time loop: on a busy machine a pass can miss, so Play it again up to twice (the card never penalises) */
-  for (let k = 0; k < 3; k++) {
+  for (let k = 0; k < 4; k++) {
     assert.match(await card(page), /Louie heard/);
     if (await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "pier").status === "solid")) break;
-    if (k < 2) { await page.click('#round [data-rnd="again"]'); await page.waitForFunction(() => document.querySelector("#round .rnd-card")?.hidden); }
+    if (k < 3) { await page.click('#round [data-rnd="again"]'); await page.waitForFunction(() => document.querySelector("#round .rnd-card")?.hidden); }
   }
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songs.find(s => s.id === "pier").status === "solid", null, { timeout: 5000 });
   const after = await stored(page);
