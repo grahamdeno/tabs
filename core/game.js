@@ -1035,6 +1035,7 @@ export function cleanDuels(raw) {
 export function knownChords(data, now = Date.now()) {
   const sk = skillState(data, now), out = new Set();
   for (const lv of sk.levels) for (const st of lv.steps) if (st.kind === "chord" && st.state === "done") out.add(st.chord);
+  for (const id of Object.keys(data.skills?.done || {})) if (/^c:/.test(id)) out.add(id.slice(2)); /* 5.9.0: a song tour teaches chords that are not on the neck */
   for (const [c, x] of Object.entries(data.journal?.chords || {})) if ((x?.n || 0) >= 5) out.add(c);
   return out;
 }

@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
+import { TOUR_RUN, standInBlocks, STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
@@ -301,6 +301,9 @@ function renderViewer(id) {
     const off = isChords && song.capoOff ? bodyCapo(song.body) : 0;
     const body = off ? (song.body || "").replace(/\[?capo\s*(\d{1,2})\]?/i, "No capo (Capo $1 taken off)") : song.body || "";
     let blocks = parseBlocks(body, isChords ? steps - capo + off : 0, isChords && prefersFlats(baseKey, steps - capo));
+    /* 5.9.0: a song tour stop plays the song with stand-in chords, each marked; the saved song is not touched */
+    const run = TOUR_RUN.cur && TOUR_RUN.cur.song === song.id && TOUR_RUN.cur.kind === "play" ? TOUR_RUN.cur : null;
+    if (run && isChords) standInBlocks(blocks, new Set(run.have));
     /* German practice: only while the translation matches the words on screen. */
     const lvl = song.deLevel || 0, fresh = deLangOk(song, data) && song.de.src === deSource(sungText(blocks));
     if (lvl && fresh) blocks = germanBlocks(blocks, song.de, lvl, { english: data.settings.deEnglish === true, translit: langOf(data) === "ru" && data.settings.deTranslit !== false });
@@ -428,12 +431,14 @@ function renderViewer(id) {
 let redraw = null;
 let refreshSpeed = () => {}; /* the song page's speed slider, after the length changes */
 let foldApi = null;
-onLeave(r => { clearTimeout(ttTimer); stripRO?.disconnect(); teardownFold(); foldApi = null; stageStop(); if (r?.name !== "song") coverOff(); }); /* 4.61.1: songs in a set keep the cover between them */
+onLeave(r => { clearTimeout(ttTimer); stripRO?.disconnect(); teardownFold(); foldApi = null; stageStop(); if (r?.name !== "song") { coverOff(); TOUR_RUN.cur = null; } }); /* 4.61.1: songs in a set keep the cover between them */
 // Substitutions from Make it easier for the song on screen: shape name → easier chord.
 let SUBS = {};
-function chordLabel(text) {
+function chordLabel(text, was = "") {
   let name = String(text).split(/\s+/)[0].replace(/^\(|\)$/g, "");
   if (SUBS[name]) { text = String(text).replace(name, SUBS[name]); name = SUBS[name]; }
+  /* 5.9.0: a song tour stand-in: a dashed outline and a mark (never colour alone), read as "Bm, played as D" */
+  if (was && chordShape(name)) return `<span class="c standin" data-ch="${esc(name)}"><span class="ct" aria-hidden="true">${esc(text)}</span><i class="si" aria-hidden="true">≈</i><span class="sr-only">${esc(was)}, played as ${esc(name)}</span></span>`;
   /* 4.83.0: a note in brackets on a chord line ("(hold)") is read, not played */
   return chordShape(name) ? `<span class="c" data-ch="${esc(name)}"><span class="ct">${esc(text)}</span></span>` : (/^\(.*\)$/.test(String(text)) ? `<span class="c cnote"><i>${esc(text)}</i></span>` : `<span class="c">${esc(text)}</span>`);
 }
@@ -443,14 +448,14 @@ function renderBlocks(sheet, blocks) {
   /* German practice: a German word carries its card's key and its noun gender. */
   const txt = p => p.de ? `<span class="de${p.de.g ? " g-" + p.de.g : ""}" data-de="${esc(p.de.k)}">${esc(p.text)}</span>` : esc(p.text);
   const word = w => w.space ? " " : `<span class="w${w.lead ? " lead" : ""}">${w.parts.map(p => p.chord
-    ? `<span class="sg${p.free ? " free" : ""}">${chordLabel(p.chord)}<span class="l">${txt(p)}</span></span>`
+    ? `<span class="sg${p.free ? " free" : ""}">${chordLabel(p.chord, p.was)}<span class="l">${txt(p)}</span></span>`
     : txt(p)).join("")}</span>`;
   const under = b => (b.tr ? `<span class="de-tr">${esc(b.tr)}</span>` : "") + (b.en ? `<span class="de-en">${esc(b.en)}</span>` : "");
   sheet.innerHTML = blocks.map((b, i) => {
     if (b.kind === "section") return `<div class="sec">${esc(b.text)}</div>`;
     if (b.kind === "blank") return `<div class="gap"></div>`;
     if (b.kind === "lyric") return `<div class="ly${NOTE.test(String(b.text || "").trim()) && !(b.chords || []).length ? " note" : ""}">${b.segs ? b.segs.map(txt).join(" ") : esc(b.text)}${under(b)}</div>`;
-    if (b.kind === "chords") return `<div class="crow">${b.items.map(chordLabel).join("")}</div>`;
+    if (b.kind === "chords") return `<div class="crow">${b.items.map((x, i) => chordLabel(x, b.was?.[i])).join("")}</div>`;
     if (b.kind === "pair") return `<div class="pr">${b.words.map(word).join("")}${under(b)}</div>`;
     return `<div class="tabsys" data-i="${i}"></div>`;
   }).join("");
@@ -1397,6 +1402,8 @@ export const findAI = () => lazy("findai.js");
 // Leave search mode (used when a song is added from a chart).
 function getSong(...args) { findAI().then(m => m.getSong(...args)); }
 export function nextSongs() { findAI().then(m => m.nextSongs()); }
+export const tourPick = id => findAI().then(m => m.tourPick(id)); /* 5.9.0 song tours */
+export const tourGet = id => findAI().then(m => m.tourGet(id));
 
 // ---------- Tuner ----------
 // Listens through the microphone and shows how far each string is from its note.

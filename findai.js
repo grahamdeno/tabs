@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, chartOfSheet, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
+import { Tabs, TUNINGS, meOf, tourAttach, tourFit, tourPicked, tourSwap, pickKey, chartOfSheet, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { coverHead, searchApple, attachRecording } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
@@ -410,6 +410,14 @@ export function getSong(q, preset = {}) {
     if (recWanted(st)) attachRecording(s, st.rec); /* 4.57.0: the Apple Music recording found while it fetched */
     close(); leaveSearch();
     grooveFor(s); /* how it feels, in the background */
+    /* 5.9.0: a song tour's pick: the song is saved as Learning and the tour takes it, with the new chords the sheet really has */
+    if (preset.tour) {
+      s.status = "learning";
+      const r = tourAttach(data, preset.tour, s);
+      if (!r.ok) tourSwap(data, preset.tour);
+      Tabs.save(data); go("#/");
+      return toast(r.ok ? `Added ${c.title}. Your song tour starts with playing it now` : `${c.title} has ${r.new.length} new chords, so Louie is picking another song for the tour`);
+    }
     /* 4.28.0: from Play next's Learn, on to the new chord's lesson, but only when the fetched sheet really
        has that chord (the AI's chord list can be wrong: Hotel California came back with a C# it doesn't have) */
     const teach = teachOf();
@@ -552,6 +560,8 @@ export function getSong(q, preset = {}) {
     try { st.chart = await findChart(title0, artist0, level); }
     catch (e) {
       if (!alive) return;
+      /* 5.9.0: a song tour pick whose words can't be found: on to the next pick, said in one line */
+      if (preset.tour && e.status === -2) { tourSwap(data, preset.tour); Tabs.save(data); close(); leaveSearch(); go("#/"); return toast(`Couldn't find the words to ${title0 || "that song"}. Louie is picking another.`); }
       st.view = "error"; st.err = e.status === -2 ? "Couldn't find reliable chords for that song. Check the spelling, or add the artist." : aiError(e);
       if (kept === me) setKept(null);
       return paint();
@@ -807,6 +817,47 @@ export async function nextSongs() {
   if (nxLast && nxLast.lv === level() && nxLast.list?.length && Date.now() - nxLast.at < NX_KEEP) {
     state = { busy: false, err: "", skip: nxLast.skip || [], list: nxLast.list }; paint(); covers(state.list);
   } else load();
+}
+
+/* 5.9.0 Song tours: Louie's quiet pick. It reuses the Play next prompt with the tour's rules: 2 to 4 chords you don't play, not
+   in the Songbook, aimed at your genre, your favourites and the artists you have. The first reply that fits the rules is taken;
+   Swap sends the earlier picks along so they aren't offered again. The AI returns titles, artists and chords only, never lyrics. */
+const TOUR_RULES = `- Each song needs 2 to 4 chords they don't play. "new" lists exactly those, as plain chords (D, Bm, F#m: no sevenths, no sus, no slash bass). Every other chord in it is one they play, or the same chord with an extension (D7 for D).
+- Not songs they have and not songs listed as already tried.
+- Aim at their genre, their favourite songs and the artists in their Songbook.
+- "why": under 12 words, plain, no praise.`;
+export async function tourPick(legId) {
+  const t = data.songTour?.legs?.[legId];
+  if (!t || t.pick) return;
+  const have = knownChords(data), known = [...have].slice(0, 30);
+  const mine = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 60).join("; ");
+  const favs = data.songs.filter(s => s.favorite).map(s => s.title).slice(0, 12).join("; ");
+  const artists = [...new Set(data.songs.map(s => s.artist).filter(Boolean))].slice(0, 15).join("; ");
+  const content = `Chords I play: ${known.join(" ")}\nMy genre: ${meOf(data).genre}\nSongs I have: ${mine}${favs ? `\nMy favourites: ${favs}` : ""}${artists ? `\nArtists in my Songbook: ${artists}` : ""}${t.skipped.length ? `\nAlready tried: ${t.skipped.join("; ")}` : ""}\nVariety number: ${Math.floor(Math.random() * 10000)}`;
+  let text;
+  try { text = await askClaude({ stream: true, system: `${NEXT_SYSTEM}\n${TOUR_RULES}`, maxTokens: 8000, content }); }
+  catch (e) { throw Object.assign(new Error(e.status === 0 || e.status === undefined ? "Picking a song needs a connection." : aiError(e)), { status: e.status }); }
+  let j;
+  try { j = parseJSON(text); } catch { throw new Error("The reply came back in a form Louie couldn't read."); }
+  const ok = c => typeof c === "string" && /^[A-G]/.test(c) && c.length <= 8;
+  const have2 = new Set(data.songs.map(s => `${s.title}`.trim().toLowerCase()));
+  const list = (j.songs || []).filter(x => x && x.title).map(x => ({ title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 12) }));
+  for (const x of list) {
+    if (t.skipped.includes(pickKey(x)) || have2.has(x.title.trim().toLowerCase())) continue;
+    const fit = tourFit(x.chords, have);
+    if (!fit.ok) continue;
+    if (data.songTour.legs[legId] !== t || t.pick) return; /* swapped or picked while this was loading */
+    tourPicked(data, legId, { ...x, new: fit.new });
+    Tabs.save(data);
+    return;
+  }
+  throw new Error("No song that fits came back. Try again.");
+}
+/* Get it on the first stop: the Get the song flow with the title and artist filled in */
+export function tourGet(legId) {
+  const t = data.songTour?.legs?.[legId];
+  if (!t?.pick || !aiKey()) return;
+  getSong("", { title: t.pick.title, artist: t.pick.artist, level: data.settings.nextLevel === "step" ? "rec" : "mine", tour: legId });
 }
 
 // The tempo of a song in the library that has none, for the metronome: the
