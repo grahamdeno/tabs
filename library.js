@@ -148,13 +148,14 @@ export const refreshLibrary = () => route().name === "road" ? homeHooks.refresh?
 
 export function renderLibrary() {
   chipsHTML(); /* settles a filter that no longer has songs */
-  /* 5.7.0: in Dark and Light the tuner is a plain 44 px circle with no dot (the label still says when it hasn't been used lately) */
+  /* 5.7.0: in Dark and Light Sets is in the filter row; while that row waits (under five songs and no set) Sets stays in the header,
+     so a set can always be made. The tuner is a plain 44 px circle with no dot (the label still says when it hasn't been used lately) */
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() || rrTab() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
       <div class="head-l">${filter === "sets" ? `<button class="sh-btn" id="libback" aria-label="Back to all songs">${icon("back")}</button>` : rrTab() ? "" : `<button class="sh-btn" id="libback" aria-label="Back to the Tour">${icon("back")}</button>`}<h1 class="title script">${filter === "sets" ? "Sets" : "Songbook"}</h1></div>
       <div class="row-btns">
-        ${rrTab() ? "" : `<button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets" aria-pressed="${filter === "sets"}">${icon("list")}Sets</button>`}
+        ${rrTab() && chipsHTML() ? "" : `<button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets" aria-pressed="${filter === "sets"}">${icon("list")}Sets</button>`}
         ${tunerBtn(rrTab() ? "ib sb-tune" : "ib chunky-tune")}
       </div>
     </div>
