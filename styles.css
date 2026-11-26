@@ -1902,8 +1902,8 @@ body { background: var(--bg); font-family: var(--sans); }
   --type-subhead: calc(var(--sys-px, 17px) * .882);    --type-subhead-w: 500;   /* Inter */
   --type-footnote: calc(var(--sys-px, 17px) * .765);   --type-footnote-w: 500;  /* Inter: footnotes and tab labels */
   --type-caption: calc(var(--sys-px, 17px) * .706);    --type-caption-w: 600; --type-caption-ls: .06em; /* Inter: captions and overlines */
-  --type-lyric-now: calc(var(--sys-px, 17px) * 2);     --type-lyric-now-w: 700;  /* Inter */
-  --type-lyric-next: calc(var(--sys-px, 17px) * 1.529); --type-lyric-next-w: 600; /* Inter */
+  --type-lyric-now: calc(var(--sys-px, 17px) * 1.647); --type-lyric-now-w: 700;  /* Inter: 28 at 17 px (5.7.0; 34 before) */
+  --type-lyric-next: calc(var(--sys-px, 17px) * 1.471); --type-lyric-next-w: 600; /* Inter: 25 at 17 px (5.7.0; 26 before) */
   --type-lyric-sung: calc(var(--sys-px, 17px) * 1.294); --type-lyric-sung-w: 600; /* Inter */
   --type-chord: calc(var(--sys-px, 17px) * 1);         --type-chord-w: 700;     /* Inter */
   --type-mono: calc(var(--sys-px, 17px) * 1.176);      --type-mono-w: 600;      /* IBM Plex Mono: tuner and tempo */
@@ -5295,9 +5295,9 @@ body.tabbed:not(.is-home) .app:has(> .dock) { padding-bottom: calc(var(--tabs) +
    (--type-lyric-now, 34 pt at the default text size) and the line keeps that box. Inside it the words are drawn by a transform
    from the top left: 26 (next line, and every line on the song page) and 22 (the others while playing). Only the transform
    changes as the song moves on, so nothing jumps, reflows or rewraps, and the reading line stays put. */
-:root:is([data-look="neon"], [data-look="festival"]) .sheet.rr-slots > :is(.pr, .ly, .crow) { transform-origin: 0 0; transform: scale(var(--lyr-next, .765)); }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > :is(.pr, .ly, .crow) { transform: scale(var(--lyr-sung, .647)) !important; transition: transform var(--rr-motion), color var(--rr-motion); }
-:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > .st-next:is(.pr, .ly, .crow) { transform: scale(var(--lyr-next, .765)) !important; }
+:root:is([data-look="neon"], [data-look="festival"]) .sheet.rr-slots > :is(.pr, .ly, .crow) { transform-origin: 0 0; transform: scale(var(--lyr-next, .893)); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > :is(.pr, .ly, .crow) { transform: scale(var(--lyr-sung, .786)) !important; transition: transform var(--rr-motion), color var(--rr-motion); }
+:root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > .st-next:is(.pr, .ly, .crow) { transform: scale(var(--lyr-next, .893)) !important; }
 :root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > .st-now:is(.pr, .ly, .crow) { transform: none !important; }
 @media (prefers-reduced-motion: reduce) { :root:is([data-look="neon"], [data-look="festival"]) body.staged .sheet.rr-slots > :is(.pr, .ly, .crow) { transition: none; } }
 .sheet.measure > * { transform: none !important; }
