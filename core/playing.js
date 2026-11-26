@@ -106,6 +106,11 @@ export function journalPractice(data, secs, now = Date.now()) {
   const m = journalOf(data, now).months[monthKey(now)];
   m.psecs = (m.psecs || 0) + Math.min(secs, 3600);
 }
+/* A song tour round or headline passed (5.10.0): its time counts as practice, and the month's challenge counts it as a show. */
+export function journalRound(data, secs, now = Date.now(), first = true) {
+  journalPractice(data, secs, now);
+  if (first) { const m = journalOf(data, now).months[monthKey(now)]; if (m) m.rounds = (m.rounds || 0) + 1; }
+}
 // A tuner session: for each string checked, how far off it was when first heard.
 export function journalTune(data, firstCents, now = Date.now()) {
   const j = journalOf(data, now);

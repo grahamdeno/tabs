@@ -136,7 +136,8 @@ function tourCard(stop) {
     : `Play along again. ${stop.chords[stop.chords.length - 1]} joins in.`;
   const label = have ? (stop.state === "done" ? "PLAY IT AGAIN" : "PLAY") : "GET IT";
   const swap = stop.n === 1 && stop.state === "now" && !have ? `<button class="rd-other" data-tourswap="${esc(stop.tour)}">Swap for another song</button>` : "";
-  return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>
+  const earn = have && stop.state !== "done" ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : "";
+  return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>${earn}
     <button class="btn primary rd-start" data-go="${esc(stop.id)}">${label}</button>${swap}</div>`;
 }
 /* the quiet pick: asked once while the tour has none; a failure says so and waits for Try again */

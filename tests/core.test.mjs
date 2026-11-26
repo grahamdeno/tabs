@@ -4083,6 +4083,27 @@ test("round: only the current stop counts; the headline makes the song Solid and
   assert.equal(lib.songs[0].status, "solid");
   assert.equal(C.knownChords(lib).has("Bm"), true, "its chords count as known");
 });
+test("a passed round counts as playing: practice time, fans once, and a show for the month's challenge", () => {
+  const now = Date.UTC(2026, 10, 26, 16);
+  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body: SONG }] });
+  C.tourPicked(lib, "open", { title: "Song", chords: ["Em", "Am", "G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
+  const fans0 = C.fansOf(lib, now), q0 = C.questState(lib, now).tour.shows, p0 = C.journalOf(lib, now).secs;
+  const stop = { id: "r:open-1", tour: "open", kind: "round", name: "Round 1" };
+  const res = C.tourPlayed(lib, stop, now);
+  assert.ok(res);
+  C.journalRound(lib, 40, now, true);
+  assert.equal(C.fansOf(lib, now) - fans0, C.FANS.lesson, "the same fans as a lesson stop");
+  assert.equal(C.questState(lib, now).tour.shows - q0, 1, "one show for the month's challenge");
+  assert.equal(C.journalOf(lib, now).secs - p0, 40, "time on guitar");
+  assert.equal(C.journalOf(lib, now).months["2026-11"].psecs, 40, "practice time, which counts toward the streak and Tour Map plays");
+  /* played again: time only, no second show and no more fans */
+  C.journalRound(lib, 40, now, false);
+  assert.equal(C.questState(lib, now).tour.shows - q0, 1);
+  assert.equal(C.fansOf(lib, now) - fans0, C.FANS.lesson);
+  assert.equal(C.journalOf(lib, now).months["2026-11"].psecs, 80);
+  /* a later month does not count it */
+  assert.equal(C.questState(lib, Date.UTC(2026, 11, 3)).tour.shows, 0);
+});
 test("5.9.0 tour in progress: it keeps its pick and song and starts at Round 1; a finished one stays finished", () => {
   const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body: SONG }] });
   lib.songTour = C.cleanSongTour({ v: 1, legs: { open: { pick: { title: "Song", artist: "", chords: ["Em", "Am", "G", "D", "Bm", "F"], new: ["Bm", "F"] }, song: "s1", skipped: [], done: ["p:open-0", "c:Bm", "p:open-1"] } } });

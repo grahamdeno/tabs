@@ -9,7 +9,7 @@
 //   listening  the same strum detector and chord check as the chord lessons (core/neck.js); a strum near a marked one
 //              (from half a beat before to one beat after) is checked once, for the chord marked
 //   passing    Louie heard at least 3 in 4 of the strums
-import { CHORD_FIT, Tabs, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM } from "./core.js";
+import { CHORD_FIT, FANS, Tabs, journalRound, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM } from "./core.js";
 import { esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
 import { drum, tempoFor } from "./audio.js";
 import { musicClock, musicLead, pauseMusic, startMusic } from "./listen.js";
@@ -34,7 +34,7 @@ export function openRound(stop, { onClose } = {}) {
   if (!song) return toast("Get the song first");
   /* the tap: ask for the microphone and wake the sound before anything is awaited */
   let micP = null;
-  try { sound({ mic: true }); micP = getMic().catch(() => null); } catch { micP = Promise.resolve(null); }
+  try { sound({ mic: true }); micP = getMic(micOptions(song, stop.state === "done" ? 1 : 0.6)).catch(() => null); } catch { micP = Promise.resolve(null); }
   const el = document.createElement("div");
   el.className = "rnd"; el.id = "round"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
   el.setAttribute("aria-label", `${kicker(stop).replace("SONG TOUR · ", "").toLowerCase()}, ${stop.sub || ""}`);
@@ -44,6 +44,11 @@ export function openRound(stop, { onClose } = {}) {
   begin();
 }
 
+/* With the recording playing (100% and a lined-up recording) the speaker is loud, so the phone cancels the echo; Louie's band
+   keeps the plain settings. Decided from the speed and the song, so it can be asked for from the tap. */
+const micOptions = (song, rate) => rate === 1 && usesMusic(song)
+  ? { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
+  : { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
 export function closeRound(done = false) {
   const r = R;
   if (!r) return;
@@ -72,7 +77,7 @@ async function begin() {
   const r = R;
   if (!r) return;
   stopAll();
-  if (!r.micP) { try { sound({ mic: true }); r.micP = getMic().catch(() => null); } catch { r.micP = Promise.resolve(null); } }
+  if (!r.micP) { try { sound({ mic: true }); r.micP = getMic(micOptions(r.song, r.speed)).catch(() => null); } catch { r.micP = Promise.resolve(null); } }
   const gen = ++r.gen, { stop, song } = r;
   const bpm = song.bpm || song.listen?.feel?.bpm || await Promise.race([tempoFor(song).then(() => song.bpm || 0), new Promise(ok => setTimeout(() => ok(0), 2500))]) || DEFAULT_BPM;
   if (R !== r || r.gen !== gen) return;
@@ -203,7 +208,12 @@ function finish(r) {
   const n = r.heard.size, total = r.plan.strums.length, listened = r.mic;
   const passed = listened ? roundPassed(n, total) : true;
   let result = null;
-  if (passed) { result = tourPlayed(data, r.stop); if (result) Tabs.save(data); }
+  if (passed) {
+    result = tourPlayed(data, r.stop);
+    journalRound(data, r.plan.secs, Date.now(), !!result);
+    if (result) result.fans = FANS.lesson;
+    Tabs.save(data);
+  }
   r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null;
   card(r, { n, total, listened, passed, result });
 }
@@ -217,7 +227,7 @@ function card(r, { n, total, listened, passed, result }) {
     : "Louie needs 3 in 4 to count a round. Nothing is lost.";
   const el = r.el.querySelector(".rnd-card");
   el.hidden = false;
-  el.innerHTML = `<b role="status">${esc(title)}</b><p>${esc(sub)}</p>
+  el.innerHTML = `<b role="status">${esc(title)}</b><p>${esc(sub)}</p>${result?.fans ? `<div class="rd-earn"><span>+${result.fans} fans</span></div>` : ""}
     ${passed ? `<button class="btn primary" data-rnd="next">${nextStop ? "Next" : "Back to the Tour"}</button>` : ""}
     <button class="btn${passed ? "" : " primary"}" data-rnd="again">Play it again</button>${passed ? "" : `<button class="btn" data-rnd="back">Back to the Tour</button>`}`;
   el.querySelector("button")?.focus();

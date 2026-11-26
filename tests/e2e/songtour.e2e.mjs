@@ -302,6 +302,47 @@ test("rounds: the headline plays the whole song with every chord; when it passes
   assert.ok(after.skills.done["c:Bm"] && after.skills.done["c:F"], "its chords count as known");
 });
 
+const spyMic = pg => pg.addInitScript(() => { window.__mic = []; const g = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices); navigator.mediaDevices.getUserMedia = c => { window.__mic.push(c.audio); return g(c); }; });
+const YT_STUB = `window.__yt = { calls: [] };
+window.YT = { Player: class { constructor(id, o) { const el = document.getElementById(id), f = document.createElement("iframe"); el.replaceWith(f); this.o = o; this.t = 0; this.state = -1; window.__yt.player = this; setTimeout(() => o.events.onReady({ target: this }), 30); }
+  set(s) { this.state = s; this.o.events.onStateChange({ data: s }); } cueVideoById() { this.set(5); } loadVideoById() { this.set(5); }
+  playVideo() { this.base = performance.now(); this.set(1); } pauseVideo() { this.set(2); } seekTo(s) { this.t = s; this.base = performance.now(); } setPlaybackRate() {}
+  getCurrentTime() { return this.state === 1 ? this.t + (performance.now() - this.base) / 1000 : this.t; } destroy() {} } };
+window.onYouTubeIframeAPIReady && window.onYouTubeIframeAPIReady();`;
+
+test("rounds: the mic cancels echo when the recording plays (100% with a recording), and keeps the plain settings for Louie's band", { skip: skip() }, async t => {
+  const song = { yt: { id: "abcdefghijk", title: "Pier Lights", channel: "The Cape Fear - Topic", secs: 14 }, timed: { h: "x", at: [[1, 2], [2, 6], [5, 10], [6, 14]] } };
+  const d = SEEDED({ done: ["r:open-1"] }, song); d.skills.done["c:Bm"] = { n: 1, best: 0, at: 9 };
+  const { page } = await home(t, d, { key: false, opts: { prepare: async pg => { await pg.addInitScript(FAKE_MIC); await spyMic(pg); await pg.route("https://www.youtube.com/iframe_api", r => r.fulfill({ status: 200, contentType: "text/javascript", body: YT_STUB })); } } });
+  await page.waitForSelector('.rn-stop.cur[data-stop="r:open-2"]');
+  await open(page); /* the first time: 60%, Louie's band */
+  assert.deepEqual(await page.evaluate(() => window.__mic.at(-1)), { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, "the band keeps the plain settings");
+  await page.click('#round [data-speed="1"]'); /* 100% with the recording */
+  await page.waitForFunction(() => window.__mic.length >= 2);
+  assert.deepEqual(await page.evaluate(() => window.__mic.at(-1)), { echoCancellation: true, noiseSuppression: false, autoGainControl: false }, "the recording round cancels the echo");
+  /* a replay at 100% opened straight from the tap asks the same way, before anything is awaited */
+  await page.click('#round [data-rnd="close"]');
+  await page.click('.rn-stop[data-stop="r:open-1"]'); await page.waitForSelector(".rd-pop .rd-start");
+  const n = await page.evaluate(() => window.__mic.length);
+  await page.click(".rd-pop .rd-start"); await page.waitForSelector("#round .rnd-hw");
+  assert.equal(await page.evaluate(n => window.__mic.length > n && JSON.stringify(window.__mic.at(-1)), n), JSON.stringify({ echoCancellation: true, noiseSuppression: false, autoGainControl: false }));
+});
+
+test("rounds: a passed round adds practice time, fans and a show for the month, and the stop card shows the fans", { skip: skip() }, async t => {
+  const { page } = await home(t, SEEDED(), { key: false });
+  await page.waitForSelector('.rn-stop.cur[data-stop="r:open-1"]');
+  await page.click('.rn-stop[data-stop="r:open-1"]'); await page.waitForSelector(".rd-pop .rd-start");
+  assert.match(await page.innerText(".rd-pop"), /\+5 fans/, "the +fans line is back");
+  await page.click(".rd-pop .rd-start"); await page.waitForSelector("#round .rnd-hw");
+  const before = await stored(page);
+  assert.match(await card(page), /\+5 fans/);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).songTour.legs.open.done.includes("r:open-1"));
+  const after = await stored(page), ym = new Date().toISOString().slice(0, 7);
+  const m = after.journal.months[ym];
+  assert.ok((m.psecs || 0) > 0 && m.rounds === 1, JSON.stringify(m));
+  assert.ok((after.journal.secs || 0) > (before.journal?.secs || 0), "time on guitar");
+});
+
 test("listening: songs and Gigs never open the mic; only a round does", { skip: skip() }, async t => {
   const d = SEEDED(); d.settings = { ...d.settings, plainPlay: false, countIn: false };
   const { page } = await home(t, d, { key: false, opts: { prepare: async pg => { await pg.addInitScript(() => { window.__mics = 0; const g = navigator.mediaDevices?.getUserMedia?.bind(navigator.mediaDevices); if (navigator.mediaDevices) navigator.mediaDevices.getUserMedia = (...a) => { window.__mics++; return g ? g(...a) : Promise.reject(new Error("none")); }; }); } } });
