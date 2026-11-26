@@ -35,7 +35,7 @@ export function statBar() {
   /* 4.40.0: each one says what it is, with a ›, until you've tapped it once (not during Opening night) */
   const lab = (k, t) => openingOn(data) || data.settings.used?.["hud-" + k] ? "" : `<small class="h-lab" aria-hidden="true">${t}</small>`;
   return `<div class="hud" role="group" aria-label="Your stats">
-    <button id="h-venue" aria-label="${esc(v.name)}, venue ${v.ring + 1}. Open the Tour Map">${BADGE}<span>${v.ring + 1}</span>${lab("venue", "VENUE")}</button>
+    <button id="h-venue" aria-label="${esc(v.name)}, venue ${v.ring + 1}. Open the Map">${BADGE}<span>${v.ring + 1}</span>${lab("venue", "VENUE")}</button>
     <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Open your profile">${guitarIcon(st.today)}<span>${st.days}</span>${lab("streak", "STREAK")}</button>
     <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans. Open your profile">${TICKET}<span>${n(fans)}</span>${lab("fans", "FANS")}</button>
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${COIN}<span>$${n(tips)}</span>${lab("tips", "TIPS")}</button>
@@ -67,7 +67,7 @@ export function rrStats() {
   const st = streakOf(playSongs(data)), fans = fansNow(data), tips = tipsOf(data);
   return `<div class="hud rr-stats" role="group" aria-label="Your stats">
     <button id="h-streak" class="h-streak${st.days ? "" : " off"}" aria-label="Gig streak ${st.days} day${st.days === 1 ? "" : "s"}${st.today ? ", played today" : ""}. Show your streak">${st.days ? ST_ICON.streak : ST_ICON.streakOff}<span>${st.days}</span></button>
-    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans. Open the Tour Map">${ST_ICON.fans}<span>${n(fans)}</span></button>
+    <button id="h-fans" class="h-fans" aria-label="${n(fans)} fans. Open the Map">${ST_ICON.fans}<span>${n(fans)}</span></button>
     <button id="h-tips" class="h-tips" aria-label="${n(tips)} dollars in tips. Open the Merch table">${ST_ICON.tips}<span>$${n(tips)}</span></button>
   </div>`;
 }
@@ -123,11 +123,11 @@ function streakCard() {
   document.getElementById("sk-x").focus();
 }
 const TABS = [
-  ["road", "#/", "Road"],
+  ["road", "#/", "Tour"],
   ["songbook", "#/library", "Songbook"],
   ["rehearse", "#/practice", "Rehearse"],
   /* Graham, 2026-11-19: the Tour tab opens straight onto the Tour Map; the month's tour is a button on it */
-  ["tour", "#/playmap", "Tour"],
+  ["tour", "#/playmap", "Map"],
   ["me", "#/you", "Me"]
 ];
 const KNOB_OFF = "art/tabbar/knob-off.webp";

@@ -45,11 +45,11 @@ test("Today: a forecast that arrives late still shows when the week has no plays
 
 test("Today: quiet once you've played today; the setting turns the card off", { skip: skip() }, async t => {
   const page = await phone(t, lib({ place: undefined }, true));
-  await page.waitForSelector("#chips");
+  await page.waitForSelector("#list"); /* 5.7.0: no filter row under five songs */
   assert.equal(await page.locator("#nudge").count(), 0, "played today: no nudge");
   await page.evaluate(() => { location.hash = "#/settings/today"; }); await page.waitForSelector("#s-nudge");
   await page.click("#s-nudge"); await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.nudge === false);
-  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#chips");
+  await page.evaluate(() => { location.hash = "#/library"; }); await page.waitForSelector("#list .row");
   assert.equal(await page.locator("#nudge, .t-dots").count(), 0);
 });
 

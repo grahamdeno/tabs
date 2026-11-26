@@ -1,4 +1,4 @@
-// Five tabs (Road, Songbook, Rehearse, Tour, Me) on the amp knob bar.
+// Five tabs (Tour, Songbook, Rehearse, Map, Me; 5.7.0) on the amp knob bar.
 // Charts, Your band, the Merch table, the Tuner, Support and Settings are reached from Me; their pages go back to Me.
 import test from "node:test";
 import assert from "node:assert/strict";
@@ -8,7 +8,8 @@ import { phone, LIB, skip, useBrowser, base, settled } from "./harness.mjs";
 useBrowser();
 
 const libWith = (theme, settings = {}) => ({ ...LIB, settings: { ...LIB.settings, v: 6, theme, ...settings } });
-const TABS = [["road", "Road", "#/"], ["songbook", "Songbook", "#/library"], ["rehearse", "Rehearse", "#/practice"], ["tour", "Tour", "#/playmap"], ["me", "Me", "#/you"]];
+/* 5.7.0: the Road tab says Tour and the old Tour tab says Map; the keys and links are unchanged */
+const TABS = [["road", "Tour", "#/"], ["songbook", "Songbook", "#/library"], ["rehearse", "Rehearse", "#/practice"], ["tour", "Map", "#/playmap"], ["me", "Me", "#/you"]];
 
 /* WCAG contrast of two "rgb(r, g, b)" strings */
 const lum = c => { const [r, g, b] = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
@@ -22,7 +23,7 @@ for (const [look, theme] of [["Road Ready dark", "dark"], ["Road Ready light", "
     assert.deepEqual(nav, { tag: "NAV", name: "Main" }, "the bar is a nav named Main");
     const tabs = await page.$$eval("#tabs a", as => as.map(a => { const r = a.getBoundingClientRect(), c = getComputedStyle(a);
       return { k: a.dataset.tab, name: a.getAttribute("aria-label"), href: a.getAttribute("href"), w: r.width, h: r.height, current: a.getAttribute("aria-current"), tr: c.transitionDuration, anim: c.animationName }; }));
-    assert.deepEqual(tabs.map(x => [x.k, x.name, x.href]), TABS, "Road, Songbook, Rehearse, Tour, Me, in that order");
+    assert.deepEqual(tabs.map(x => [x.k, x.name, x.href]), TABS, "Tour, Songbook, Rehearse, Map, Me, in that order");
     for (const x of tabs) {
       assert.ok(x.w >= 44 && x.h >= 44, `${x.name} is ${Math.round(x.w)} by ${Math.round(x.h)}`);
       assert.ok(/^0s(, 0s)*$/.test(x.tr) && x.anim === "none", `${x.name}: no motion added`);
@@ -104,7 +105,7 @@ test("Road Ready 04: Charts, Your band, the Merch table, Support and Settings ar
 
 test("Road Ready 04: deep links to the pages that left the bar still open them; Songbook is a tab and Me stays lit under its pages", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"));
-  for (const [hash, ready, lit] of [["#/library", "#chips", "songbook"], ["#/charts", ".ch-head", "me"], ["#/band", ".bd-head", "me"], ["#/merch", ".mc-head", "me"], ["#/support", "#sp-kofi", "me"]]) {
+  for (const [hash, ready, lit] of [["#/library", "#list", "songbook"], ["#/charts", ".ch-head", "me"], ["#/band", ".bd-head", "me"], ["#/merch", ".mc-head", "me"], ["#/support", "#sp-kofi", "me"]]) {
     await page.evaluate(h => { location.hash = h; }, hash); await page.waitForSelector(ready);
     await page.waitForSelector(`#tabs [data-tab=${lit}][aria-current=page]`);
   }
@@ -172,7 +173,7 @@ test("Road Ready 04: at AX3 the labels hide, the icons grow to 32 px, and every 
     assert.equal(x.label, "none", `${x.name}: label hidden`);
     assert.equal(Math.round(x.ic), 50, `${x.name}: 50 px knob`);
     assert.ok(x.name && x.h >= 44, `${x.name}: named and 44 tall`);
-    if (x.name === "Road") assert.equal(x.lit, "1", "Road stays lamp-lit");
+    if (x.name === "Tour") assert.equal(x.lit, "1", "Tour stays lamp-lit");
   }
 });
 

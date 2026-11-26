@@ -33,7 +33,8 @@ const SONGS = [
   { id: "k", title: "Kettle Hums", artist: "June and the Kettles", format: "chords", key: "G", body: "[Verse]\nG C D Em", status: "got", favorite: true },
   { id: "p", title: "Paper Moon Waltz", artist: "The Lamplighters", format: "chords", key: "G", body: "[Verse]\nG C D", status: "solid" },
   { id: "l", title: "Porch Light Blues", artist: "Porchlight Trio", format: "chords", key: "E", body: "[Verse]\nE A B7", status: "learning" },
-  { id: "b", title: "Borrowed Tune", artist: "Mara Vale", format: "chords", key: "C", body: "[Verse]\nC G Am F" }
+  { id: "b", title: "Borrowed Tune", artist: "Mara Vale", format: "chords", key: "C", body: "[Verse]\nC G Am F" },
+  { id: "q", title: "Quiet Hours", artist: "Mara Vale", format: "chords", key: "G", body: "[Verse]\nG C" } /* 5.7.0: five songs bring the filter row */
 ];
 const KNOWN = { done: Object.fromEntries(["c:G", "c:C", "c:D", "c:Em", "c:Am", "c:E", "c:A"].map(id => [id, { n: 3, best: 90, at: Date.now() - 1000 }])), last: Date.now() };
 const songbook = async (t, theme, opts = {}, extra = {}) => {
@@ -48,22 +49,24 @@ const songbook = async (t, theme, opts = {}, extra = {}) => {
 for (const theme of ["dark", "light", "green", "headliner"]) test(`4.113.0 (${theme}): the earlier Songbook layout, with Sets and the tuner in the header and + in the search bar`, { skip: skip() }, async t => {
   const page = await songbook(t, theme);
   const got = await page.evaluate(() => ({
-    title: document.querySelector("#app .head .title")?.textContent, sets: !!document.querySelector(".head #setsbtn.sets-btn"), tuner: !!document.querySelector(".head #tunerbtn"),
+    title: document.querySelector("#app .head .title")?.textContent, sets: !!document.querySelector("#chips [data-f='sets']") && !document.querySelector(".head #setsbtn"), tuner: !!document.querySelector(".head #tunerbtn"),
     add: !!document.querySelector(".dock .cmd #add.cmd-add"), back: !!document.getElementById("libback"),
     oldRows: document.querySelectorAll("#app .rr-row, #app .rr-tile, #app .rr-sb-head, #app .rr-cc").length,
     agreed: [document.querySelectorAll("#list .row.rr-line").length === document.querySelectorAll("#list .row").length, !!document.querySelector("#chips.rr-chips")],
-    k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "), l: document.querySelector('#list .row[data-id="l"] .fit')?.textContent,
-    b: document.querySelector('#list .row[data-id="b"] .fit')?.textContent, key: document.querySelector('#list .row[data-id="k"] .k')?.textContent
+    k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "), l: document.querySelector('#list .row[data-id="l"] .sb-dots')?.getAttribute("aria-label"),
+    b: document.querySelector('#list .row[data-id="b"] .miss')?.textContent, key: document.querySelector('#list .row[data-id="k"] .k')?.textContent
   }));
   const rr = true; /* a saved Green Room or Headliner is read as Light or Dark, so the Songbook is that layout */
-  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, agreed: [rr, rr], k: undefined, l: "LEARNING", b: "+ F", key: "G" }, "the Songbook is the Road Ready layout, including when a retired look is what was saved");
-  assert.match(got.k, /Kettle Hums.*June and the Kettles.*Nailed it/, "title, artist and level in words");
+  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, agreed: [rr, rr], k: undefined, l: "Learning, needs B7", b: "F", key: "G" }, "the Songbook is the Road Ready layout, including when a retired look is what was saved");
+  assert.match(got.k, /Kettle Hums.*June and the Kettles.*G C D Em/, "5.7.0: title, artist and chords");
+  assert.equal(await page.getAttribute('#list .row[data-id="k"] .sb-dots', "aria-label"), "Nailed it, can play", "the level is said");
   /* the chosen filter is said, not only filled; Almost (4.105.0) is there when a song is one chord away */
   const pressed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#chips .chip")].map(c => [c.dataset.f, c.getAttribute("aria-pressed")])));
-  assert.deepEqual(await pressed(), { all: "true", can: "false", near: "false", learn: "false", fav: "false" });
+  assert.deepEqual(await pressed(), { all: "true", can: "false", near: "false", sets: "false" }, "5.7.0: All, Can play, Almost and Sets");
   if (rr) assert.equal(await page.evaluate(() => { const c = document.getElementById("chips"); return c.scrollWidth <= c.clientWidth + 1; }), true, "4.113.1: the filters fit on one row");
-  await page.click('#chips [data-f="learn"]'); await page.waitForSelector('#chips [data-f="learn"].on');
-  assert.deepEqual(await pressed(), { all: "false", can: "false", near: "false", learn: "true", fav: "false" });
+  await page.click('#chips [data-f="can"]'); await page.waitForSelector('#chips [data-f="can"].on');
+  assert.deepEqual(await pressed(), { all: "false", can: "true", near: "false", sets: "false" });
+  await page.click('#chips [data-f="all"]'); await page.waitForSelector('#chips [data-f="all"].on');
   /* the order down the page: header, card strip (when there is one), filters, then the list */
   const order = await page.$$eval("#app > *", els => els.map(e => e.id || e.className.split(" ")[0]).filter(x => ["head", "today", "chips", "list"].includes(x)));
   assert.deepEqual(order.filter(x => x !== "today"), ["head", "chips", "list"]);
@@ -92,14 +95,14 @@ test("4.113.0: Almost lists the songs one chord away, and Sets opens with its ow
   const near = page.locator("[data-f=near]");
   assert.equal(await near.count(), 1); assert.match(await near.getAttribute("aria-label"), /^Almost, \d+ songs? one chord away$/);
   await near.click(); await page.waitForFunction(() => document.querySelector("[data-f=near]")?.getAttribute("aria-pressed") === "true");
-  /* Borrowed Tune needs F and Porch Light Blues needs B7 (it shows its LEARNING pill, as Learning comes first) */
+  /* Borrowed Tune needs F and Porch Light Blues needs B7 */
   assert.deepEqual((await page.$$eval("#list .row", rs => rs.map(r => r.dataset.id))).sort(), ["b", "l"]);
-  await page.click("#setsbtn"); await page.waitForSelector("#libback");
+  await page.click("#chips [data-f='sets']"); await page.waitForSelector("#libback");
   assert.equal(await page.innerText("#app .head .title"), "Sets"); await page.click("#libback"); await page.waitForFunction(() => !document.getElementById("libback"));
   assert.equal(await page.innerText("#app .head .title"), "Songbook");
 });
 
-test("4.113.0: an empty Songbook still draws (the ways to add), with Sets in the header", { skip: skip() }, async t => {
+test("4.113.0: an empty Songbook still draws (the ways to add), with Sets in the header (5.7.0: until the filter row comes)", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark", { songs: [] }));
   await page.evaluate(() => { location.hash = "#/library"; });
   await page.waitForSelector("#list .empty"); await settled(page);

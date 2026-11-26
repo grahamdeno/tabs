@@ -284,15 +284,15 @@ test("Neck-only Road: the next leg is its real stops, grayed out, and the neck e
   assert.equal(before.veil, 1, "one gray band");
   assert.equal(before.curDim, false, "the current stop stays in the live leg");
   assert.equal(before.curGlow, true, "the current stop still glows");
-  assert.equal(before.next, "Leg 3");
+  assert.equal(before.next, "Tour 3");
   assert.match(before.sub, /Scales/);
   await page.evaluate(() => {
     const path = document.getElementById("rd-path");
     const mark = document.querySelector(".rn-lat.rn-next");
     path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
   });
-  await page.waitForFunction(() => /Leg 3/.test(document.getElementById("rn-legline").innerText));
-  assert.match(await page.innerText("#rn-legline"), /Leg 3 · Scales/);
+  await page.waitForFunction(() => /Tour 3/.test(document.getElementById("rn-legline").innerText));
+  assert.match(await page.innerText("#rn-legline"), /Tour 3 · Scales/);
   const hash = await page.evaluate(() => location.hash);
   await page.locator(".rn-slot.rn-dim .rd-node").last().click();
   await page.waitForSelector(".rn-slot.rn-dim .rd-pop");
@@ -333,7 +333,7 @@ test("Neck-only Road: the last leg ends clean, with no gray leg and no empty fre
     const mark = [...document.querySelectorAll(".rn-lat")].at(-1);
     path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
   });
-  await page.waitForFunction(() => /Leg 3/.test(document.getElementById("rn-legline").innerText));
+  await page.waitForFunction(() => /Tour 3/.test(document.getElementById("rn-legline").innerText));
   assert.match(await page.innerText("#rn-legline"), /Scales/);
   const gap = await page.evaluate(() => {
     const path = document.getElementById("rd-path");

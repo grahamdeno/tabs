@@ -43,11 +43,11 @@ export function renderTour() {
   app.innerHTML = `
     <div class="tq">
       <div class="tq-top">${pageStats()}</div>
-      <section class="tq-head" aria-label="${esc(st.monthName)} Tour">
-        <div class="tq-ht"><h1>${esc(st.monthName)} Tour</h1><small>${st.daysLeft ? `${st.daysLeft} DAY${st.daysLeft === 1 ? "" : "S"} LEFT` : "LAST DAY"}</small></div>
+      <section class="tq-head" aria-label="${esc(st.monthName)} challenge">
+        <div class="tq-ht"><h1>${esc(st.monthName)} challenge</h1><small>${st.daysLeft ? `${st.daysLeft} DAY${st.daysLeft === 1 ? "" : "S"} LEFT` : "LAST DAY"}</small></div>
         <div class="tq-louie">${louie(t.done ? "cheer" : "happy", { pose: t.done ? "hornsUp" : "wave", size: 104 })}</div>
         <div class="tq-goal">
-          <b>${t.done ? "Tour complete!" : `Play ${t.need} shows`}</b>
+          <b>${t.done ? "Challenge complete!" : `Play ${t.need} shows`}</b>
           <div class="tq-big">${bar(t.shows, t.need, "", "Shows played this month")}<span>${t.shows} / ${t.need}</span></div>
           <small>${t.done ? `+${QUEST.tourFans} fans earned` : `Every song you play through counts. ${QUEST.tourFans} fans when it's done`}</small>
         </div>

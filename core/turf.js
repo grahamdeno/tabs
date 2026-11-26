@@ -38,7 +38,7 @@ export const lifetimePlays = data => Object.values(journalOf(data).months).reduc
 // Each ring of the Tour Map is a bigger room. Ring k arrives at 4 k squared
 // plays (territory above), so the venue is just the ring's name.
 export const VENUES = ["Garage", "Open mic", "Coffeehouse", "Club", "Theater", "Arena", "Stadium", "Festival headliner"];
-export const venueName = ring => VENUES[ring] || `World tour, leg ${ring - VENUES.length + 2}`;
+export const venueName = ring => VENUES[ring] || `World tour, stop ${ring - VENUES.length + 2}`;
 export function venueOf(plays) {
   const t = territory(plays);
   return { ring: t.rings, name: venueName(t.rings), next: venueName(t.rings + 1), nextAt: t.nextAt, toNext: t.toNext };

@@ -112,3 +112,14 @@ test("5.3.1 no section rail; a long line runs to 12 px from the right edge; Play
   assert.ok(Math.abs(r.bar - r.play) <= 1.5, `Play's middle ${r.play} is the bar's middle ${r.bar}`);
   assert.equal(await page.getAttribute("#play", "aria-label"), "Start auto-scroll", "Play keeps its spoken name");
 });
+
+test("5.7.0 lyrics run close to the right edge: on the song page a long line fills at least 85% of the width before it wraps", { skip: skip() }, async t => {
+  const LONG = "[Verse]\nG\nWhere all good men are trampled down and the long line keeps on going past the edge of the page";
+  const page = await phone(t, { ...LIB, songs: [{ ...song("a", 1), body: LONG }], settings: PLAIN }, { home: true, size50: true });
+  await page.waitForSelector("#rd-bubble, .rr-stats"); await open(page, "a");
+  const r = await page.evaluate(() => { const sh = document.getElementById("sheet").getBoundingClientRect(); const ws = [...document.querySelectorAll("#sheet > .pr .w")].map(w => w.getBoundingClientRect());
+    const firstRowBottom = Math.min(...ws.map(w => w.bottom)); const row1 = ws.filter(w => Math.abs(w.bottom - firstRowBottom) < 4);
+    return { fill: (Math.max(...row1.map(w => w.right)) - sh.left) / sh.width, rows: new Set(ws.map(w => Math.round(w.bottom))).size, inside: ws.every(w => w.right <= sh.right + 1) }; });
+  assert.ok(r.rows >= 2, "the line wraps"); assert.ok(r.inside, "no word passes the edge");
+  assert.ok(r.fill >= 0.85, `the first row fills ${(r.fill * 100).toFixed(0)}% of the width (it was about 75% when lines were laid out at 34)`);
+});

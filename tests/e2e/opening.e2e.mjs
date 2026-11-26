@@ -14,7 +14,7 @@ test("4.40.0 Opening night: a new player gets nine steps; Who's playing tonight?
   await page.waitForSelector(".on-night");
   assert.match(await page.innerText(".on-night"), /Opening night/); assert.equal(await page.getAttribute(".on-night", "aria-label"), "Opening night");
   assert.equal(await page.locator('.on-path [data-stop^="o:"]').count(), 9, "nine steps on the guitar neck");
-  assert.equal(await page.locator(".on-path .rn-neck").count(), 1, "Opening night is one rosewood neck"); assert.equal(await page.locator(".rn-lat.rn-next").count(), 1, "Leg 1 is marked where it starts, not written in the gutter");
+  assert.equal(await page.locator(".on-path .rn-neck").count(), 1, "Opening night is one rosewood neck"); assert.equal(await page.locator(".rn-lat.rn-next").count(), 1, "Tour 1 is marked where it starts, not written in the gutter");
   assert.equal(await page.locator(".rd-tonight, #rd-songbook").count(), 0, "one thing to tap: no Gig button and no Songbook bar");
   assert.equal(await page.locator(".hud .h-lab").count(), 0, "the stat bar stays quiet during the leg");
   await settled(page);
@@ -155,7 +155,7 @@ for (const width of [390, 320]) for (const theme of ["dark", "light"]) {
   });
 }
 
-test("Opening night: Leg 1 is drawn gray and locked under the gold fret, and a tap does not start it", { skip: skip() }, async t => {
+test("Opening night: Tour 1 is drawn gray and locked under the gold fret, and a tap does not start it", { skip: skip() }, async t => {
   const page = await phone(t, FRESH, { home: true, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   await page.waitForSelector(".rn-slot.rn-dim"); await settled(page);
   const m = await page.evaluate(() => ({
@@ -170,19 +170,19 @@ test("Opening night: Leg 1 is drawn gray and locked under the gold fret, and a t
   }));
   assert.equal(m.steps, 9, "Opening night keeps its nine steps");
   assert.equal(m.live, 9, "those steps stay full colour");
-  assert.equal(m.dim, 10, "Leg 1's ten stops are on the neck");
+  assert.equal(m.dim, 10, "Tour 1's ten stops are on the neck");
   assert.equal(m.locked, 10, "each one is locked");
   assert.equal(m.peek, 0, "no empty frets under the gold");
   assert.equal(m.veil, 1);
-  assert.equal(m.next, "Leg 1");
+  assert.equal(m.next, "Tour 1");
   assert.match(m.sub, /Open chords/);
   await page.evaluate(() => {
     const path = document.getElementById("rd-path");
     const mark = document.querySelector(".rn-lat.rn-next");
     path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
   });
-  await page.waitForFunction(() => /Leg 1/.test(document.getElementById("rn-legline").innerText));
-  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("on-skip")).display), "none", "Skip steps aside once Leg 1 is the leg in view");
+  await page.waitForFunction(() => /Tour 1/.test(document.getElementById("rn-legline").innerText));
+  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("on-skip")).display), "none", "Skip steps aside once Tour 1 is the leg in view");
   const step = await saved(page);
   await page.locator(".rn-slot.rn-dim .rd-node").first().click();
   await page.waitForSelector(".rn-slot.rn-dim .rd-pop");
