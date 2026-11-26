@@ -108,7 +108,7 @@ function stopCard(stop) {
     const line = song ? `Play ${song.title} start to finish. It uses only this tour's chords.` : `Play a song that uses only ${stop.chords.join(", ")}, start to finish.`;
     return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>
       ${song ? `<div class="rd-earn"><span>+${FANS.play} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${song ? (stop.state === "done" ? "PLAY AGAIN" : `PLAY ${esc(song.title.toUpperCase())}`) : "FIND A SONG THAT FITS"}</button>
-      ${fits.length > 1 ? `<button class="rd-other" id="rd-other">Other songs that fit (${fits.length - 1})</button>` : ""}</div>`;
+      ${fits.length > 1 ? `<button class="rd-other" id="rd-other" data-other="${esc(stop.id)}">Other songs that fit (${fits.length - 1})</button>` : ""}</div>`;
   }
   const line = stop.kind === "chord" ? "Ring every string clean, one at a time."
     : stop.kind === "switch" ? "Land the change on the beat."
@@ -151,6 +151,7 @@ const tourFindCard = l => `<div class="rd-tourfind" role="status" aria-live="pol
 /* Other songs for a headline show: a short list, any of them starts the gig */
 function otherSongs(stop) {
   const fits = fitsFor(stop);
+  if (!fits.length) return;
   layer.innerHTML = `<div class="scrim" id="ro-scrim"></div><div class="panel de-sheet rd-others" role="dialog" aria-label="Songs for the headline show"><div class="grab"></div>
     <div class="ph"><button class="tb" id="ro-x">Close</button><h2>Headline show</h2><span style="width:56px"></span></div>
     <div class="pbody"><p class="easy-note">These use only ${esc(stop.chords.join(", "))}. Play one start to finish.</p>
@@ -609,7 +610,9 @@ export function renderRoad() {
     if (e.target.closest("[data-tonight]")) return; /* Tonight, on the current stop: #rd-tonight has its own handler above */
     const goBtn = e.target.closest("[data-go]");
     if (goBtn) return start(goBtn.dataset.go);
-    if (e.target.closest("#rd-other")) return otherSongs(cur);
+    const other = e.target.closest("#rd-other");
+    /* 5.9.1: the songs for the headline whose card is open, not the current stop (a chord stop has no chords: it threw) */
+    if (other) { const hs = all.find(x => x.id === other.dataset.other); return hs?.chords ? otherSongs(hs) : undefined; }
     const songBtn = e.target.closest("[data-song]");
     if (songBtn) return playGig(songBtn.dataset.song, { from: "road" });
     let node = e.target.closest("[data-stop]");
