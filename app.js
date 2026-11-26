@@ -180,7 +180,7 @@ function renderViewer(id) {
   const fromSet = (() => { const x = setCtx && data.sets.find(z => z.id === setCtx.id); return x && setSongs(x)[setCtx.idx]?.id === song.id ? x : null; })();
   /* 4.66.0: a show started from Tour or Charts comes back there with the page's own Back */
   const via = gigFrom?.id === song.id ? gigFrom.from : "";
-  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : via === "tour" ? { to: "#/tour", label: "Back to the Tour" } : via === "charts" ? { to: "#/charts", label: "Back to the Charts" } : lastHome === "road" || via === "road" ? { to: "#/", label: "Back to the Road" } : { to: "#/library", label: "Back to the Songbook" };
+  const back = fromSet ? { to: "#/set/" + encodeURIComponent(fromSet.id), label: `Back to ${fromSet.name}` } : via === "tour" ? { to: "#/tour", label: "Back to the challenge" } : via === "charts" ? { to: "#/charts", label: "Back to the Charts" } : lastHome === "road" || via === "road" ? { to: "#/", label: "Back to the Tour" } : { to: "#/library", label: "Back to the Songbook" };
   diag.pinned = null; diag.scrolling = false; diag.block = null;
   /* One song screen (4.2.0): the song at the top (back, title, favorite), its chips, the song map,
      the chords, the sheet, and at the bottom Tools and Play. Play opens the Gig. */
@@ -781,7 +781,7 @@ function loopName(song) {
 }
 /* Practice mode (3.21.0): the Practice chip under the title turns it on (a song you're learning starts
    with it on). It brings one Practice row to the bar: the section to loop, the speed, Build up, and
-   off. Practice time counts on the Tour Map; off, the song plays straight through. */
+   off. Practice time counts on the Map; off, the song plays straight through. */
 const activeLoop = song => practicing(song) && song.loop ? song.loop : null;
 function setPracticing(song, on) {
   const def = song.status === "learning";

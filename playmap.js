@@ -63,8 +63,8 @@ export async function renderPlayMap() {
   document.body.classList.add("tm-open");
   app.innerHTML = `
     <div class="tm-page">
-      <div id="tm-map" class="tm-map" role="img" aria-label="Your Tour Map"></div>
-      <div class="tm-top"><a class="ib glass tm-month" id="tm-month" href="#/tour" aria-label="This month's tour">${icon("list")}</a><h1 class="title script">Tour Map</h1><button class="ib glass tm-info" id="tm-info" aria-label="About the map">${icon("info")}</button></div>
+      <div id="tm-map" class="tm-map" role="img" aria-label="Your map"></div>
+      <div class="tm-top"><a class="ib glass tm-month" id="tm-month" href="#/tour" aria-label="This month's challenge">${icon("list")}</a><h1 class="title script">Map</h1><button class="ib glass tm-info" id="tm-info" aria-label="About the map">${icon("info")}</button></div>
       <div class="tm-ctl">
         <button class="ib glass" id="tm-in" aria-label="Zoom in">${icon("plus")}</button>
         <button class="ib glass" id="tm-out" aria-label="Zoom out">${icon("minus")}</button>
@@ -227,7 +227,7 @@ function draw(L, sc) {
 /* Plant your flag: the explanation first; the phone is asked only on the button. */
 function plantSheet() {
   layer.innerHTML = `<div class="scrim" id="pf-scrim"></div><div class="panel card" role="dialog" aria-label="Plant your flag">
-    <div class="pc-head">${icon("flag")}<span>Tour Map</span></div>
+    <div class="pc-head">${icon("flag")}<span>Map</span></div>
     <p class="tm-sheet-t">Plant your flag where you play</p>
     <p class="pf-line">Every song you play through lights a hexagon around this spot, on a real map.</p>
     <p class="tm-fine">Your phone shares its position once. Louie keeps it to about a kilometre, on this phone only, never in a backup. Map pictures come from OpenStreetMap, which sees the area shown, not your plays.</p>

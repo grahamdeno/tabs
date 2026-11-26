@@ -104,7 +104,7 @@ function stopCard(stop) {
   const title = stopTitle(stop), now = stop.state === "now" || stop.state === "open";
   if (stop.kind === "headline" && stop.state !== "locked") {
     const fits = fitsFor(stop), song = data.songs.find(x => x.id === stop.song) || fits[0];
-    const line = song ? `Play ${song.title} start to finish. It uses only this leg's chords.` : `Play a song that uses only ${stop.chords.join(", ")}, start to finish.`;
+    const line = song ? `Play ${song.title} start to finish. It uses only this tour's chords.` : `Play a song that uses only ${stop.chords.join(", ")}, start to finish.`;
     return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>
       ${song ? `<div class="rd-earn"><span>+${FANS.play} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${song ? (stop.state === "done" ? "PLAY AGAIN" : `PLAY ${esc(song.title.toUpperCase())}`) : "FIND A SONG THAT FITS"}</button>
       ${fits.length > 1 ? `<button class="rd-other" id="rd-other">Other songs that fit (${fits.length - 1})</button>` : ""}</div>`;
@@ -189,7 +189,7 @@ function renderOpening(view) {
     <div class="rd-top${done ? "" : ""}">${statBar()}</div>
     <section class="rd-banner on-night" aria-label="Opening night">
       <div><small>OPENING NIGHT${done ? " · DONE" : ` · ${OPENING.length} STEPS`}</small><b>${done ? "Your first night" : "Learn the stage"}</b></div>
-      ${done ? `<button class="on-skip" id="on-next">On to Leg 1</button>` : `<button class="on-skip" id="on-skip">Skip</button>`}
+      ${done ? `<button class="on-skip" id="on-next">On to Tour 1</button>` : `<button class="on-skip" id="on-skip">Skip</button>`}
     </section>
     <div class="rd-path on-path" id="rd-path">
       <div class="rd-say"><div class="rd-sayt"><p class="rd-bubble" id="rd-bubble">${esc(done ? "That's your opening night! Your streak starts now. Tap it up top to see your player card." : OSAY[OPENING[step]?.id] || "")}</p></div></div>
@@ -302,10 +302,10 @@ function rrOpening(done, step) {
   const stops = OPENING.map((o, i) => ({ id: "o:" + i, kind: o.id === "show" ? "headline" : "chord", state: i < step ? "done" : i === step ? "now" : "locked", name: o.name, sub: o.sub }));
   const cur = stops[step] || null;
   const said = s => s.state === "now" ? "your next step" : s.state;
-  const btn = done ? `<button type="button" class="rn-skip" id="on-next">On to Leg 1</button>` : `<button type="button" class="rn-skip" id="on-skip" aria-label="Skip opening night">Skip</button>`;
+  const btn = done ? `<button type="button" class="rn-skip" id="on-next">On to Tour 1</button>` : `<button type="button" class="rn-skip" id="on-skip" aria-label="Skip opening night">Skip</button>`;
   const leg1 = roadPath(data).legs[0];
   const legs = [{ title: "Opening night", sub: "First steps", cls: "on-night", aria: "Opening night", stops }];
-  if (leg1?.stops?.length) legs.push({ title: "Leg 1", sub: leg1.name, aria: `Leg 1, ${leg1.name}`, upcoming: true, stops: leg1.stops });
+  if (leg1?.stops?.length) legs.push({ title: "Tour 1", sub: leg1.name, aria: `Tour 1, ${leg1.name}`, upcoming: true, stops: leg1.stops });
   const stopName = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name;
   const neck = bareNeckHTML(legs, {
     cur,
@@ -357,7 +357,7 @@ function rrOpening(done, step) {
       closePop();
       if (!open) {
         const s = leg1?.stops.find(x => x.id === node.dataset.stop);
-        wrap.insertAdjacentHTML("beforeend", `<div class="rd-pop locked" role="dialog" aria-label="Locked"><b>${esc(s ? stopName(s) : "Leg 1")}</b><p>This opens after Opening night.</p></div>`);
+        wrap.insertAdjacentHTML("beforeend", `<div class="rd-pop locked" role="dialog" aria-label="Locked"><b>${esc(s ? stopName(s) : "Tour 1")}</b><p>This opens after Opening night.</p></div>`);
         path.classList.add("has-pop"); haptic(1); revealPop(path, wrap.querySelector(".rd-pop"));
       }
       return;
@@ -486,16 +486,16 @@ export function renderRoad() {
   const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(rr ? rrTag(s, all) : tagOf(s)), songs: opens, rr, num: numOf, fresh, tonight: rr && song ? esc(song.title) : "", tonightAdd: rr && !song };
   const shown = road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length);
   /* The legs already reached, then the next one in full, flagged so it draws gray and locked. Nothing past that. */
-  const bareLegs = shown.map(l => ({ title: `Leg ${l.n}`, sub: l.name, aria: `Leg ${l.n}, ${l.name}`, stops: l.stops }));
-  if (nxt) bareLegs.push({ title: `Leg ${nxt.n}`, sub: nxt.name, aria: `Leg ${nxt.n}, ${nxt.name}`, upcoming: true, stops: nxt.stops });
+  const bareLegs = shown.map(l => ({ title: `Tour ${l.n}`, sub: l.name, aria: `Tour ${l.n}, ${l.name}`, stops: l.stops }));
+  if (nxt) bareLegs.push({ title: `Tour ${nxt.n}`, sub: nxt.name, aria: `Tour ${nxt.n}, ${nxt.name}`, upcoming: true, stops: nxt.stops });
   const bare = rr ? bareNeckHTML(bareLegs, {
     cur, id: s => esc(s.id), label: labelOf, num: numOf, songs: opens
   }) : "";
   const legsHTML = rr ? "" : road.legs.map((l, n) => `
-    <div class="rd-legmark${l === leg ? " cur" : ""}"><span>Leg ${l.n} · ${esc(l.name)}</span></div>
+    <div class="rd-legmark${l === leg ? " cur" : ""}"><span>Tour ${l.n} · ${esc(l.name)}</span></div>
     ${road.legs[n - 1]?.done ? `<span class="rd-newg">New guitar earned</span>` : ""}
     ${neckHTML(l, l === leg ? { ...gx, shown: guitarShown(data, l.id), build: data.builds?.[l.id] } : { ...gx, build: data.builds?.[l.id] })}`).join("");
-  const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming to the Road: ${esc(road.coming.join(", "))}</span></div>` : "";
+  const coming = road.coming.length ? `<div class="rd-coming"><svg viewBox="0 0 32 32" aria-hidden="true"><rect class="rd-lk" x="8" y="14" width="16" height="13" rx="4"/><path class="rd-lks" d="M11 14v-3a5 5 0 0 1 10 0v3" fill="none" stroke-width="3.4"/></svg><span>Coming soon: ${esc(road.coming.join(", "))}</span></div>` : "";
 
   const songbookBar = `
     <div class="rd-sbk">
@@ -510,15 +510,15 @@ export function renderRoad() {
   if (rr) {
     app.innerHTML = `
     ${rrRow()}
-    ${headLeg ? legBar({ title: `Leg ${headLeg.n}`, sub: headLeg.name, aria: `Leg ${headLeg.n}, ${headLeg.name}` }) : ""}
+    ${headLeg ? legBar({ title: `Tour ${headLeg.n}`, sub: headLeg.name, aria: `Tour ${headLeg.n}, ${headLeg.name}` }) : ""}
     <div class="rr-stage rn-stage">
       <div class="rd-path rr rn" id="rd-path">${bare}${!nxt && coming ? coming : ""}</div>
     </div>
     ${nowPlate(nowName)}`;
   } else app.innerHTML = `
     <div class="rd-top">${statBar()}</div>
-    ${leg ? `<section class="rd-banner" aria-label="The leg you're on">
-      <div><small>LEG ${leg.n} · ${esc(v.name.toUpperCase())}</small><b>${esc(leg.name)}</b></div>
+    ${leg ? `<section class="rd-banner" aria-label="The tour you're on">
+      <div><small>TOUR ${leg.n} · ${esc(v.name.toUpperCase())}</small><b>${esc(leg.name)}</b></div>
       <button class="rd-book" id="rd-book" aria-label="Open Rehearse: today's lesson">${icon("fretboard")}</button>
     </section>` : ""}
     ${chip ? `<div class="rd-chip">${chip}</div>` : ""}
@@ -672,19 +672,19 @@ function guitarEarned(road) {
     layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt rr-case" role="dialog" aria-label="New guitar earned"><div class="grab"></div>
     <div class="pbody">
       <p class="sc-over">HEADLINE SHOW</p>
-      <h2 class="sc-title">${was ? `${esc(was.name)}, all ${was.stops.length} shows` : "Leg done"}</h2>
+      <h2 class="sc-title">${was ? `${esc(was.name)}, all ${was.stops.length} shows` : "Tour done"}</h2>
       <p class="sc-new">New guitar earned</p>
       ${standHTML(owned, { active: at, variant: "sheet" })}
       <div class="sc-who"><span class="sc-louie">${louie("cheer", { size: 76 })}</span><span class="sc-label">${esc(gn.guitar.name)}</span></div>
       <p class="sc-got">${esc(gn.guitar.name)} is yours.</p>
-      ${lg ? `<p class="sc-next">Next stop: Leg ${lg.n}, ${esc(lg.name)}</p>` : ""}
+      ${lg ? `<p class="sc-next">Next stop: Tour ${lg.n}, ${esc(lg.name)}</p>` : ""}
       <div class="sc-acts"><button class="btn primary" id="gt-x">Rock on</button></div>
     </div></div>`;
     bindStand(document.querySelector(".rd-gt .gs-stage"));
   }
   else layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt" role="dialog" aria-label="New guitar"><div class="grab"></div>
     <div class="pbody"><div class="rd-gt-row">${louie("cheer", { size: 96, pose: "hornsUp" })}<div class="rd-gt-art">${guitarSVG(gn.next)}</div></div>
-    <h2>New guitar</h2><p>${esc(gn.guitar.name)}${lg ? ` is yours for Leg ${lg.n}, ${esc(lg.name)}.` : " is yours."}</p>
+    <h2>New guitar</h2><p>${esc(gn.guitar.name)}${lg ? ` is yours for Tour ${lg.n}, ${esc(lg.name)}.` : " is yours."}</p>
     <div class="rd-hl-acts"><button class="btn primary" id="gt-x">ROCK ON</button></div></div></div>`;
   const close = () => { layer.innerHTML = ""; };
   document.getElementById("gt-scrim").onclick = close; document.getElementById("gt-x").onclick = close;

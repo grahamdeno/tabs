@@ -287,7 +287,7 @@ function renderGestures() {
     <p class="gs-intro">Things you can do with a tap or a drag that don't have a button. <b>Show me</b> plays the tip again where it happens.</p>
     ${GESTURES.map(([h, rows]) => `<div class="label">${h}</div><div class="list glass gs-list">${rows.map(([demo, t, s, ic]) => `
       <div class="gs-row"><span class="gs-ic">${icon(ic)}</span><div class="gs-t"><b>${esc(t)}</b><span>${esc(s)}</span></div>${demo ? `<button class="gs-show" data-demo="${demo}">Show me</button>` : ""}</div>`).join("")}</div>`).join("")}
-    <div class="label">Opening night</div><div class="list glass gs-list"><div class="gs-row"><span class="gs-ic">${icon("play")}</span><div class="gs-t"><b>The first leg of the Road</b><span>Five steps on the sample song: the microphone, a chord, a verse, a pause, a show</span></div><button class="gs-show gs-replay" id="gs-opening" data-demo="opening">Replay</button></div></div>
+    <div class="label">Opening night</div><div class="list glass gs-list"><div class="gs-row"><span class="gs-ic">${icon("play")}</span><div class="gs-t"><b>Your first tour</b><span>Five steps on the sample song: the microphone, a chord, a verse, a pause, a show</span></div><button class="gs-show gs-replay" id="gs-opening" data-demo="opening">Replay</button></div></div>
     <button class="btn" id="gs-reset" style="display:block;margin:22px auto 6px">Reset tips</button>
     <p class="foot" style="text-align:center;margin:0 0 30px">Shows each tip again, once, when it's next useful.</p>`;
   app.querySelectorAll("[data-go]").forEach(b => b.onclick = () => go(b.dataset.go));

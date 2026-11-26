@@ -41,8 +41,8 @@ export function collectionOf(data, extraId) {
     const got = earned.has(id) && lg, first = wonOn[id] === GUITAR_START; /* 5.5.0: the guitar you start with */
     items.push({
       id, name: g.name, src: bp.src || painted, attr: bp.attr || "",
-      label: first ? `${g.name}, your first guitar` : got ? `${g.name}, earned on Leg ${li + 1}, ${lg.name}` : g.name,
-      status: first ? "Your first guitar" : got ? `Earned on Leg ${li + 1}` : (extraId === id ? "New" : "Yours"),
+      label: first ? `${g.name}, your first guitar` : got ? `${g.name}, earned on Tour ${li + 1}, ${lg.name}` : g.name,
+      status: first ? "Your first guitar" : got ? `Earned on Tour ${li + 1}` : (extraId === id ? "New" : "Yours"),
       on: false, road: true
     });
   }

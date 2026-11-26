@@ -62,7 +62,7 @@ function renderSettings() {
         </select>
       </div>
     </div>
-    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The beat plays along at the song's tempo: Off, a bass drum on every beat (louder on the 1) or the metronome's click. It slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. Keep playing controls on screen stops the controls fading after 3 seconds while a song plays. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Tour Map (open it from your venue on Me). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
+    <p class="foot">Song length fits the scroll to how long a song takes; 1x style is a fixed speed. Each song keeps its own. Count-in plays one bar at the song's tempo. The beat plays along at the song's tempo: Off, a bass drum on every beat (louder on the 1) or the metronome's click. It slows with you when the speed dial is set longer than the recording; a song with no tempo gets one looked up. The slider sets its volume. Drop-out practice silences every other bar so you hold the time yourself. Streak celebration shows your streak once a day, after the first song you play to the end. Keep playing controls on screen stops the controls fading after 3 seconds while a song plays. A play counts when a song is played through by auto-scroll, not when the page is scrolled by hand; each one lights a hexagon on your Map (open it from your venue on Me). Focus current line makes the line you're on stand out; the other lines dim while the song plays. Tap a chord for its fingering, or a line to start from it; the rail on the right edge jumps to a section.</p>`],
     look: ["Look", `
     <div class="set-group glass">
       <div class="set">
@@ -71,7 +71,7 @@ function renderSettings() {
           return [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]].map(([k, n]) => `<button data-t="${k}" class="${pick === k ? "on" : ""}" aria-pressed="${pick === k}">${n}</button>`).join(""); })()}</div>
       </div>
     </div>
-    <p class="foot">Light is Road Ready light and Dark is Road Ready dark. Auto follows your phone between Light and Dark.</p>
+    <p class="foot">Auto follows your phone between Light and Dark.</p>
     <p class="foot">On a phone held upright, the whole bar shows while a song is paused. Press Play and it folds into Play's corner; pause and it comes back. At the top of a paused song, pull down to go back.</p>`],
     newsongs: ["New songs", `
     <div class="set-group glass">
@@ -109,7 +109,7 @@ function renderSettings() {
       </div>
       <div id="s-cities"></div>` : ""}
     </div>
-    <p class="foot">Under the Songbook's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day, and when the air has changed a lot since your last play the song page says to tune up first. Only the city's position is sent, once a day; Louie asks for your location only if you plant your flag on the Tour Map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
+    <p class="foot">Under the Songbook's title: your practice streak (a day counts when a song plays to its end) and, until you play today, one song to try. With a city, the weather picks it: a slow song on a rainy day, and when the air has changed a lot since your last play the song page says to tune up first. Only the city's position is sent, once a day; Louie asks for your location only if you plant your flag on the Map. Weather data by <a href="https://open-meteo.com" target="_blank" rel="noopener">Open-Meteo.com</a>.</p>`],
     keys: ["API keys", `
     <p class="foot" style="margin:0 4px 14px">Each key stays on this phone and is sent only to its own service.</p>
     <div class="label">Anthropic · AI help</div>

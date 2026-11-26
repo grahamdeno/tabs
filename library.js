@@ -144,7 +144,7 @@ export function renderLibrary() {
   const tunerBtn = cls => `<button class="${cls}" id="tunerbtn" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
   app.innerHTML = `
     <div class="head">
-      <div class="head-l">${filter === "sets" ? `<button class="sh-btn" id="libback" aria-label="Back to all songs">${icon("back")}</button>` : rrTab() ? "" : `<button class="sh-btn" id="libback" aria-label="Back to the Road">${icon("back")}</button>`}<h1 class="title script">${filter === "sets" ? "Sets" : "Songbook"}</h1></div>
+      <div class="head-l">${filter === "sets" ? `<button class="sh-btn" id="libback" aria-label="Back to all songs">${icon("back")}</button>` : rrTab() ? "" : `<button class="sh-btn" id="libback" aria-label="Back to the Tour">${icon("back")}</button>`}<h1 class="title script">${filter === "sets" ? "Sets" : "Songbook"}</h1></div>
       <div class="row-btns">
         <button class="btn sets-btn${filter === "sets" ? " on" : ""}" id="setsbtn" aria-label="Sets" aria-pressed="${filter === "sets"}">${icon("list")}Sets</button>
         ${tunerBtn("ib chunky-tune")}

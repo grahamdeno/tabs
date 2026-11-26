@@ -91,7 +91,7 @@ export function renderProfile() {
   const playerCard = `<section class="pf-player" aria-label="Your card">
       <div class="pf-pc-top"><div class="pf-pc-lou">${you(data, { crop: "bust", size: 104 })}</div>
         <div class="pf-pc-who"><small>${esc(since ? since.replace(/^Since/, "On the road since").toUpperCase() : "ON THE ROAD")}</small>
-          <button class="pf-pc-venue" id="pf-map" aria-label="${esc(ven.name)}, venue ${ven.ring + 1}. Open the Tour Map"><b>${esc(ven.name)}</b><span>Venue ${ven.ring + 1} · Tour Map ${icon("chev", "chev")}</span></button>
+          <button class="pf-pc-venue" id="pf-map" aria-label="${esc(ven.name)}, venue ${ven.ring + 1}. Open the Map"><b>${esc(ven.name)}</b><span>Venue ${ven.ring + 1} · Map ${icon("chev", "chev")}</span></button>
           <span class="pf-pc-chart">${esc(ch.name.toUpperCase())} CHART · ${ch.you.rank}${["ST", "ND", "RD"][ch.you.rank - 1] || "TH"}</span>
           <button class="pf-pc-edit" id="pf-me" aria-label="Edit your guitarist">Edit your guitarist</button></div></div>
       <div class="pf-pc-level"><div><b>LEVEL ${lv.level}</b><span>${num(lv.into)} / ${num(lv.need)} XP</span></div><i style="--w:${Math.round(lv.into / lv.need * 100)}%"></i></div>
@@ -140,7 +140,7 @@ export function renderProfile() {
     <section class="rr-me-head" aria-label="Your card">
       <button class="rr-avatar" id="pf-me" aria-label="Edit your guitarist">${you(data, { crop: "bust", size: 72 })}</button>
       <div class="rr-me-who"><h1 class="rr-me-name"><button id="pf-name" class="rr-name${name ? "" : " empty"}" aria-label="${name ? `${esc(name)}. Change your name` : "Add your name"}">${name ? esc(name) : "Add your name"}</button></h1>
-        <button class="rr-me-venue" id="pf-map" aria-label="${esc(ven.name)}, ${num(fansNow(data))} fans. Open the Tour Map">${esc(ven.name)} · ${num(fansNow(data))} fans</button>
+        <button class="rr-me-venue" id="pf-map" aria-label="${esc(ven.name)}, ${num(fansNow(data))} fans. Open the Map">${esc(ven.name)} · ${num(fansNow(data))} fans</button>
         <div class="rr-me-level"><span>Level ${lv.level} · ${num(lv.into)} / ${num(lv.need)} XP</span><i style="--w:${Math.round(lv.into / lv.need * 100)}%"></i></div></div>
     </section>
     <div class="rr-me-tiles">
@@ -150,7 +150,7 @@ export function renderProfile() {
     </div>
     <section class="rr-card rr-case-card" aria-label="Guitars"><div class="rr-card-h"><h2>Guitars</h2><span>${nGuitars} ${nGuitars === 1 ? "guitar" : "guitars"}</span></div>
       ${standHTML(guitars, { active: standIndex(guitars) })}
-      ${nGuitars ? "" : `<p class="rr-case-note">Headline a leg to earn your first guitar.</p>`}
+      ${nGuitars ? "" : `<p class="rr-case-note">Headline a tour to earn your first guitar.</p>`}
     </section>
     <a href="#/merch" id="pf-r-merch" class="rr-merch${merchLit(data) ? " lit" : ""}" aria-label="${merchLine}"><span class="rr-coinic">${COIN}</span><span>${merchLine}</span>${icon("chev", "chev")}</a>
     <nav class="rr-card rr-rows rr-places" aria-label="Your places">
@@ -169,7 +169,7 @@ export function renderProfile() {
     <nav class="rr-card rr-rows rr-support" aria-label="Support the app"><a href="#/support" id="pf-r-support" class="pf-row rr-row"><span class="more-ic">${icon("heart")}</span><span class="rr-row-t">Support Louie on Ko-fi (real money, optional)</span><img class="rr-badge" src="art/louie/v5/louie-face-badge.webp" alt="" aria-hidden="true" width="32" height="32">${icon("chev", "chev")}</a></nav>
     </div>`;
   app.innerHTML = rr ? rrHTML : `
-    <div class="head"><button class="ib glass pf-back" id="back" aria-label="Back to the Road">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>
+    <div class="head"><button class="ib glass pf-back" id="back" aria-label="Back to the Tour">${icon("back")}</button><a class="ib glass pf-gear" id="pf-set" href="#/settings" aria-label="Settings">${icon("gear")}</a></div>
     <h1 class="title" style="margin:14px 2px 2px">Your profile</h1>
     ${meRows}${playerCard}${badgeCard}${bandCard}${nothing ? `<p class="pf-empty">Play a song through to the end and this page starts filling in: hours played, the chords you've stamped, the changes you make most, and when you play.</p>` : `${passport}${duelCard}<details class="pf-more"><summary><b>Your stats</b><small>Hours, when you play, your changes, keys and tempo</small></summary>${stats}</details>
     <p class="foot">Worked out on this phone from your plays. Plays from before ${esc(shortDay(p.seeded))} are counted from each song's play total, so hours and changes before then are estimates.</p>`}

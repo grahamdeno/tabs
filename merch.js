@@ -107,7 +107,7 @@ export function renderMerch() {
   document.getElementById("mc-build")?.addEventListener("click", () => openBuilder());
   document.addEventListener("builds-saved", renderMerch, { once: true });
   app.querySelectorAll(".mc [data-gt]").forEach(b => b.onclick = () => shopSheet(b.dataset.gt));
-  document.getElementById("mc-gt-leg")?.addEventListener("click", () => { shopChoose(data, null); Tabs.save(data); renderMerch(); toast("Back to the guitar of the leg you're on"); });
+  document.getElementById("mc-gt-leg")?.addEventListener("click", () => { shopChoose(data, null); Tabs.save(data); renderMerch(); toast("Back to the guitar of the tour you're on"); });
 }
 
 /* ---- The Guitar shop (Road Ready 9a): 16 more guitars, opened and priced by venue (GUITAR_SHOP in core/game.js). Looks only. ----
@@ -125,7 +125,7 @@ function shopSay(g, st) {
 function buildEntry() {
   const k = guitarsOwned(data).length;
   return `<h2 class="mc-h"><span>Build your guitar</span><small>looks only</small></h2>
-    <button class="mc-build" id="mc-build" ${k ? "" : "disabled"}><span class="mc-build-t"><b>Build your guitar</b><small>${k ? "Paint, tops, guards, wear and hardware for the guitars you've earned" : "Finish a leg to earn your first guitar"}</small></span>${icon("chev", "chev")}</button>`;
+    <button class="mc-build" id="mc-build" ${k ? "" : "disabled"}><span class="mc-build-t"><b>Build your guitar</b><small>${k ? "Paint, tops, guards, wear and hardware for the guitars you've earned" : "Finish a tour to earn your first guitar"}</small></span>${icon("chev", "chev")}</button>`;
 }
 function shopHTML() {
   const st = shopState(data), pic = id => guitarPic(id) ? `<img src="${guitarPic(id)}" alt="" aria-hidden="true" loading="lazy">` : "";
@@ -134,7 +134,7 @@ function shopHTML() {
       <span class="mc-gt-pic">${pic(g.id)}</span><span class="mc-gt-t"><b>${esc(g.name)}</b><small>${GROUPS[g.group]}</small>${g.next ? `<i class="mc-next">NEXT UP</i>` : ""}</span><span class="mc-gt-s">${sy.tag}</span></button>`; };
   return `<h2 class="mc-h"><span>Guitar shop</span><small>looks only, yours to keep</small></h2>
     <p class="mc-sub">Each new venue opens more guitars. A guitar changes how your guitar looks, nothing else.</p>
-    ${st.chosen ? `<button class="mc-gt-leg" id="mc-gt-leg">Use the guitar of the leg I'm on</button>` : ""}
+    ${st.chosen ? `<button class="mc-gt-leg" id="mc-gt-leg">Use the guitar of the tour I'm on</button>` : ""}
     <div class="mc-gts" role="list">${st.rows.map(g => `<div role="listitem">${row(g)}</div>`).join("")}</div>`;
 }
 function shopSheet(id) {
@@ -149,7 +149,7 @@ function shopSheet(id) {
       <div class="mt-name"><small>GUITAR SHOP, ${esc(GROUPS[g.group].toUpperCase())}</small><b>${esc(g.name)}</b></div>
       <div class="mt-show"><div class="mt-it mt-gtr">${guitarPic(g.id) ? `<img src="${guitarPic(g.id)}" alt="${esc(g.name)}">` : ""}</div></div></div>
     <div class="mt-sheet"><h2>${esc(g.name)}</h2>
-      <p>${g.owned ? "Yours to keep." : g.open ? `Opened at ${esc(g.venue)}.` : `Opens when you reach ${esc(g.venue)}.`} It changes how your guitar looks on the Road and on Show complete. Nothing else changes.${g.next ? " This is the next one up." : ""}</p>
+      <p>${g.owned ? "Yours to keep." : g.open ? `Opened at ${esc(g.venue)}.` : `Opens when you reach ${esc(g.venue)}.`} It changes how your guitar looks on your tour and on Show complete. Nothing else changes.${g.next ? " This is the next one up." : ""}</p>
       ${!g.owned ? `<div class="mt-tiles"><div><small>COSTS</small><b>$${n(g.price)}</b></div><div><small>OPENS AT</small><b>${esc(g.venue)}</b></div></div>` : ""}
       <div class="mt-acts">${act}<button class="mt-not" id="mt-not">Not now</button></div></div></div>`;
   const close = () => { layer.innerHTML = ""; };
@@ -192,7 +192,7 @@ function tryOn(id) {
     </div>
     <div class="mt-sheet">
       <h2>${esc(it.kind === "louie" ? `${it.name} Louie` : it.name)}</h2>
-      <p>${esc(it.line)}${it.kind === "louie" ? " He wears it on the Road, in every gig and on Show complete, in every look." : it.kind === "backdrop" ? " It hangs behind the top of every gig." : it.earn ? have ? " You earned it by headlining." : " It can't be bought: headline a show at the end of a leg and it's yours." : it.kind === "look" ? " The whole app wears it." : ""}${it.kind === "gear" && st.own[it.id] ? ` You have ${st.own[it.id]}.` : ""}</p>
+      <p>${esc(it.line)}${it.kind === "louie" ? " He wears it on your tour, in every gig and on Show complete, in every look." : it.kind === "backdrop" ? " It hangs behind the top of every gig." : it.earn ? have ? " You earned it by headlining." : " It can't be bought: headline a show at the end of a tour and it's yours." : it.kind === "look" ? " The whole app wears it." : ""}${it.kind === "gear" && st.own[it.id] ? ` You have ${st.own[it.id]}.` : ""}</p>
       ${it.price && !have ? `<div class="mt-tiles"><div><small>COSTS</small><b>$${n(it.price)}</b></div><div><small>YOU'LL HAVE</small><b>$${n(Math.max(0, st.tips - it.price))}</b></div></div>` : ""}
       <div class="mt-acts">${act}<button class="mt-not" id="mt-not">Not now</button></div>
     </div></div>`;

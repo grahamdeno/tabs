@@ -423,7 +423,7 @@ export function questsSettle(data, now = Date.now()) {
   for (const g of st.goals) if (g.done && !q.got.includes(g.id)) { q.got.push(g.id); out.push({ label: g.label, fans: QUEST.goalFans }); }
   if (st.setDone && !q.got.includes("set")) { q.got.push("set"); out.push({ label: "Tonight's setlist", fans: QUEST.setFans }); }
   if (q.month !== st.month) { q.month = st.month; q.tour = false; }
-  if (st.tour.done && !q.tour) { q.tour = true; out.push({ label: `${st.monthName} Tour`, fans: QUEST.tourFans }); }
+  if (st.tour.done && !q.tour) { q.tour = true; out.push({ label: `${st.monthName} challenge`, fans: QUEST.tourFans }); }
   q.fans = (q.fans || 0) + out.reduce((n, x) => n + x.fans, 0);
   addXP(data, out.length * XP.goal, now); /* Charts (4.6.0) */
   return out;
@@ -1209,8 +1209,8 @@ export const MERCH = [
   { id: "wear-cap", kind: "wear", name: "Cap", price: 150, line: "A ball cap, for your guitarist." },
   { id: "wear-bandana", kind: "wear", name: "Bandana", price: 150, line: "A knotted bandana, for your guitarist." },
   /* 4.78.0: the looks. Light and Dark are everyone's, Green Room is bought, Headliner is earned by headlining a show. */
-  { id: "festival", kind: "look", theme: "light", name: "Road Ready light", price: 0, line: "The light look: cream tolex, chrome piping and cool teal." },
-  { id: "neon", kind: "look", theme: "dark", name: "Road Ready dark", price: 0, line: "The dark look: black tolex, chrome piping and cool teal." },
+  { id: "festival", kind: "look", theme: "light", name: "Light", price: 0, line: "The light look: cream tolex, chrome piping and cool teal." },
+  { id: "neon", kind: "look", theme: "dark", name: "Dark", price: 0, line: "The dark look: black tolex, chrome piping and cool teal." },
   { id: "green", kind: "look", theme: "green", name: "Green Room", price: 400, line: "Sage, coral and mustard, calm as a dressing room." },
   { id: "headliner", kind: "look", theme: "headliner", name: "Headliner", price: 0, earn: "headline", line: "Black, gold and chrome under a blacklight." }
 ];
