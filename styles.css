@@ -6132,7 +6132,6 @@ body.searching #sb-more { display: none; }
    line, the filters are words with a teal underline, and the songs are one list with thin lines between them, like the neck's frets. ---- */
 :root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint { margin: var(--sp-2) 0 var(--sp-2); padding: 0; min-height: 52px; border: 0; border-radius: 0; background: none; box-shadow: none; gap: 10px; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .rr-badge { width: 28px; height: 28px; }
-:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-t small { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-open { padding-right: 0; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-dots { margin: -14px 0 -14px -15px; }
 :root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-dot i { width: 5px; height: 5px; }
