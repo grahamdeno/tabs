@@ -6171,10 +6171,75 @@ body.searching #sb-more { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) body.tabbed #tabs { border-radius: var(--r-bar); }
 :root:is([data-look="neon"], [data-look="festival"]) #app .list.glass:has(.sb-row) { border-radius: 0; }
 
-/* Song tours (5.9.0): a stand-in chord on the sheet and the card while Louie picks. Shape and a mark, never colour alone. */
-.sheet .c.standin { outline: 2px dashed currentColor; outline-offset: 2px; border-radius: 6px; }
-.sheet .c.standin .si { font-style: normal; font-size: .7em; margin-left: .2em; opacity: .8; }
+/* Song tours (5.9.0): the card while Louie picks. */
 .rd-tourfind { margin: 12px 16px; padding: 14px 16px; border-radius: var(--r-card, 8px); border: 1px solid var(--line, currentColor); background: var(--card, transparent); }
 .rd-tourfind p { margin: 4px 0 0; overflow-wrap: anywhere; }
 .rd-tourfind .btn { min-height: 44px; min-width: 44px; margin-top: 10px; }
 .rd-pop [data-tourswap] { min-height: 44px; }
+
+/* Play-along rounds (5.10.0): the highway. The Tour's rosewood laid across the screen (the art is only placed and turned here),
+   six strings, gold frets for bar lines, strum blocks scrolling to a teal line. Text follows the phone's text size; the screen
+   scrolls when it needs the room. Shapes and words carry the meaning, never colour alone. */
+.rnd { position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; box-sizing: border-box; padding: max(14px, env(safe-area-inset-top)) 0 0;
+  background: var(--rr-base, var(--bg, #141210)); color: var(--rr-text, var(--fg, #F6EEE0)); font-family: Inter, system-ui, sans-serif;
+  --rnd-acc: var(--rr-amber, #00C8B8); --rnd-on: var(--rr-on-amber, #082422); --rnd-2: var(--rr-text-2, #BEB4A4); --rnd-hair: var(--rr-hairline, #46423C); --rnd-card: var(--rr-card, #1A1918); }
+.rnd button { font: inherit; color: inherit; cursor: pointer; }
+.rnd-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 0 16px; }
+.rnd-x { flex: none; width: 44px; height: 44px; border-radius: 22px; border: 1.5px solid var(--rr-outline, #8C847A); background: transparent; display: grid; place-items: center; padding: 0; }
+.rnd-x svg { width: 18px; height: 18px; }
+.rnd-ti { flex: 1; min-width: 0; text-align: center; }
+.rnd-ti small { display: block; font: 600 var(--type-footnote, 13px) "IBM Plex Mono", monospace; letter-spacing: .08em; color: var(--rnd-2); }
+.rnd-ti h2 { margin: 2px 0 0; font: 700 var(--type-title2, 20px) Sora, sans-serif; overflow-wrap: anywhere; }
+.rnd-heard { flex: none; min-width: 44px; min-height: 44px; box-sizing: border-box; padding: 0 10px; border-radius: 22px; background: var(--rnd-card); border: 1px solid var(--rnd-hair); display: flex; align-items: center; justify-content: center; gap: 6px; font: 600 var(--type-footnote, 13px) "IBM Plex Mono", monospace; }
+.rnd-heard[hidden] { display: none; }
+.rnd-heard i { width: 8px; height: 8px; border-radius: 4px; background: var(--rnd-acc); }
+.rnd-song { display: flex; align-items: center; gap: 12px; margin: 0 20px; }
+.rnd-art { flex: none; width: 44px; height: 44px; border-radius: 4px; overflow: hidden; display: grid; place-items: center; font: 700 var(--type-body, 17px) Sora, sans-serif; background: linear-gradient(135deg, #6B3E2E, #2E1A13); color: rgba(255, 255, 255, .92); }
+.rnd-art img { width: 100%; height: 100%; object-fit: cover; }
+.rnd-song b { display: block; font-size: var(--type-headline, 17px); font-weight: 600; overflow-wrap: anywhere; }
+.rnd-song small { color: var(--rnd-2); font-size: var(--type-subhead, 15px); }
+.rnd-prog { height: 4px; margin: 0 20px; border-radius: 2px; background: var(--rnd-hair); overflow: hidden; flex: none; }
+.rnd-prog i { display: block; height: 4px; width: 0; background: var(--rnd-acc); }
+.rnd-hw { position: relative; flex: none; height: 250px; overflow: hidden; container-type: size; border-top: 1px solid var(--rnd-hair); border-bottom: 1px solid var(--rnd-hair); background: #2a1a10; }
+.rnd-wood { position: absolute; left: 0; top: 0; width: 100cqh; height: 100cqw; transform-origin: 0 0; transform: translateX(100cqw) rotate(90deg);
+  background: url("art/road-neck/neck-rosewood-v2.webp") center top / 100% auto repeat-y; }
+.rnd-hw::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(0deg, rgba(48, 20, 10, .42), rgba(255, 232, 196, .12) 50%, rgba(48, 20, 10, .42)); }
+.rnd-str { position: absolute; z-index: 2; left: 0; right: 0; height: 2px; background: linear-gradient(to bottom, #8e98a4, #f5f8fc 50%, #8a949e); pointer-events: none; }
+.rnd-str.s0 { height: 3.5px; background: linear-gradient(to bottom, #6a4424, #fff3d4 50%, #5a381c); } .rnd-str.s1 { height: 3px; background: linear-gradient(to bottom, #6a4424, #fff3d4 50%, #5a381c); }
+.rnd-str.s2 { height: 2.5px; background: linear-gradient(to bottom, #6a4424, #fff3d4 50%, #5a381c); } .rnd-str.s3 { height: 2px; } .rnd-str.s4 { height: 1.5px; } .rnd-str.s5 { height: 1px; }
+.rnd-track { position: absolute; z-index: 3; left: 72px; top: 0; bottom: 0; width: var(--w, 4000px); will-change: transform; }
+.rnd-fret { position: absolute; top: 0; left: 0; width: 100cqh; height: 14px; max-width: none; transform-origin: 0 0; transform: translateX(calc(var(--x) * 1px + 7px)) rotate(90deg); pointer-events: none; }
+.rnd-blk { position: absolute; top: 56px; height: 170px; width: 16px; border-radius: 4px; background: #F6EEE0; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
+.rnd-blk.past { opacity: .55; }
+.rnd-blk.heard { background: var(--rnd-acc); opacity: 1; }
+.rnd-blk.now { box-shadow: 0 0 14px var(--rnd-acc); }
+.rnd-arr { position: absolute; top: 14px; width: 28px; text-align: center; font-size: var(--type-callout, 16px); color: #F6EEE0; text-shadow: 0 1px 2px #000; }
+.rnd-nm { position: absolute; top: 34px; padding: 1px 6px; border-radius: 4px; background: #F6EEE0; color: #1E1914; font: 600 var(--type-footnote, 13px) "IBM Plex Mono", monospace; }
+.rnd-rest { position: absolute; top: 56px; height: 170px; box-sizing: border-box; border: 1.5px dashed #F6EEE0; border-radius: 6px; display: grid; place-items: center; background: rgba(20, 12, 6, .35); color: #F6EEE0; font: 600 var(--type-footnote, 13px) Inter, sans-serif; text-shadow: 0 1px 2px #000; }
+.rnd-rest span { text-align: center; padding: 0 4px; overflow-wrap: anywhere; }
+.rnd-line { position: absolute; z-index: 4; top: 0; bottom: 0; left: 71px; width: 3px; background: var(--rnd-acc); box-shadow: 0 0 12px var(--rnd-acc); pointer-events: none; }
+.rnd-line::before { content: ""; position: absolute; top: 0; left: -6px; border-left: 7.5px solid transparent; border-right: 7.5px solid transparent; border-top: 10px solid var(--rnd-acc); }
+.rnd-ci { position: absolute; z-index: 5; right: 24px; top: 50%; transform: translateY(-50%); font: 700 64px Sora, sans-serif; color: #F6EEE0; text-shadow: 0 2px 8px #000; pointer-events: none; }
+.rnd-below { display: flex; align-items: center; gap: 18px; margin: 4px 20px 0; flex: none; }
+.rnd-shape { flex: none; min-width: 96px; min-height: 100px; }
+.rnd-shape svg { display: block; }
+.rnd-shape .df, .rnd-shape .ds { stroke: var(--rr-outline, #8C847A); } .rnd-shape .dnut { fill: currentColor; } .rnd-shape .dd { fill: var(--rnd-acc); } .rnd-shape .dx, .rnd-shape .do { stroke: var(--rnd-2); fill: none; }
+.rnd-info { flex: 1; min-width: 0; }
+.rnd-info small { font: 600 var(--type-footnote, 13px) "IBM Plex Mono", monospace; color: var(--rnd-2); }
+.rnd-now { font: 700 calc(var(--sys-px, 17px) * 2.6) Sora, sans-serif; line-height: 1.1; overflow-wrap: anywhere; }
+.rnd-next { margin: 4px 0 0; font-size: var(--type-subhead, 15px); color: var(--rnd-2); overflow-wrap: anywhere; }
+.rnd-card { margin: 0 20px; padding: 14px 16px; border-radius: var(--r-card, 10px); border: 1px solid var(--rnd-hair); background: var(--rnd-card); display: flex; flex-direction: column; gap: 8px; }
+.rnd-card[hidden] { display: none; }
+.rnd-card b { font: 700 var(--type-title2, 20px) Sora, sans-serif; }
+.rnd-card p { margin: 0; color: var(--rnd-2); overflow-wrap: anywhere; }
+.rnd-card .btn { min-height: 44px; }
+.rnd-bar { margin-top: auto; position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 20px max(16px, env(safe-area-inset-bottom)); background: var(--rr-base, var(--bg, #141210)); }
+.rnd-speed { display: flex; gap: 2px; }
+.rnd-speed button { min-width: 44px; min-height: 44px; border: 0; background: transparent; padding: 0 6px; font-size: var(--type-subhead, 15px); font-weight: 600; color: var(--rnd-2); }
+.rnd-speed button[aria-pressed="true"] { color: var(--rr-text, #F6EEE0); box-shadow: inset 0 -2px 0 var(--rnd-acc); }
+.rnd-pause { flex: none; width: 64px; height: 64px; border-radius: 32px; border: 0; background: var(--rnd-acc); color: var(--rnd-on); display: grid; place-items: center; padding: 0; }
+.rnd-pause svg { width: 24px; height: 24px; fill: currentColor; }
+.rnd-again { min-width: 64px; min-height: 44px; border: 0; background: transparent; font-size: var(--type-subhead, 15px); font-weight: 600; padding: 0 4px; }
+.rnd button:focus-visible { outline: 2px solid var(--rnd-acc); outline-offset: 2px; }
+@media (max-width: 340px) { .rnd-speed button { min-width: 44px; padding: 0 2px; } .rnd-below { gap: 10px; margin: 4px 12px 0; } .rnd-now { font-size: calc(var(--sys-px, 17px) * 2); } }
+@media (prefers-reduced-motion: reduce) { .rnd-line, .rnd-blk.now { box-shadow: none; } .rnd-blk, .rnd-prog i { transition: none; } }

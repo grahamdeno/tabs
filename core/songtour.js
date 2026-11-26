@@ -1,13 +1,13 @@
-// Song tours (5.9.0): the Tour's neck built from one real song, learned one new chord at a time.
+// Song tours (5.9.0), play-along rounds (5.10.0): the Tour's neck built from one real song, learned one chord at a time.
 // Re-exported from core.js, so other files import it from there.
 // A song tour comes after each skill tour that has chord steps (Open chords, Chord switches), and never blocks the
-// next skill tour. Its stops: play the song now with stand-in chords, then for each new chord a chord lesson, a switch
-// drill and a replay where that chord is real, then the headline: the whole song, every chord real.
+// next skill tour. Its stops: a chord lesson for each chord of the song's part that you can't play yet, placed just
+// before the first round that uses it; Round 1 plays the part with only its most used chord (the other bars are rests),
+// one more round adds each further chord in the order it first appears, and the headline plays the whole song.
 // Stored as data.songTour = { v: 1, legs: { open: { pick, song, skipped, done, solid }, ... } }. See docs/DATA.md.
-// The saved song is never changed: stand-ins are worked out when the sheet is drawn, only while a song tour stop plays.
 import { isObj } from "../core.js";
-import { chordShape } from "./chords.js";
-import { knownChords, relativeOf, roadPath, sheetChords } from "./game.js";
+import { chordShape, parseBlocks } from "./chords.js";
+import { knownChords, roadPath, sheetChords } from "./game.js";
 
 export const TOUR_NEW = [2, 4];
 const CH = /^[A-G][#b]?[A-Za-z0-9#+()-]{0,7}(\/[A-G][#b]?)?$/;
@@ -18,44 +18,7 @@ export function plainChord(name) {
   const m = /^([A-G][#b]?)(m(?!aj))?/.exec(String(name || "").split("/")[0]);
   return m ? m[1] + (m[2] || "") : "";
 }
-/* The chord to play in place of `chord` ("" when it is played as written). `have` holds the chords you can play, `prev` is
-   the chord played just before, `first` the one to use when nothing came before. Rules, in order: the plain chord; a minor
-   you don't know becomes its relative major if you know it, a major its relative minor; otherwise the bars repeat the
-   chord before them. */
-export function standInFor(chord, have, prev = "", first = "") {
-  if (have.has(chord)) return "";
-  const base = plainChord(chord);
-  if (base && have.has(base)) return base;
-  const rel = base ? relativeOf(base) : "";
-  if (rel && have.has(rel)) return rel;
-  return prev || first || "";
-}
-/* A song's chords in playing order (repeats kept) with the stand-in for each: [{ chord, as }], as "" when real. */
-export function standInPlan(seq, have) {
-  const first = seq.find(c => have.has(c)) || [...have][0] || "";
-  const out = [];
-  let prev = "";
-  for (const chord of seq) {
-    const as = standInFor(chord, have, prev, first);
-    out.push({ chord, as });
-    prev = as || chord;
-  }
-  return out;
-}
 const nameOf = text => String(text || "").split(/\s+/)[0].replace(/^\(|\)$/g, "");
-/* Put the stand-ins into parsed blocks (parseBlocks), each marked with the chord it replaces: a part gets `was`, a chord line
-   gets `was[i]`. Works on the blocks, never on the saved song. Returns how many chords were replaced. */
-export function standInBlocks(blocks, have) {
-  const slots = [];
-  for (const b of blocks) {
-    if (b.kind === "pair") for (const w of b.words || []) for (const p of w.parts || []) { if (p.chord && chordShape(nameOf(p.chord))) slots.push({ get: () => nameOf(p.chord), set: (to, was) => { p.chord = String(p.chord).replace(nameOf(p.chord), to); p.was = was; } }); }
-    else if (b.kind === "chords") b.items.forEach((it, i) => { if (chordShape(nameOf(it))) slots.push({ get: () => nameOf(b.items[i]), set: (to, was) => { b.items[i] = String(it).replace(nameOf(it), to); (b.was || (b.was = []))[i] = was; } }); });
-  }
-  const plan = standInPlan(slots.map(s => s.get()), have);
-  let n = 0;
-  plan.forEach((x, i) => { if (x.as && x.as !== x.chord) { slots[i].set(x.as, x.chord); n++; } });
-  return n;
-}
 /* The chords a song needs that you can't play, in the order they first appear: plain chords, unique. */
 export function newChords(chords, have) {
   const out = [];
@@ -86,7 +49,8 @@ export function cleanSongTour(raw) {
       pick: cleanPick(t.pick),
       song: typeof t.song === "string" && /^[\w.-]{1,64}$/.test(t.song) ? t.song : "",
       skipped: (Array.isArray(t.skipped) ? t.skipped : []).filter(x => typeof x === "string").slice(-40).map(x => x.slice(0, 150)),
-      done: [...new Set((Array.isArray(t.done) ? t.done : []).filter(x => typeof x === "string" && DONE_ID.test(x)))].slice(0, 40),
+      /* 5.10.0: the p: ids of 5.9.0 play stops mean nothing now; rounds are r:<tour>-<n> */
+      done: [...new Set((Array.isArray(t.done) ? t.done : []).filter(x => typeof x === "string" && DONE_ID.test(x) && !x.startsWith("p:")))].slice(0, 40),
       ...(t.solid === true ? { solid: true } : {})
     };
   }
@@ -116,7 +80,7 @@ export function tourSeed(data, { key = false, now = Date.now() } = {}) {
   for (const id of tourLegIds(roadPath(data, now).legs)) {
     let t = entry(data, id);
     if (t?.song && !(data.songs || []).some(s => s.id === t.song)) {
-      t.skipped = [...t.skipped, pickKey(t.pick)].slice(-40); t.pick = null; t.song = ""; t.done = t.done.filter(x => !/^[ph]:/.test(x)); delete t.solid; changed = true;
+      t.skipped = [...t.skipped, pickKey(t.pick)].slice(-40); t.pick = null; t.song = ""; t.done = t.done.filter(x => !/^[rph]:/.test(x)); delete t.solid; changed = true;
     }
     if (t?.pick) continue;
     if (key) { if (!t) { entry(data, id, true); changed = true; } need.push(id); continue; }
@@ -130,29 +94,163 @@ export function tourLegIds(legs) {
   return (legs || []).filter(l => !l.song && l.done && l.stops.some(s => s.kind === "chord" || s.kind === "switch")).map(l => l.id);
 }
 
+// ---------- The part and the rounds ----------
+export const PART_SECS = 45;
+export const DEFAULT_BPM = 100;
+/* Every chord of a sheet in playing order (repeats kept): { chord, block, sec, secName }. `block` is the line's index in
+   parseBlocks (the same index the recording's line times use), `sec` the section it sits in (-1 before the first label). */
+export function chordSpots(blocks) {
+  const out = [];
+  let sec = -1, secName = "";
+  blocks.forEach((b, block) => {
+    if (b.kind === "section") { sec++; secName = String(b.text || ""); return; }
+    const raw = b.kind === "pair" ? (b.words || []).flatMap(w => w.parts || []).map(p => p.chord).filter(Boolean) : b.kind === "chords" ? b.items : [];
+    for (const r of raw) { const chord = nameOf(r); if (chordShape(chord)) out.push({ chord, block, sec, secName, n: out.length }); }
+  });
+  return out;
+}
+const distinct = list => [...new Set(list)];
+/* The chord played most often in a list of chords (the first to appear wins a tie). */
+export function mostUsed(chords) {
+  const n = new Map();
+  for (const c of chords) n.set(c, (n.get(c) || 0) + 1);
+  let best = "", top = 0;
+  for (const [c, k] of n) if (k > top) { best = c; top = k; }
+  return best;
+}
+/* The part of a song a round plays: its first chorus (a section named Chorus), else the section with the most different
+   chords, else the first 8 bars when the sheet has no sections; one chord is one bar, and the part is cut to PART_SECS at
+   the song's tempo. { name, bars: [slot], chords (distinct, in order), main (the most used), secs } or null. */
+export function songPart(body, { bpm = DEFAULT_BPM, beats = 4 } = {}) {
+  const slots = chordSpots(parseBlocks(body || ""));
+  if (!slots.length) return null;
+  const groups = new Map();
+  for (const s of slots) if (s.sec >= 0) groups.set(s.sec, [...(groups.get(s.sec) || []), s]);
+  const secs = [...groups.values()];
+  let pick, name;
+  const chorus = secs.find(g => /^chorus\b/i.test(g[0].secName.trim()));
+  if (chorus) { pick = chorus; name = "Chorus"; }
+  else if (secs.length) {
+    pick = secs.reduce((a, g) => distinct(g.map(x => x.chord)).length > distinct(a.map(x => x.chord)).length ? g : a);
+    name = pick[0].secName.trim() || "Verse";
+  } else { pick = slots.slice(0, 8); name = "The first bars"; }
+  const barSecs = beats * 60 / Math.max(30, bpm || DEFAULT_BPM), most = Math.max(2, Math.floor(PART_SECS / barSecs));
+  const bars = pick.slice(0, most);
+  const chords = distinct(bars.map(b => b.chord));
+  return { name, bars, chords, main: mostUsed(bars.map(b => b.chord)), secs: bars.length * barSecs };
+}
+/* The whole song as one part, for the headline. */
+export function wholeSong(body, { bpm = DEFAULT_BPM, beats = 4 } = {}) {
+  const bars = chordSpots(parseBlocks(body || ""));
+  if (!bars.length) return null;
+  const chords = distinct(bars.map(b => b.chord));
+  return { name: "The whole song", bars, chords, main: mostUsed(bars.map(b => b.chord)), secs: bars.length * beats * 60 / Math.max(30, bpm || DEFAULT_BPM) };
+}
+/* The chords each round plays: the most used first, then the others in the order they first appear. Round k plays the first k. */
+export function roundSets(part) {
+  if (!part) return [];
+  const order = [part.main, ...part.chords.filter(c => c !== part.main)];
+  return order.map((_, i) => order.slice(0, i + 1));
+}
+/* What a round is called: "Just G", "G to C", "G, C and D". */
+export const roundName = chords => chords.length === 1 ? `Just ${chords[0]}` : chords.length === 2 ? `${chords[0]} to ${chords[1]}` : `${chords.slice(0, -1).join(", ")} and ${chords[chords.length - 1]}`;
+/* When each chord of a sheet falls in the linked recording, in seconds, from the line times LRCLIB gave (song.timed): a
+   chord takes its share of its line's time, and chords between timed lines fall in between. null when nothing is timed. */
+export function slotTimes(song, slots) {
+  const at = song?.timed?.at;
+  if (!at?.length || !slots.length) return null;
+  const when = new Map(at), order = at.map(x => x[0]).sort((a, b) => a - b), per = new Map(), seen = new Map();
+  for (const s of slots) per.set(s.block, (per.get(s.block) || 0) + 1);
+  const times = slots.map(s => {
+    const k = seen.get(s.block) || 0; seen.set(s.block, k + 1);
+    if (!when.has(s.block)) return null;
+    const start = when.get(s.block), nx = order.find(i => i > s.block);
+    const end = Math.min(nx !== undefined ? when.get(nx) : start + 8, start + 12);
+    return start + (end - start) * k / per.get(s.block);
+  });
+  const known = times.map((t, i) => t != null ? i : -1).filter(i => i >= 0);
+  if (!known.length) return null;
+  for (let n = 0; n + 1 < known.length; n++) { const p = known[n], q = known[n + 1]; for (let i = p + 1; i < q; i++) times[i] = times[p] + (times[q] - times[p]) * (i - p) / (q - p); }
+  for (let i = 1; i < times.length; i++) if (times[i] != null && times[i - 1] != null && times[i] <= times[i - 1]) times[i] = times[i - 1] + 0.05;
+  return times;
+}
+/* One round laid out: the bars (a bar is one chord) and a strum on each beat of the bars with your chords. Times are in
+   seconds from the first bar. Band time is even (the song's tempo, scaled by `rate`); with `times` (a recording's) a bar
+   runs to the next chord and its strums divide it. Rests are the bars whose chord isn't in `mine`. */
+export function roundPlan(bars, mine, { bpm = DEFAULT_BPM, beats = 4, rate = 1, times = null } = {}) {
+  const spb = 60 / (Math.max(30, bpm || DEFAULT_BPM) * rate);
+  const usable = times && bars.length && bars.every(b => Number.isFinite(times[b.n]));
+  const t0 = usable ? times[bars[0].n] : 0;
+  const out = bars.map((b, i) => {
+    const t = usable ? times[b.n] - t0 : i * beats * spb;
+    const next = i + 1 < bars.length ? (usable ? times[bars[i + 1].n] - t0 : (i + 1) * beats * spb) : t + beats * spb;
+    return { i, chord: b.chord, n: b.n, mine: mine.includes(b.chord), t, dur: Math.max(0.2, next - t) };
+  });
+  const strums = [];
+  for (const b of out) if (b.mine) for (let k = 0; k < beats; k++) strums.push({ id: strums.length, bar: b.i, k, chord: b.chord, t: b.t + k * b.dur / beats });
+  const last = out[out.length - 1];
+  return { spb, beats, bars: out, strums, secs: last ? last.t + last.dur : 0, recorded: !!usable, start: usable ? t0 : 0 };
+}
+/* Which marked strum a heard strum belongs to: the nearest one from half a beat before it to one beat after, not yet
+   taken. Timing is never graded: this only says which strum to check the chord against. -1 when none is near. */
+export function nearStrum(strums, t, spb, taken = new Set()) {
+  let best = -1, gap = Infinity;
+  for (const s of strums) {
+    if (taken.has(s.id)) continue;
+    const d = t - s.t;
+    if (d < -0.5 * spb || d > spb) continue;
+    if (Math.abs(d) < gap) { gap = Math.abs(d); best = s.id; }
+  }
+  return best;
+}
+/* Did the round pass: Louie heard at least 3 in 4 of the strums. */
+export const roundPassed = (heard, total) => total > 0 && heard >= Math.ceil(total * 0.75);
+/* What VoiceOver hears once per bar: the chord, or a rest, and what is next. */
+export const roundSay = (bars, i, beats = 4) => bars[i] ? `${bars[i].mine ? bars[i].chord : `Rest for ${bars[i].chord}`}. ${roundNext(bars, i, 0, beats)}` : "";
+/* The line under the neck: what is coming ("Next: C in 2 beats", "Rest for C, back on G in 3"). `beat` is the beat of the bar. */
+export function roundNext(bars, i, beat = 0, beats = 4) {
+  const b = bars[i];
+  if (!b) return "";
+  const left = beats - beat, nx = bars[i + 1];
+  if (b.mine) {
+    if (!nx) return "Last bar";
+    if (nx.mine) return `Next: ${nx.chord} in ${left} beat${left === 1 ? "" : "s"}`;
+    const back = bars.findIndex((x, j) => j > i && x.mine);
+    return back < 0 ? `Then rest to the end` : `Next: rest for ${nx.chord}, back on ${bars[back].chord} in ${left + (back - i - 1) * beats}`;
+  }
+  const back = bars.findIndex((x, j) => j > i && x.mine), n = left + (back < 0 ? 0 : (back - i - 1) * beats);
+  return back < 0 ? `Rest for ${b.chord} to the end` : `Rest for ${b.chord}, back on ${bars[back].chord} in ${n}`;
+}
+
 // ---------- The tour's stops ----------
-/* The new chords the tour teaches and the stand-in set for replay k (the first k new chords are real, the rest are not). */
-export const haveFor = (known, news, k) => new Set([...known].filter(c => !news.includes(c) && !news.includes(plainChord(c))).concat(news.slice(0, k)));
+/* The chords of a part or song that you can't play yet, plain, in the order they first appear. */
+const unknownIn = (chords, have) => newChords(chords, have);
 
 export function songTourStops(data, legId, now = Date.now()) {
   const t = entry(data, legId);
   if (!t?.pick) return [];
   const known = knownChords(data, now), song = (data.songs || []).find(s => s.id === t.song);
-  const chords = song ? sheetChords(song.body) : t.pick.chords, news = t.pick.new;
-  const done = id => t.done.includes(id), lesson = id => !!data.skills?.done?.[id];
-  const rows = [{ id: `p:${legId}-0`, kind: "play", name: "Play it now", k: 0, ok: done(`p:${legId}-0`) }];
-  news.forEach((c, j) => {
-    const at = chords.findIndex(x => plainChord(x) === c), pick = at > 0 ? plainChord(chords[at - 1]) : plainChord(chords[at + 1] || "");
-    rows.push({ id: `c:${c}`, kind: "chord", chord: c, name: c, ok: known.has(c) || lesson(`c:${c}`) });
-    if (pick && pick !== c && chordShape(pick)) rows.push({ id: `s:${pick}-${c}`, kind: "switch", a: pick, b: c, to: 80, name: `${pick} to ${c}`, ok: lesson(`s:${pick}-${c}`) });
-    rows.push({ id: `p:${legId}-${j + 1}`, kind: "play", name: `Play with ${c}`, k: j + 1, ok: done(`p:${legId}-${j + 1}`) });
+  const bpm = song?.bpm || song?.listen?.feel?.bpm || DEFAULT_BPM, beats = song?.beats || 4;
+  /* before the song is in the Songbook the pick's chords stand in for it */
+  const part = song ? songPart(song.body, { bpm, beats }) : t.pick.chords.length ? { name: "Chorus", bars: t.pick.chords.map((chord, n) => ({ chord, n })), chords: t.pick.chords, main: t.pick.chords[0], secs: 0 } : null;
+  const whole = song ? wholeSong(song.body, { bpm, beats }) : null;
+  const sets = roundSets(part), all = distinct([...(whole?.chords || []), ...t.pick.chords]);
+  const finished = t.solid === true, done = id => finished || t.done.includes(id), lesson = id => !!data.skills?.done?.[id];
+  const rows = [], taught = new Set();
+  const teach = chords => {
+    for (const c of unknownIn(chords, known)) if (!taught.has(c)) { taught.add(c); rows.push({ id: `c:${c}`, kind: "chord", chord: c, name: c, ok: finished || known.has(c) || lesson(`c:${c}`) }); }
+  };
+  sets.forEach((set, i) => {
+    teach(set);
+    rows.push({ id: `r:${legId}-${i + 1}`, kind: "round", n: i + 1, of: sets.length + 1, name: `Round ${i + 1}`, sub: roundName(set), chords: set, ok: done(`r:${legId}-${i + 1}`) });
   });
-  rows.push({ id: `h:${legId}`, kind: "headline", name: "Headline show", ok: done(`h:${legId}`), chords: [...new Set(chords)], song: t.song });
+  teach(all);
+  rows.push({ id: `h:${legId}`, kind: "headline", name: "Headline show", sub: "The whole song", n: sets.length + 1, of: sets.length + 1, ok: done(`h:${legId}`), chords: all, song: t.song });
   let now1 = false;
   return rows.map(({ ok, ...r }) => {
     const state = ok ? "done" : now1 ? "locked" : "now";
     if (!ok) now1 = true;
-    return { ...r, state, leg: `song:${legId}`, tour: legId, ...(r.kind === "play" ? { have: [...haveFor(known, news, r.k)] } : {}) };
+    return { ...r, state, leg: `song:${legId}`, tour: legId };
   });
 }
 /* One song tour as a leg the Road draws like any other (id song:open). A tour with no pick yet has no stops: `finding`. */
@@ -206,16 +304,7 @@ export function tourAttach(data, legId, song, now = Date.now()) {
   t.song = song.id; t.pick = { ...t.pick, chords: sheetChords(song.body).slice(0, 14), new: fit.new };
   return { ok: true, new: fit.new };
 }
-/* Which stop of which song tour a played song counts for: the song tour's current stop when it is a play stop or the headline. */
-export function tourStopFor(data, songId, now = Date.now()) {
-  for (const id of Object.keys(data.songTour?.legs || {})) {
-    if (data.songTour.legs[id].song !== songId) continue;
-    const s = songTourStops(data, id, now).find(x => x.state === "now");
-    if (s && (s.kind === "play" || s.kind === "headline")) return s;
-  }
-  return null;
-}
-/* A song tour stop played to the end: it is done; the headline makes the song Solid. Returns what happened for the show's card. */
+/* A round (or the headline) that passed: it is done; the headline makes the song Solid. Returns what happened for the show's card. */
 export function tourPlayed(data, stop, now = Date.now()) {
   const t = entry(data, stop.tour);
   if (!t || t.done.includes(stop.id)) return null;
@@ -229,5 +318,3 @@ export function tourPlayed(data, stop, now = Date.now()) {
   }
   return { id: stop.id, kind: stop.kind, name: stop.name, finished: stop.kind === "headline", title: t.pick?.title || "" };
 }
-/* The run in progress: which song tour stop is being played (the sheet draws its stand-ins while this matches the song). */
-export const TOUR_RUN = { cur: null };

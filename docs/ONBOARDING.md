@@ -295,7 +295,7 @@ Achievement callouts (4.44.0) teach themselves: they appear when something is ea
 | 2 | About this song | Match it, Timing, Change recording | Rows in the sheet | Shown only when the recording doesn't match | Fine as is |
 | 3 | Get the song | Swiping it away keeps it; the "is ready" bar brings it back | Swipe down, tap the bar | None | The first time it's put aside: a toast "Kept. Tap the bar to bring it back" |
 | 4 | Play next | The cover plays a 30-second preview; Learn opens the new chord's lesson | Tap the cover, Learn | None | First open |
-| 4b | Song tour (5.9.0) | The Tour gets a Song tour neck after a finished skill tour: Louie picks a song, Swap picks another, Get it saves it, and the first stop plays it with stand-in chords you know, each marked | Tour tab, tap the stop | The stop card says it | The first time a skill tour is finished |
+| 4b | Song tour (5.9.0, rounds 5.10.0) | The Tour gets a Song tour neck after a finished skill tour: Louie picks a song, Swap picks another, Get it saves it, then short play-along rounds on a highway (strum on each beat for your chord, rest for the others; Louie listens for the chord), a chord lesson before the first round that needs it, and a headline that plays the whole song | Tour tab, tap the stop | The stop card says it | The first time a skill tour is finished |
 | 5 | Sets | Play set; Next up waits for a tuning change | Sets button, Play set | Listed | When there are 8 songs |
 | 6 | Play together | Both phones listen for one clap | Song tab > Play together | The sheet says it | Fine as is |
 | 7 | Merch | Rain check works on its own when you miss a night | Buy it | The buy toast says it | Fine as is |

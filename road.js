@@ -22,13 +22,14 @@
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
-import { TOUR_RUN, roadTour, tourSeed, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { roadTour, tourSeed, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { holdSheet, micSheet, notesSheet, songFor, stringsSheet } from "./opening.js";
 import { makerSheet } from "./maker.js";
 import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout, tourGet, tourPick } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
+import { openRound } from "./rounds.js";
 import { guitarSVG, inlaySVG, neckHTML, rrStopArt, bareNeckHTML } from "./fretboard.js";
 import { bindStand, collectionOf, standHTML, standIndex } from "./gstand.js";
 import { statBar, rrStats, bindStatBar, settleStats } from "./hud.js";
@@ -95,13 +96,13 @@ const dotIcon = s => s.state === "done" ? ICONS.check : ICONS[s.kind] || ICONS.c
 /* the songs a headline show can be played with: only that leg's chords, the last played first */
 const fitsFor = stop => (stop.chords ? data.songs.filter(sg => { const c = chordNames(sg.body || ""); return c.length >= 2 && c.every(n => stop.chords.includes(n)); })
   .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0)) : []);
-const stopTitle = s => s.kind === "headline" ? "Headline show" : s.kind === "play" ? s.name : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
+const stopTitle = s => s.kind === "headline" ? "Headline show" : s.kind === "round" ? s.name : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
 const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
 const tagOf = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? (s.state === "now" ? "Tap to open" : "Merch box") : s.kind === "chord" ? `${s.name} chord` : s.name;
 /* A pick's card, opened by a tap (4.35.0, like the old card but only on a tap): the next stop's is in the
    streak colour with Start (or, at a headline, Play and the song that fits); any other pick's is a quiet one */
 function stopCard(stop) {
-  if (stop.tour && (stop.kind === "play" || stop.kind === "headline") && stop.state !== "locked") return tourCard(stop);
+  if (stop.tour && (stop.kind === "round" || stop.kind === "headline") && stop.state !== "locked") return tourCard(stop);
   const title = stopTitle(stop), now = stop.state === "now" || stop.state === "open";
   if (stop.kind === "headline" && stop.state !== "locked") {
     const fits = fitsFor(stop), song = data.songs.find(x => x.id === stop.song) || fits[0];
@@ -125,17 +126,18 @@ function stopCard(stop) {
     : `${stop.state === "done" ? "" : `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : "START"}</button>`;
   return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? (stop.kind === "chord" ? "Its lesson opens when you get here." : "Finish the stops before this one to open it.") : line)}</p>${act}${alt}</div>`;
 }
-/* 5.9.0 Song tours: the card of a play stop or the headline. The first stop names the pick and offers Get it and Swap. */
+/* Song tours: the card of a round or the headline. A tour with no song yet names the pick and offers Get it and Swap. */
 function tourCard(stop) {
   const t = data.songTour?.legs?.[stop.tour], pick = t?.pick, title = stopTitle(stop), have = !!t?.song;
   const what = pick ? `${pick.title}${pick.artist ? `, ${pick.artist}` : ""}` : "your song";
-  const line = stop.kind === "headline" ? `Play ${what} start to finish with every chord real.`
-    : stop.k === 0 ? (have ? `Play ${what} now. Chords you don't know yet are played as one you do, and each is marked.` : `Louie picked ${what}. Get it to play it today with chords you know.`)
-    : `Play ${what} again. ${(pick?.new || [])[stop.k - 1] || "The new chord"} is real now; later new chords are still marked stand-ins.`;
-  const label = have ? (stop.state === "done" ? "PLAY AGAIN" : "PLAY") : "GET IT";
-  const swap = stop.k === 0 && stop.state === "now" && !have ? `<button class="rd-other" data-tourswap="${esc(stop.tour)}">Swap for another song</button>` : "";
+  const line = !have ? `Louie picked ${what}. Get it to play along with it, one chord at a time.`
+    : stop.kind === "headline" ? `Play along with ${what} from start to finish, every chord.`
+    : stop.n === 1 ? `Play along with a part of ${what}. Strum ${stop.chords[0]} on each beat. The other bars are rests.`
+    : `Play along again. ${stop.chords[stop.chords.length - 1]} joins in.`;
+  const label = have ? (stop.state === "done" ? "PLAY IT AGAIN" : "PLAY") : "GET IT";
+  const swap = stop.n === 1 && stop.state === "now" && !have ? `<button class="rd-other" data-tourswap="${esc(stop.tour)}">Swap for another song</button>` : "";
   return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>
-    ${stop.state === "done" ? "" : `<div class="rd-earn"><span>+${FANS.play} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${label}</button>${swap}</div>`;
+    <button class="btn primary rd-start" data-go="${esc(stop.id)}">${label}</button>${swap}</div>`;
 }
 /* the quiet pick: asked once while the tour has none; a failure says so and waits for Try again */
 const tourBusy = new Set(), tourErr = new Map();
@@ -582,13 +584,12 @@ export function renderRoad() {
     }
     go("#/practice/" + encodeURIComponent(s.id));
   };
-  /* 5.9.0: a song tour stop. Play stops and the headline play the tour's song (the sheet draws the stand-ins); lessons are the usual ones. */
+  /* a song tour stop: rounds and the headline open the highway; lessons are the usual ones. The tap itself opens the round, so the phone lets the microphone start. */
   const tourStart = s => {
     const t = data.songTour?.legs?.[s.tour];
-    if (s.kind !== "play" && s.kind !== "headline") return go("#/practice/" + encodeURIComponent(s.id));
+    if (s.kind !== "round" && s.kind !== "headline") return go("#/practice/" + encodeURIComponent(s.id));
     if (!t?.song) return aiKey() ? tourGet(s.tour) : toast("Add your own key in Settings to get this song, or skip the song tour");
-    TOUR_RUN.cur = { ...s, song: t.song };
-    playGig(t.song, { from: "road" });
+    openRound(s, { onClose: () => { if (document.getElementById("rd-path")) renderRoad(); } });
   };
   path.addEventListener("click", e => {
     const sw = e.target.closest("[data-tourswap]"), rt = e.target.closest("[data-tourretry]");

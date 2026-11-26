@@ -231,4 +231,15 @@ from songs not on a song tour.
 
 ## Surprises
 
-None yet.
+Built 2026-11-26 (Sonnet), branch `song-rounds`.
+
+1. **Lessons for chords outside the part.** A chord only the rest of the song uses (not in the part) is taught just before the headline, so the headline never asks for a chord you have not learned.
+2. **Switch drills leave the song tour.** The `s:` stops of 5.9.0 are dropped from the tour; rounds and the headline replace them. The skill tour's own switch drills are unchanged.
+3. **Rounds award no fans.** Rounds and the headline set the song's progress only (the headline makes it Solid). The "+fans" earn line on the stop card is gone.
+4. **The part is cut by bars.** The 45 second cut counts whole bars at the song's tempo (its stored tempo, the recording's, or 100 bpm if neither is known).
+5. **Before Get it, the pick's chords stand in for the part.** The stop list is built from the pick's chord list until the song is in the Songbook, then from the real sheet.
+6. **The stand-in CSS went too** (`.sheet .c.standin`, `.si`), along with `standInFor`, `standInPlan`, `standInBlocks`, `haveFor`, `tourStopFor`, `TOUR_RUN` and the `logPlay` guard.
+7. **The headline counts as a round in "n of N".** A tour with 3 rounds shows "4 of 4" on the headline.
+8. **Pass and finish.** A round passes at 3 in 4 heard (`ceil(0.75 x strums)`). With the mic off or not allowed it counts when played through. A round is stored only when it passes.
+9. **A tour finished in 5.9.0 stays finished** (`solid` is kept; every stop shows done).
+10. **Known edge.** If the audio engine cannot start, the highway stays on the count-in; closing it counts nothing.
