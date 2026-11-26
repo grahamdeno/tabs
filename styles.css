@@ -6167,3 +6167,6 @@ body.searching #sb-more { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) #app .sb-row .t { font: 500 var(--type-body) / 1.25 var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) #app .list .row.rr-line.sb-row { min-height: 68px; }
 :root:is([data-look="neon"], [data-look="festival"]) #app .sb-r .heart-sp { width: 22px; height: 22px; flex: none; }
+:root:is([data-look="neon"], [data-look="festival"]) :is(.list.glass, .set-group, .set-group.glass, .pf-card) { border-radius: var(--r-card); }
+:root:is([data-look="neon"], [data-look="festival"]) body.tabbed #tabs { border-radius: var(--r-bar); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list.glass:has(.sb-row) { border-radius: 0; }

@@ -3181,7 +3181,7 @@ test("Road Ready: its tokens exist for both looks and for no other look", () => 
     assert.match(shared, new RegExp(`--type-${n}: calc\\(var\\(--sys-px, 17px\\) \\* [\\d.]+\\)`), `--type-${n} scales with --sys-px`);
   for (const n of [1, 2, 3, 4, 5, 6, 7, 8]) assert.match(shared, new RegExp(`--sp-${n}: \\d+px`));
   for (const n of ["chip", "control", "card", "strip", "sheet", "plate"]) assert.match(shared, new RegExp(`--r-${n}: `));
-  assert.match(shared, /--margin: 16px/); assert.match(shared, /--r: 16px; --r-bar: 18px/);
+  assert.match(shared, /--margin: 16px/); assert.match(shared, /--r: 8px; --r-bar: 10px/); /* 5.8.0: less rounding */
   /* Green Room and Headliner (and plain :root) never get a Road Ready value */
   const outside = rrCss.replace(rrDark, "").replace(rrLight, "");
   assert.equal([...outside.matchAll(/--rr-[a-z0-9-]+\s*:/g)].length, 0, "no --rr token is defined outside the two Road Ready looks");
