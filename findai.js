@@ -669,6 +669,11 @@ const nxTile = (x, i) => `linear-gradient(135deg, ${NX_TINT[i % NX_TINT.length]}
 let nxLast = null;
 try { nxLast = JSON.parse(sessionStorage.getItem("tabs.nx.last.v1") || "null"); } catch { /* private mode */ }
 const NX_KEEP = 60 * 60 * 1000;
+/* 5.7.0: Add on a Songbook suggestion gets the song the same way Learn does on the Play next card */
+export function learnNext(x) {
+  if (!x || !aiKey()) return;
+  getSong("", { title: x.title, artist: x.artist || "", level: data.settings.nextLevel === "step" ? "rec" : "mine", teach: (x.new || [])[0] || "" });
+}
 export async function nextSongs() {
   const known = chordCounts(data.songs).slice(0, 24);
   const level = () => data.settings.nextLevel === "step" ? "step" : "same";
@@ -788,6 +793,9 @@ export async function nextSongs() {
       nextSeen(list.map(x => x.title));
       nxLast = { lv, skip, list, at: Date.now() };
       try { sessionStorage.setItem("tabs.nx.last.v1", JSON.stringify(nxLast)); } catch { /* full or private */ }
+      /* 5.7.0: the Songbook shows the last suggestions under its list without asking again (titles, artists, chords and the
+         one-line why; no lyrics, no keys) */
+      try { localStorage.setItem("tabs.nx.songbook.v1", JSON.stringify({ at: Date.now(), list: list.slice(0, 6).map(({ title, artist, chords, new: nw, why }) => ({ title, artist, chords, new: nw, why })) })); } catch { /* full or private */ }
       if (!list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
       else covers(list);
     } catch (e) {
