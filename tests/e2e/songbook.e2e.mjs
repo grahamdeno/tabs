@@ -53,13 +53,13 @@ for (const theme of ["dark", "light", "green", "headliner"]) test(`4.113.0 (${th
     add: !!document.querySelector(".dock .cmd #add.cmd-add"), back: !!document.getElementById("libback"),
     oldRows: document.querySelectorAll("#app .rr-row, #app .rr-tile, #app .rr-sb-head, #app .rr-cc").length,
     agreed: [document.querySelectorAll("#list .row.rr-line").length === document.querySelectorAll("#list .row").length, !!document.querySelector("#chips.rr-chips")],
-    k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "), l: document.querySelector('#list .row[data-id="l"] .sb-dots')?.getAttribute("aria-label"),
-    b: document.querySelector('#list .row[data-id="b"] .miss')?.textContent, key: document.querySelector('#list .row[data-id="k"] .k')?.textContent
+    k: document.querySelector('#list .row[data-id="k"]')?.innerText.replace(/\s+/g, " "), l: document.querySelector('#list .row[data-id="l"] .vh')?.textContent,
+    b: document.querySelector('#list .row[data-id="b"] .vh')?.textContent, key: document.querySelector('#list .row[data-id="k"] .k')?.textContent
   }));
   const rr = true; /* a saved Green Room or Headliner is read as Light or Dark, so the Songbook is that layout */
-  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, agreed: [rr, rr], k: undefined, l: "Learning, needs B7", b: "F", key: "G" }, "the Songbook is the Road Ready layout, including when a retired look is what was saved");
-  assert.match(got.k, /Kettle Hums.*June and the Kettles.*G C D Em/, "5.7.0: title, artist and chords");
-  assert.equal(await page.getAttribute('#list .row[data-id="k"] .sb-dots', "aria-label"), "Nailed it, can play", "the level is said");
+  assert.deepEqual({ ...got, k: undefined }, { title: "Songbook", sets: true, tuner: true, add: true, back: !rr, oldRows: 0, agreed: [rr, rr], k: undefined, l: ", Learning, needs B7", b: ", New, needs F", key: "G" }, "the Songbook is the Road Ready layout, including when a retired look is what was saved");
+  assert.match(got.k, /Kettle Hums.*June and the Kettles/, "5.8.0: title and artist");
+  assert.equal(await page.innerText('#list .row[data-id="k"] .vh'), ", Nailed it, can play", "the level is said");
   /* the chosen filter is said, not only filled; Almost (4.105.0) is there when a song is one chord away */
   const pressed = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll("#chips .chip")].map(c => [c.dataset.f, c.getAttribute("aria-pressed")])));
   assert.deepEqual(await pressed(), { all: "true", can: "false", near: "false", sets: "false" }, "5.7.0: All, Can play, Almost and Sets");

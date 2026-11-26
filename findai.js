@@ -795,7 +795,7 @@ export async function nextSongs() {
       try { sessionStorage.setItem("tabs.nx.last.v1", JSON.stringify(nxLast)); } catch { /* full or private */ }
       /* 5.7.0: the Songbook shows the last suggestions under its list without asking again (titles, artists, chords and the
          one-line why; no lyrics, no keys) */
-      try { localStorage.setItem("tabs.nx.songbook.v1", JSON.stringify({ at: Date.now(), list: list.slice(0, 6).map(({ title, artist, chords, new: nw, why }) => ({ title, artist, chords, new: nw, why })) })); } catch { /* full or private */ }
+      try { localStorage.setItem("tabs.nx.songbook.v1", JSON.stringify({ at: Date.now(), list: list.slice(0, 6).map(({ title, artist, chords, new: nw, why, art }) => ({ title, artist, chords, new: nw, why, ...(/^https:\/\//.test(art || "") ? { art } : {}) })) })); } catch { /* full or private */ }
       if (!list.length) state = { busy: false, list: [], skip, err: "No songs came back that time. Try again, or switch levels." };
       else covers(list);
     } catch (e) {
