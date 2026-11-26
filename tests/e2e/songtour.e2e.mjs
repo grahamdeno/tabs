@@ -387,3 +387,17 @@ test("inclusive: the song tour card, stops and the highway hold at 320 px, in Li
     assert.ok(await page.evaluate(() => { const b = document.querySelector("#round .rnd-pause").getBoundingClientRect(); return b.bottom <= innerHeight + 1; }), `${scheme}: Pause is on screen`);
   }
 });
+
+test("5.10.1 rounds: on its side Pause is on top and answers; the line sits near a third across; the gold fret is between bars", { skip: skip() }, async t => {
+  const { page } = await home(t, SEEDED(), { key: false, opts: { viewport: { width: 844, height: 390 } } });
+  await page.waitForSelector('.rn-stop.cur[data-stop="r:open-1"]');
+  await open(page);
+  const hit = await page.evaluate(() => { const b = document.querySelector('#round [data-rnd="pause"]'), r = b.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest("[data-rnd]")?.dataset.rnd || ""; });
+  assert.equal(hit, "pause", "nothing covers Pause");
+  await page.click('#round [data-rnd="pause"]');
+  await page.waitForFunction(() => document.querySelector('#round [data-rnd="pause"]').ariaLabel === "Play");
+  const at = await page.evaluate(() => { const hw = document.querySelector("#round .rnd-hw").getBoundingClientRect(), l = document.querySelector("#round .rnd-line").getBoundingClientRect(); return (l.left - hw.left) / hw.width; });
+  assert.ok(at > 0.27 && at < 0.33, `the line is near 30% across (${at})`);
+  const gap = await page.evaluate(() => { const b = [...document.querySelectorAll("#round .rnd-blk")].map(x => x.getBoundingClientRect().left); return b[1] - b[0]; });
+  assert.ok(gap >= 50, `strums are spread out (${gap} px)`);
+});

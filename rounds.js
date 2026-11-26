@@ -15,7 +15,8 @@ import { drum, tempoFor } from "./audio.js";
 import { musicClock, musicLead, pauseMusic, startMusic } from "./listen.js";
 import { chordSVG, data, mmss, usesMusic } from "./app.js";
 
-const PX_BEAT = 34, SPEEDS = [0.6, 0.8, 1];
+/* 5.10.1: the strums spread out (34 px a beat was crowded) */
+const PX_BEAT = 56, SPEEDS = [0.6, 0.8, 1];
 let R = null; // the round on screen
 
 const guitarBand = (ctx, src) => {
@@ -238,8 +239,8 @@ function paint() {
   const rest = plan.bars.filter(b => !b.mine).length;
   const wood = `<div class="rnd-wood" aria-hidden="true"></div>`;
   const strings = Array.from({ length: 6 }, (_, i) => `<i class="rnd-str s${i}" style="top:${(18 + i * 13.2).toFixed(1)}%"></i>`).join("");
-  const frets = plan.bars.map(b => `<img class="rnd-fret" src="art/road-neck/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="--x:${(b.t * PX_BEAT / plan.spb - 9).toFixed(1)}">`).join("");
-  const rests = plan.bars.filter(b => !b.mine).map(b => `<div class="rnd-rest" style="left:${(b.t * PX_BEAT / plan.spb - 5).toFixed(1)}px;width:${(b.dur * PX_BEAT / plan.spb - 8).toFixed(1)}px"><span>rest · ${esc(b.chord)}</span></div>`).join("");
+  const frets = plan.bars.map(b => `<img class="rnd-fret" src="art/road-neck/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="--x:${(b.t * PX_BEAT / plan.spb - PX_BEAT / 2).toFixed(1)}">`).join("");
+  const rests = plan.bars.filter(b => !b.mine).map(b => `<div class="rnd-rest" style="left:${(b.t * PX_BEAT / plan.spb - PX_BEAT / 2 + 8).toFixed(1)}px;width:${(b.dur * PX_BEAT / plan.spb - 16).toFixed(1)}px"><span>rest · ${esc(b.chord)}</span></div>`).join("");
   const blocks = plan.strums.map(s => `<i class="rnd-blk" data-s="${s.id}" style="left:${(s.t * PX_BEAT / plan.spb - 8).toFixed(1)}px"></i><span class="rnd-arr" aria-hidden="true" style="left:${(s.t * PX_BEAT / plan.spb - 14).toFixed(1)}px">↓</span>`).join("");
   const names = plan.bars.filter(b => b.mine).map(b => `<span class="rnd-nm" style="left:${(b.t * PX_BEAT / plan.spb - 8).toFixed(1)}px">${esc(b.chord)}</span>`).join("");
   const art = /^https:\/\//.test(song.listen?.art || "") ? `<img src="${esc(song.listen.art)}" alt="" width="44" height="44">` : esc((song.title || "?")[0].toUpperCase());
