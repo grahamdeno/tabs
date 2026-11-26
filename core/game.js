@@ -369,8 +369,9 @@ export function openingSkip(data, now = Date.now()) { data.opening = { ...(isObj
 export function openingReplay(data, now = Date.now()) { data.opening = { step: 1, v: OPENING_VER, fans: data.opening?.fans || 0, replay: true, started: now }; }
 export function fansOf(data, now = Date.now()) {
   const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
+  const rounds = Object.values(data.songTour?.legs || {}).reduce((n, t) => n + (t.done || []).filter(x => /^[rh]:/.test(x)).length, 0);
   const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0);
-  return lifetimePlays(data) * FANS.play + lessons * FANS.lesson + boxes * FANS.box + (data.gig?.fans || 0) + (data.quests?.fans || 0) + (data.charts?.fans || 0) + (data.opening?.fans || 0);
+  return lifetimePlays(data) * FANS.play + (lessons + rounds) * FANS.lesson + boxes * FANS.box + (data.gig?.fans || 0) + (data.quests?.fans || 0) + (data.charts?.fans || 0) + (data.opening?.fans || 0);
 }
 
 // ---------- Tour quests (4.5.0) ----------
@@ -398,7 +399,7 @@ export function requestSong(data, now = Date.now()) {
 export function questState(data, now = Date.now()) {
   const d = new Date(now), today = dayKey(now), month = today.slice(0, 7), q = data.quests || {};
   const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-  let shows = 0, todayPlays = 0;
+  let shows = data.journal?.months?.[month]?.rounds || 0, todayPlays = 0;
   for (const s of playSongs(data)) for (const [k, n] of Object.entries(s.playLog?.days || {})) { if (k.startsWith(month)) shows += n || 0; if (k === today) todayPlays += n || 0; }
   const mins = Math.floor((data.journal?.days?.[today] || 0) / 60), crowd = q.crowd?.day === today ? q.crowd.n : 0;
   const got = q.day === today ? q.got || [] : [];
