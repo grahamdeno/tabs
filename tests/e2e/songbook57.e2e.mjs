@@ -57,3 +57,16 @@ test("5.7.0 Songbook: under five songs there is no filter row; no AI key, no Son
   assert.equal(await nokey.locator(".sb-next").count(), 0, "no AI key: no section");
   assert.equal(await nokey.locator("#bk").count(), 0, "backed up recently: no line");
 });
+
+test("5.8.0 Songbook, the calm pass: no card boxes, filters are words with an underline, one list with thin lines", { skip: skip() }, async t => {
+  const page = await open(t, { songs: FIVE });
+  const m = await page.evaluate(() => {
+    const cs = e => getComputedStyle(e), row = document.querySelector(".sb-row"), seg = document.getElementById("chips"), on = seg.querySelector(".chip.on");
+    const rows = [...document.querySelectorAll(".sb-row")].map(r => r.getBoundingClientRect());
+    return { rowBg: cs(row).backgroundColor, rowBorderTop: cs(row).borderTopWidth, rowLine: cs(row).borderBottomWidth, segBg: cs(seg).backgroundColor, onBg: cs(on).backgroundColor, onLine: cs(on).boxShadow, gaps: rows.slice(1).map((r, i) => Math.round(r.top - rows[i].bottom)) };
+  });
+  assert.equal(m.rowBg, "rgba(0, 0, 0, 0)", "rows have no card fill"); assert.equal(m.rowBorderTop, "0px"); assert.equal(m.rowLine, "1px", "a thin line under each row");
+  assert.equal(m.segBg, "rgba(0, 0, 0, 0)", "the filter row is not a box"); assert.equal(m.onBg, "rgba(0, 0, 0, 0)", "the chosen filter is not filled");
+  assert.match(m.onLine, /inset/, "the chosen filter is underlined");
+  assert.ok(m.gaps.every(g => g <= 1), `the rows touch, one list (${m.gaps})`);
+});

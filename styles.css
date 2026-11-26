@@ -6127,3 +6127,28 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .pw .p
 :root:is([data-look="neon"], [data-look="festival"]) .sb-bk svg { flex: none; width: 16px; height: 16px; }
 :root:is([data-look="neon"], [data-look="festival"]) .sb-bkgo { min-height: 44px; padding: 0 6px; margin: -10px 0; border: 0; background: none; color: var(--rr-amber-text); font: 600 var(--type-footnote) / 1 var(--sans); }
 body.searching #sb-more { display: none; }
+
+/* ---- 5.8.0 Songbook, the calm pass (Graham, 2026-11-26: "simple and elegant like the home page"): no boxes. Louie's hint is one quiet
+   line, the filters are words with a teal underline, and the songs are one list with thin lines between them, like the neck's frets. ---- */
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint { margin: var(--sp-2) 0 var(--sp-2); padding: 0; min-height: 52px; border: 0; border-radius: 0; background: none; box-shadow: none; gap: 10px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .rr-badge { width: 28px; height: 28px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-t small { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-open { padding-right: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-dots { margin: -14px 0 -14px -15px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > .today.rr-hint .tdy-dot i { width: 5px; height: 5px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips.sb-seg { display: flex; gap: 22px; padding: 0 2px; margin: 0 0 var(--sp-3); border: 0; border-bottom: 1px solid var(--rr-hairline); border-radius: 0; background: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips.sb-seg .chip { flex: none; min-height: 44px; padding: 0; border-radius: 0; color: var(--rr-text-2); font: 600 var(--type-subhead) / 1 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips.sb-seg .chip small { font-weight: 500; color: inherit; opacity: .8; }
+:root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips.sb-seg .chip.on { background: none; color: var(--rr-text); box-shadow: inset 0 -2px 0 var(--rr-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .lib-count { margin-top: 0; font-size: var(--type-footnote); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list.glass:has(.sb-row) { gap: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list.glass:has(.sb-row) .sw { border-radius: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list .row.rr-line.sb-row { min-height: 64px; padding: 10px 2px; gap: 14px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--rr-hairline) 70%, transparent); border-radius: 0; background: none; box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-cv { width: 40px; height: 40px; border-radius: 10px; font-size: 16px; background: color-mix(in srgb, var(--tint) 75%, var(--rr-base)); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-row .t { font: 600 var(--type-body) / 1.25 var(--sans); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-row .a { font: 500 var(--type-footnote) / 1.3 var(--sans); color: var(--rr-text-2); margin-top: 2px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-dots i { width: 6px; height: 6px; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .list.glass.sb-nl { background: none; border: 0; border-radius: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-nl > * { border-bottom: 1px solid color-mix(in srgb, var(--rr-hairline) 70%, transparent); }
+:root:is([data-look="neon"], [data-look="festival"]) #app .sb-nl > * + * { border-top: 0; }
+:root:is([data-look="neon"], [data-look="festival"]) #app :is(.sb-ni, .sb-nl .sb-nmore) { padding-left: 2px; padding-right: 0; }
