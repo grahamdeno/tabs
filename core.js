@@ -250,7 +250,9 @@ export const Tabs = {
   // A play counts when a song is played through (kept as counts per day; see Play history).
   logPlay(data, song, now = Date.now()) {
     recordPlay(song, now);
-    journalPlay(data, song, now);
+    /* 5.9.0: a song tour stop played with stand-in chords credits the play, but no chord: you played other chords */
+    const run = TOUR_RUN.cur;
+    journalPlay(data, run && run.kind === "play" && run.song === song.id ? { ...song, body: "" } : song, now);
     this.save(data);
   },
 
