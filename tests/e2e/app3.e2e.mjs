@@ -720,3 +720,17 @@ test("Road Ready 9a fix: for each of the 23 new pictures, lit and shade match th
   if (process.env.DBG) console.log(JSON.stringify(out.map(o => [o.slug, o.l, o.r])));
   for (const o of out) { assert.ok(o.l <= 70 && o.r <= 70, `${o.slug}: lit is ${o.l} and shade ${o.r} away from the picture's own fretboard`); }
 });
+
+test("5.9.1 Other songs on a finished headline, while the current stop is a switch, lists that headline's songs (it threw)", { skip: skip() }, async t => {
+  const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map((c, i) => [`c:${c}`, { n: 1, at: Date.now() - 2000 + i }]));
+  done["k:open"] = { n: 1, at: Date.now() - 500 };
+  const songs = [{ ...LIB.songs[0], id: "h1", title: "Low Tide", body: "[V]\n[G]a [C]b [D]c [G]d" },
+    { ...LIB.songs[1], id: "h2", title: "Porch Light", body: "[V]\n[Em]a [C]b [G]c [D]d" }];
+  const page = await phone(t, { ...LIB, songs, skills: { done, last: Date.now() } }, { home: true });
+  const errs = []; page.on("pageerror", e => errs.push(e.message));
+  await page.waitForSelector(".rd-node.headline.done");
+  await page.$eval(".rd-node.headline.done", b => { b.scrollIntoView({ block: "center" }); b.click(); }); await page.waitForSelector(".rd-pop #rd-other");
+  await page.$eval("#rd-other", b => b.click()); await page.waitForSelector(".rd-others [data-play]");
+  assert.equal(await page.locator(".rd-others [data-play]").count(), 2);
+  assert.deepEqual(errs, []);
+});
