@@ -329,10 +329,10 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.match(await page.innerText("#h-tips"), /^\$\d/); for (const id of ["h-streak", "h-fans"]) assert.match(await page.innerText("#" + id), /^\d[\d,]*$/, `${id} is a number only`);
     /* 44 px or less, below the safe area, with no card, pill, outline or background on the row or a stat */
     const row = await page.evaluate(() => { const h = document.querySelector("header.rr-head"), r = h.getBoundingClientRect(), bare = e => { const c = getComputedStyle(e); return { bg: c.backgroundColor, img: c.backgroundImage, border: c.borderTopWidth, shadow: c.boxShadow }; };
-      return { top: r.top, h: r.height, row: bare(h), stats: [...h.querySelectorAll("button")].map(b => ({ ...bare(b), w: b.getBoundingClientRect().width, hh: b.getBoundingClientRect().height, icon: !!b.querySelector("svg.rr-st-ic") })), neck: document.querySelector(".rn-neck").getBoundingClientRect().top + scrollY }; });
+      return { top: r.top, h: r.height, row: bare(h), stats: [...h.querySelectorAll("button")].map(b => ({ ...bare(b), w: b.getBoundingClientRect().width, hh: b.getBoundingClientRect().height, icon: !!b.querySelector("img.rr-st-ic") })), neck: document.querySelector(".rn-neck").getBoundingClientRect().top + scrollY }; });
     assert.ok(row.h <= 44, `the header is ${row.h} px tall`); assert.equal(Math.round(row.top), 0, "right under the safe area");
     for (const x of [row.row, ...row.stats]) assert.deepEqual([x.bg, x.img, x.border, x.shadow], ["rgba(0, 0, 0, 0)", "none", "0px", "none"], "bare: no card, pill, outline or background");
-    assert.equal(row.stats.length, 3); assert.equal(await page.locator("#h-songs").count(), 0, "the songs number is out of the header (Graham, 2026-11-19)"); assert.ok(row.stats.every(x => x.icon && x.w >= 44 && x.hh >= 44), "three stats, each a line icon, each at least 44 by 44");
+    assert.equal(row.stats.length, 3); assert.equal(await page.locator("#h-songs").count(), 0, "the songs number is out of the header (Graham, 2026-11-19)"); assert.ok(row.stats.every(x => x.icon && x.w >= 44 && x.hh >= 44), "three stats, each a painted icon, each at least 44 by 44");
 
     const neck = await page.evaluate(() => {
       const n = document.querySelector(".rn-neck").getBoundingClientRect();
@@ -607,3 +607,34 @@ test("4.108.1 the Road scrolls up and down only, never sideways, in Dark and Lig
     assert.equal(m.ox, "hidden"); assert.equal(m.ta, "pan-y");
   }
 });
+
+/* the stats icons (Grok): three small paintings in Dark and Light, decorative, loaded, 24 px drawn in the 22 px the line icons took */
+for (const theme of ["dark", "light"]) {
+  test(`stats icons (${theme}): a painted flame, Tour Map hexes and a merch tee, decorative, with the labels and numbers as they were`, { skip: skip() }, async t => {
+    const page = await road(t, theme, MID);
+    await page.waitForFunction(() => [...document.querySelectorAll(".rr-stats img.rr-st-ic")].every(i => i.complete && i.naturalWidth > 0));
+    const got = await page.evaluate(() => [...document.querySelectorAll(".rr-stats button")].map(b => {
+      const i = b.querySelector(".rr-st-ic"), s = b.querySelector("span"), ir = i.getBoundingClientRect(), sr = s.getBoundingClientRect(), c = getComputedStyle(i);
+      return { id: b.id, tag: i.tagName, src: i.getAttribute("src"), alt: i.getAttribute("alt"), hidden: i.getAttribute("aria-hidden"), nw: i.naturalWidth,
+        w: ir.width, h: ir.height, room: ir.width + parseFloat(c.marginLeft) + parseFloat(c.marginRight), gap: sr.left - (ir.right + parseFloat(c.marginRight)), mid: Math.abs((ir.top + ir.bottom) / 2 - (sr.top + sr.bottom) / 2),
+        label: b.getAttribute("aria-label"), text: b.innerText.trim(), svg: b.querySelectorAll("svg").length };
+    }));
+    const days = parseInt(got[0].text, 10);
+    const streakSrc = days ? "art/stats/stat-streak.webp" : "art/stats/stat-streak-off.webp";
+    assert.deepEqual(got.map(x => [x.id, x.src]), [["h-streak", streakSrc], ["h-fans", "art/stats/stat-map.webp"], ["h-tips", "art/stats/stat-merch.webp"]]);
+    assert.equal(await page.evaluate(() => document.getElementById("h-streak").classList.contains("off")), days === 0, "the charcoal ember is used only when the streak is out");
+    for (const x of got) {
+      assert.equal(x.tag, "IMG"); assert.equal(x.alt, "", `${x.id}: decorative`); assert.equal(x.hidden, "true", `${x.id}: hidden from VoiceOver`); assert.equal(x.svg, 0, `${x.id}: no line icon left`);
+      assert.equal(x.nw, 72, `${x.id}: the 3x picture loaded`); assert.deepEqual([x.w, x.h], [24, 24], `${x.id}: drawn at 24 pt`);
+      assert.equal(x.room, 22, `${x.id}: takes the 22 px the line icon took, so the number keeps its place`);
+      assert.ok(x.mid < 1, `${x.id}: the icon is centred on the number`);
+    }
+    assert.match(got[0].label, /^Gig streak \d+ days?.*\. Show your streak$/); assert.match(got[0].text, /^\d+$/);
+    assert.match(got[1].label, /^[\d,]+ fans\. Open the Tour Map$/); assert.match(got[1].text, /^[\d,]+$/);
+    assert.match(got[2].label, /^[\d,]+ dollars in tips\. Open the Merch table$/); assert.match(got[2].text, /^\$[\d,]+$/);
+    /* VoiceOver's view: each stat is one button named by its label, with no image in the tree */
+    const ax = await page.locator("header.rr-head").ariaSnapshot();
+    assert.doesNotMatch(ax, /img/, "no image in the accessibility tree");
+    assert.match(ax, /button "[\d,]+ fans\. Open the Tour Map"/);
+  });
+}
