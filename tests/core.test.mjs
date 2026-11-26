@@ -3932,28 +3932,6 @@ test("stats icons: the Road's streak, fans and tips are small paintings, decorat
 const OPEN7 = ["G", "C", "D", "Em", "Am", "E", "A"];
 const tourLib = (extra = {}) => ({ songs: [], sets: [], trash: [], settings: {}, skills: { done: { ...Object.fromEntries(OPEN7.map(c => [`c:${c}`, { n: 1, best: 0, at: 5 }])), "k:open": { n: 1, best: 0, at: 6 } }, last: 6 }, ...extra });
 const have = (...c) => new Set(c);
-test("song tour stand-ins: extensions and slash chords drop to the plain chord", () => {
-  const h = have("D", "G", "Am");
-  assert.equal(C.standInFor("D7", h), "D");
-  assert.equal(C.standInFor("Dsus4", h), "D");
-  assert.equal(C.standInFor("Dadd9", h), "D");
-  assert.equal(C.standInFor("Gmaj7", h), "G");
-  assert.equal(C.standInFor("Am7", h), "Am");
-  assert.equal(C.standInFor("G/B", h), "G");
-  assert.equal(C.standInFor("D", h), "", "a chord you play stays as written");
-});
-test("song tour stand-ins: a minor becomes its relative major, a major its relative minor, else the bars repeat", () => {
-  assert.equal(C.standInFor("Bm", have("D", "G")), "D");
-  assert.equal(C.standInFor("F#m", have("A", "D")), "A");
-  assert.equal(C.standInFor("F", have("Dm", "G")), "Dm");
-  assert.equal(C.standInFor("Bm", have("G", "C"), "C"), "C", "no relative known: the chord before it");
-  const plan = C.standInPlan(["G", "Bm", "Bm", "C"], have("G", "C"));
-  assert.deepEqual(plan.map(x => x.as), ["", "G", "G", ""], "a stand-in repeats from the one before it");
-});
-test("song tour stand-ins: the rules run in order, extension first", () => {
-  assert.equal(C.standInFor("Bm7", have("Bm", "D")), "Bm", "the plain chord comes before the relative");
-  assert.equal(C.standInFor("Bm7", have("D")), "D");
-});
 test("song tour fit: 2 to 4 new chords, each with a shape, and one you play", () => {
   const h = have(...OPEN7);
   assert.deepEqual(C.tourFit(["G", "D", "Bm", "F"], h), { ok: true, new: ["Bm", "F"] });
@@ -3962,67 +3940,202 @@ test("song tour fit: 2 to 4 new chords, each with a shape, and one you play", ()
   assert.equal(C.tourFit(["Bm", "F"], h).ok, false, "needs a chord you play");
   assert.deepEqual(C.tourFit(["G", "D7", "Bm", "F"], h).new, ["Bm", "F"], "D7 is D, which you play");
 });
-test("song tour blocks: stand-ins go into the parsed sheet only, each marked", () => {
-  const song = { id: "s", title: "T", body: "G   Bm\nla la la\nC   F\nla la la" };
-  const before = song.body;
-  const blocks = C.parseBlocks(song.body);
-  const n = C.standInBlocks(blocks, have("G", "C", "D"));
-  assert.equal(n, 2);
-  const rows = blocks.filter(b => b.kind === "chords" || b.kind === "pair");
-  const flat = JSON.stringify(rows);
-  assert.match(flat, /"was"/);
-  assert.equal(song.body, before, "the saved song is never changed");
+
+// ---------- Play-along rounds (5.10.0) ----------
+const SONG = "[Verse]\nEm   Am\nla la\n\n[Chorus]\nG   D   G   Bm\nla la la la\nG   F   G   D\nla la la la\n";
+const bodyFor = chords => `[Chorus]\n${chords.join("   ")}\nla`;
+test("the part: the first chorus, else the section with the most different chords, else the first 8 bars", () => {
+  const p = C.songPart(SONG);
+  assert.equal(p.name, "Chorus");
+  assert.equal(p.bars.length, 8);
+  assert.deepEqual(p.chords, ["G", "D", "Bm", "F"]);
+  assert.equal(p.main, "G", "the most used chord");
+  /* no chorus: the section with the most different chords wins, the first on a tie */
+  const q = C.songPart("[Verse 1]\nG C\nla\n\n[Bridge]\nEm Am D G\nla\n\n[Verse 2]\nC G D Am\nla\n");
+  assert.equal(q.name, "Bridge");
+  assert.deepEqual(q.chords, ["Em", "Am", "D", "G"]);
+  assert.equal(C.songPart("[Verse 1]\nG C D Am\nla\n\n[Verse 2]\nG C D Em\nla\n").name, "Verse 1", "a tie goes to the first");
+  /* no sections: the first 8 bars */
+  const r = C.songPart("G   C   D   Em\nAm   G   C   D\nEm   F\n");
+  assert.equal(r.name, "The first bars");
+  assert.equal(r.bars.length, 8);
+  /* a pre-chorus is not the chorus */
+  assert.equal(C.songPart("[Pre-Chorus]\nA B\nla\n\n[Verse]\nG C D Em\nla\n").name, "Verse");
+  assert.equal(C.songPart("la la la\nno chords here"), null);
 });
-test("song tour stops: a play stop, then lesson, switch and replay for each new chord, then the headline", () => {
-  const body = "G   D   Bm   F\nla la la la";
-  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "Band", format: "chords", body }] });
-  C.tourPicked(lib, "open", { title: "Song", artist: "Band", chords: ["G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
+test("the part is cut to 45 seconds at the song's tempo", () => {
+  const long = `[Chorus]\n${Array.from({ length: 40 }, (_, i) => ["G", "C"][i % 2]).join(" ")}\nla`;
+  assert.equal(C.songPart(long, { bpm: 100 }).bars.length, 18, "2.4 s a bar: 18 bars");
+  assert.equal(C.songPart(long, { bpm: 200 }).bars.length, 37, "1.2 s a bar: 37 bars");
+  assert.ok(C.songPart(long, { bpm: 100 }).secs <= 45);
+});
+test("rounds: Round 1 has only the most used chord, each further round adds the next chord in order of first appearance", () => {
+  const p = C.songPart(SONG), sets = C.roundSets(p);
+  assert.deepEqual(sets, [["G"], ["G", "D"], ["G", "D", "Bm"], ["G", "D", "Bm", "F"]]);
+  assert.equal(C.roundName(["G"]), "Just G");
+  assert.equal(C.roundName(["G", "C"]), "G to C");
+  assert.equal(C.roundName(["G", "C", "D"]), "G, C and D");
+  /* the most used chord is not always the first to appear */
+  const q = C.songPart("[Chorus]\nC G G D G\nla\n");
+  assert.deepEqual(C.roundSets(q), [["G"], ["G", "C"], ["G", "C", "D"]]);
+});
+test("round stops: a lesson for each chord you can't play, just before the first round that uses it, then the headline", () => {
+  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "Band", format: "chords", body: SONG }] });
+  C.tourPicked(lib, "open", { title: "Song", artist: "Band", chords: ["Em", "Am", "G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
   const stops = C.songTourStops(lib, "open");
-  assert.deepEqual(stops.map(s => s.id), ["p:open-0", "c:Bm", "s:D-Bm", "p:open-1", "c:F", "s:Bm-F", "p:open-2", "h:open"]);
+  assert.deepEqual(stops.map(s => s.id), ["r:open-1", "r:open-2", "c:Bm", "r:open-3", "c:F", "r:open-4", "h:open"]);
   assert.equal(stops[0].state, "now");
   assert.ok(stops.slice(1).every(s => s.state === "locked"));
-  assert.deepEqual(stops[3].have.includes("Bm"), true, "replay 1: Bm is real");
-  assert.equal(stops[3].have.includes("F"), false, "later new chords still use stand-ins");
-  assert.equal(stops[0].have.includes("Bm"), false);
+  assert.deepEqual(stops[0].chords, ["G"]);
+  assert.equal(stops[0].sub, "Just G");
+  assert.equal(stops[5].of, 5, "round 4 of 5: the headline counts");
+  assert.equal(stops.at(-1).kind, "headline");
+  assert.ok(stops.every(s => !/^p:|^s:/.test(s.id)), "no play stops and no switch drills");
 });
-test("song tour stops: a lesson already done on the Tour counts as done here", () => {
-  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body: "G D Bm F" }] });
-  lib.skills.done["c:Bm"] = { n: 1, best: 0, at: 9 };
-  C.tourPicked(lib, "open", { title: "Song", chords: ["G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
+test("round stops: a chord only the rest of the song uses is taught just before the headline; lessons done on the Tour count", () => {
+  const body = "[Chorus]\nG   D   G   D\nla\n\n[Bridge]\nE   Cm   G   D\nla\n";
+  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body }] });
+  C.tourPicked(lib, "open", { title: "Song", chords: ["G", "D", "Cm"], new: ["Cm", "F"] }, "s1");
+  lib.skills.done["c:Cm"] = { n: 1, best: 0, at: 9 };
   let stops = C.songTourStops(lib, "open");
-  assert.equal(stops.find(s => s.id === "c:Bm").state, "now" === stops.find(s => s.id === "c:Bm").state ? "now" : "done", "sequence still starts at the play stop");
-  assert.equal(stops[0].state, "now");
-  lib.songTour.legs.open.done = ["p:open-0"];
+  assert.deepEqual(stops.map(s => s.id), ["r:open-1", "r:open-2", "h:open"], "Cm was learned on the Tour, E is known, so only rounds and the headline");
+  lib.songTour.legs.open.done = ["r:open-1"];
   stops = C.songTourStops(lib, "open");
-  assert.equal(stops.find(s => s.id === "c:Bm").state, "done");
-  assert.equal(stops.find(s => s.id === "s:D-Bm").state, "now");
+  assert.deepEqual(stops.map(s => s.state), ["done", "now", "locked"]);
+  const lib2 = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body }] });
+  C.tourPicked(lib2, "open", { title: "Song", chords: ["G", "D", "Cm"], new: ["Cm"] }, "s1");
+  assert.deepEqual(C.songTourStops(lib2, "open").map(s => s.id), ["r:open-1", "r:open-2", "c:Cm", "h:open"]);
 });
-test("song tour: only the current stop counts, and the headline makes the song Solid and its chords known", () => {
-  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", status: "learning", body: "G D Bm F" }] });
-  C.tourPicked(lib, "open", { title: "Song", chords: ["G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
-  assert.equal(C.tourPlayed(lib, { id: "h:open", tour: "open", kind: "headline" }), null, "the headline is locked until the stops before it are done");
-  for (const id of ["p:open-0", "c:Bm", "s:D-Bm", "p:open-1", "c:F", "s:Bm-F", "p:open-2"]) {
-    if (id.startsWith("p:")) assert.ok(C.tourPlayed(lib, { id, tour: "open", kind: "play", name: "x" }));
-    else lib.skills.done[id] = { n: 1, best: 0, at: 9 };
-  }
+test("round stops: before the song is in the Songbook the pick's chords stand in for it", () => {
+  const lib = tourLib();
+  C.tourPicked(lib, "open", { title: "Song", chords: ["G", "D", "Bm", "F"], new: ["Bm", "F"] }, "");
+  assert.deepEqual(C.songTourStops(lib, "open").map(s => s.id), ["r:open-1", "r:open-2", "c:Bm", "r:open-3", "c:F", "r:open-4", "h:open"]);
+});
+test("round plan: a strum on each beat of your chord's bars, a rest for every other bar", () => {
+  const p = C.songPart(SONG, { bpm: 120 });
+  const plan = C.roundPlan(p.bars, ["G"], { bpm: 120 });
+  assert.equal(plan.spb, 0.5);
+  assert.equal(plan.bars.length, 8);
+  assert.deepEqual(plan.bars.map(b => b.mine), [true, false, true, false, true, false, true, false]);
+  assert.equal(plan.strums.length, 16, "four strums in each of four bars");
+  assert.equal(plan.strums[1].t - plan.strums[0].t, 0.5);
+  assert.equal(plan.strums[4].t, 4, "the next G bar starts two bars on");
+  assert.equal(plan.secs, 16);
+  /* slower: the band's beat is scaled by the speed */
+  assert.equal(C.roundPlan(p.bars, ["G"], { bpm: 120, rate: 0.6 }).spb, 0.5 / 0.6);
+});
+test("round plan: with the recording's line times the bars follow them", () => {
+  const body = "[Chorus]\nG   C\nla la\nD   G\nla la\n";
+  const song = { body, timed: { h: "x", at: [[1, 10], [2, 14]] } };
+  const slots = C.chordSpots(C.parseBlocks(body));
+  const times = C.slotTimes(song, slots);
+  assert.equal(times.length, 4);
+  assert.ok(times[0] === 10 && times[1] > 10 && times[1] < 14 && times[2] === 14);
+  const plan = C.roundPlan(slots, ["G"], { bpm: 100, times });
+  assert.equal(plan.recorded, true);
+  assert.equal(plan.start, 10, "the recording starts at the part's first chord");
+  assert.equal(plan.bars[2].t, 4);
+  assert.equal(C.slotTimes({ body }, slots), null, "nothing timed: Louie's band plays");
+  assert.equal(C.roundPlan(slots, ["G"], { bpm: 100, times: null }).recorded, false);
+});
+test("listening: a strum is checked against the marked strum near it (half a beat before to one beat after), once", () => {
+  const strums = [0, 1, 2, 3].map((t, id) => ({ id, t, chord: "G" }));
+  assert.equal(C.nearStrum(strums, 1.4, 1), 1, "0.4 after strum 1 is nearer to 1 than to 2 (0.6 before)");
+  assert.equal(C.nearStrum(strums, 1.6, 1), 2);
+  assert.equal(C.nearStrum(strums, -0.4, 1), 0, "just before the first");
+  assert.equal(C.nearStrum(strums, -0.6, 1), -1, "more than half a beat early belongs to none");
+  assert.equal(C.nearStrum(strums, 3.9, 1), 3);
+  assert.equal(C.nearStrum(strums, 4.2, 1), -1, "more than a beat after the last");
+  assert.equal(C.nearStrum(strums, 5.5, 1), -1, "more than a beat after the last");
+  assert.equal(C.nearStrum(strums, 1.6, 1, new Set([2])), 1, "a taken strum is skipped");
+  assert.equal(C.nearStrum(strums, 1.0, 1, new Set([0, 1, 2, 3])), -1);
+});
+test("passing: Louie heard at least 3 in 4 strums", () => {
+  assert.equal(C.roundPassed(7, 9), true);
+  assert.equal(C.roundPassed(6, 9), false);
+  assert.equal(C.roundPassed(3, 4), true);
+  assert.equal(C.roundPassed(2, 4), false);
+  assert.equal(C.roundPassed(0, 0), false);
+});
+test("what is next: the line under the neck and what VoiceOver hears once per bar", () => {
+  const bars = [{ chord: "G", mine: true }, { chord: "C", mine: true }, { chord: "D", mine: false }, { chord: "G", mine: true }];
+  assert.equal(C.roundNext(bars, 0, 2), "Next: C in 2 beats");
+  assert.equal(C.roundNext(bars, 0, 3), "Next: C in 1 beat");
+  assert.equal(C.roundNext(bars, 1, 0), "Next: rest for D, back on G in 8");
+  assert.equal(C.roundNext(bars, 2, 1), "Rest for D, back on G in 3");
+  assert.equal(C.roundNext(bars, 3, 0), "Last bar");
+  assert.equal(C.roundSay(bars, 0), "G. Next: C in 4 beats");
+  assert.equal(C.roundSay(bars, 2), "Rest for D. Rest for D, back on G in 4");
+});
+test("round: only the current stop counts; the headline makes the song Solid and its chords known", () => {
+  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", status: "learning", body: SONG }] });
+  C.tourPicked(lib, "open", { title: "Song", chords: ["Em", "Am", "G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
+  assert.equal(C.tourPlayed(lib, { id: "r:open-2", tour: "open", kind: "round" }), null, "round 2 is locked until round 1 is done");
+  assert.equal(C.tourPlayed(lib, { id: "h:open", tour: "open", kind: "headline" }), null);
+  assert.ok(C.tourPlayed(lib, { id: "r:open-1", tour: "open", kind: "round", name: "Round 1" }));
+  assert.ok(C.tourPlayed(lib, { id: "r:open-2", tour: "open", kind: "round", name: "Round 2" }));
+  lib.skills.done["c:Bm"] = { n: 1, best: 0, at: 9 };
+  assert.ok(C.tourPlayed(lib, { id: "r:open-3", tour: "open", kind: "round", name: "Round 3" }));
+  lib.skills.done["c:F"] = { n: 1, best: 0, at: 9 };
+  assert.ok(C.tourPlayed(lib, { id: "r:open-4", tour: "open", kind: "round", name: "Round 4" }));
   const out = C.tourPlayed(lib, { id: "h:open", tour: "open", kind: "headline", name: "Headline show" });
   assert.equal(out.finished, true);
   assert.equal(lib.songs[0].status, "solid");
   assert.equal(C.knownChords(lib).has("Bm"), true, "its chords count as known");
 });
+test("a passed round counts as playing: practice time, fans once, and a show for the month's challenge", () => {
+  const now = Date.UTC(2026, 10, 26, 16);
+  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body: SONG }] });
+  C.tourPicked(lib, "open", { title: "Song", chords: ["Em", "Am", "G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
+  const fans0 = C.fansOf(lib, now), q0 = C.questState(lib, now).tour.shows, p0 = C.journalOf(lib, now).secs;
+  const stop = { id: "r:open-1", tour: "open", kind: "round", name: "Round 1" };
+  const res = C.tourPlayed(lib, stop, now);
+  assert.ok(res);
+  C.journalRound(lib, 40, now, true);
+  assert.equal(C.fansOf(lib, now) - fans0, C.FANS.lesson, "the same fans as a lesson stop");
+  assert.equal(C.questState(lib, now).tour.shows - q0, 1, "one show for the month's challenge");
+  assert.equal(C.journalOf(lib, now).secs - p0, 40, "time on guitar");
+  assert.equal(C.journalOf(lib, now).months["2026-11"].psecs, 40, "practice time, which counts toward the streak and Tour Map plays");
+  /* played again: time only, no second show and no more fans */
+  C.journalRound(lib, 40, now, false);
+  assert.equal(C.questState(lib, now).tour.shows - q0, 1);
+  assert.equal(C.fansOf(lib, now) - fans0, C.FANS.lesson);
+  assert.equal(C.journalOf(lib, now).months["2026-11"].psecs, 80);
+  /* a later month does not count it */
+  assert.equal(C.questState(lib, Date.UTC(2026, 11, 3)).tour.shows, 0);
+});
+test("5.9.0 tour in progress: it keeps its pick and song and starts at Round 1; a finished one stays finished", () => {
+  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body: SONG }] });
+  lib.songTour = C.cleanSongTour({ v: 1, legs: { open: { pick: { title: "Song", artist: "", chords: ["Em", "Am", "G", "D", "Bm", "F"], new: ["Bm", "F"] }, song: "s1", skipped: [], done: ["p:open-0", "c:Bm", "p:open-1"] } } });
+  assert.deepEqual(lib.songTour.legs.open.done, ["c:Bm"], "the 5.9.0 play stops are dropped");
+  assert.equal(lib.songTour.legs.open.song, "s1");
+  assert.equal(lib.songTour.legs.open.pick.title, "Song");
+  const stops = C.songTourStops(lib, "open");
+  assert.equal(stops[0].id, "r:open-1");
+  assert.equal(stops[0].state, "now", "starts at Round 1");
+  const fin = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", status: "solid", body: SONG }] });
+  fin.songTour = C.cleanSongTour({ v: 1, legs: { open: { pick: { title: "Song", chords: ["G", "D", "Bm", "F"], new: ["Bm", "F"] }, song: "s1", skipped: [], done: ["p:open-0", "p:open-1", "p:open-2", "h:open"], solid: true } } });
+  assert.ok(C.songTourStops(fin, "open").every(s => s.state === "done"), "a finished 5.9.0 tour is not brought back");
+});
 test("song tour: it comes after a finished skill tour and never holds the next one back", () => {
-  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body: "G D Bm F" }] });
-  C.tourPicked(lib, "open", { title: "Song", chords: ["G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
+  const lib = tourLib({ songs: [{ id: "s1", title: "Song", artist: "", format: "chords", body: SONG }] });
+  C.tourPicked(lib, "open", { title: "Song", chords: ["Em", "Am", "G", "D", "Bm", "F"], new: ["Bm", "F"] }, "s1");
   const road = C.roadPath(lib), tour = C.roadTour(lib, road);
-  const ids = tour.legs.map(l => l.id);
-  assert.deepEqual(ids.slice(0, 3), ["open", "song:open", "switch"]);
-  assert.equal(tour.current.id, "p:open-0", "the song tour's stop is the current one");
+  assert.deepEqual(tour.legs.map(l => l.id).slice(0, 3), ["open", "song:open", "switch"]);
+  assert.equal(tour.current.id, "r:open-1", "the song tour's stop is the current one");
   const sw = tour.legs.find(l => l.id === "switch");
   assert.ok(sw.stops.every(s => s.state !== "now"), "the skill tour is not the current one");
   assert.ok(sw.stops.some(s => s.state === "open"), "but its next stop stays open to play");
-  const noOpen = C.roadTour({ ...tourLib(), skills: { done: {}, last: 0 }, songs: [] }, C.roadPath({ ...tourLib(), skills: { done: {}, last: 0 }, songs: [] }));
-  assert.ok(noOpen.legs.every(l => !l.song), "no song tour before the skill tour is done");
+  const empty = { ...tourLib(), skills: { done: {}, last: 0 }, songs: [] };
+  assert.ok(C.roadTour(empty, C.roadPath(empty)).legs.every(l => !l.song), "no song tour before the skill tour is done");
 });
+test("the stand-in code is gone", () => {
+  for (const name of ["standInFor", "standInPlan", "standInBlocks", "haveFor", "TOUR_RUN", "tourStopFor"]) assert.equal(name in C, false, name);
+  assert.doesNotMatch(read("app.js"), /standin|standIn|was, played as/);
+  assert.doesNotMatch(read("core.js"), /TOUR_RUN|standIn/);
+  assert.doesNotMatch(read("gig.js"), /tourPlayed|TOUR_RUN/);
+});
+
 test("song tour without a key: the Songbook's own song that fits, or no song tour", () => {
   const lib = tourLib({ songs: [{ id: "a", title: "Few", format: "chords", body: "G D" }, { id: "b", title: "Fits", artist: "X", format: "chords", body: "G D Bm F" }] });
   const r = C.tourSeed(lib, { key: false });
@@ -4056,7 +4169,7 @@ test("song tour data: cleaned on load, in backups, and a backup from before 5.9.
   const c = C.cleanSongTour(junk);
   assert.deepEqual(Object.keys(c.legs), ["open"]);
   assert.deepEqual(c.legs.open.pick.chords, ["G", "Bm"]);
-  assert.deepEqual(c.legs.open.done, ["p:open-0", "c:Bm"]);
+  assert.deepEqual(c.legs.open.done, ["c:Bm"], "5.9.0 play stop ids are dropped");
   assert.deepEqual(c.legs.open.skipped, ["x"]);
   assert.equal(C.cleanSongTour({}), null);
   const lib = tourLib({ songTour: c });

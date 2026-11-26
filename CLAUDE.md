@@ -95,7 +95,7 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - Text size (Graham, 2026-11-23, 5.2.0): it goes from 50% to 160% and a new song starts at 50%. Once, under `tabs.size50.v1`, songs stored at exactly 1 moved to 0.5. A backup written from 5.3.2 on carries `sizes: 2` (`backupOf` in `core.js`); importing a backup without it makes the same move, so an older backup comes back at 50%. Play sits in the middle of the bar in a song and in a Gig, with no Pause word; below 340 px the bar buttons tighten to 44 px so nothing overlaps.
 - Songs don't listen (Graham, 2026-11-13, 4.91.0): no chord catching during a song, a gig, Wait for me or
   Follow my tempo. Listening for chords is only for one chord held or a switch between two, at your own pace
-  (the Chord check and Switch check in `docs/NO-CATCH-PLAN.md`), plus single notes (tuner, string checks).
+  (the Chord check and Switch check in `docs/NO-CATCH-PLAN.md`), plus single notes (tuner, string checks). Song tour rounds (5.10.0, `rounds.js`) listen for the chord at each marked strum and never for timing; nothing else listens.
 - No ring controls (Graham, 3.19.0): on a phone the rectangular bar is out
   while paused and folds into Play's corner while playing. Don't bring back
   the hold-Play ring, the arc, the island or Play following the hand.
@@ -165,7 +165,7 @@ The README describes each as it works today.
 | The guitar necks on the Road (4.82.0): body shapes, headstocks, inlays, strings, one guitar per leg | `fretboard.js` (numbers: `GUITARS`, `fretLayout`, `guitarNew` in `core/game.js`) |
 | Your guitarist (painted only, 2026-11-23): the painting (`you`, `rival`) and the maker sheet (Opening night, the Road, Your profile) | `guitarist.js`, `maker.js` (numbers: `meOf`, `cleanMe`, `stageLook`, `meMood` in `core/game.js`) |
 | Stat bar, tab bar, More sheet | `hud.js` |
-| Song tours (5.9.0): the Tour's song tour after each finished skill tour with chord steps, stand-in chords, stored progress (`data.songTour`) | `core/songtour.js` (re-exported from `core.js`; drawn in `road.js`, Louie's pick and Get it in `findai.js`, stand-ins on the sheet in `app.js`, a stop finished in `gig.js`) |
+| Song tours (5.9.0) and rounds (5.10.0): the Tour's song tour after each finished skill tour with chord steps, made of play-along rounds and a headline, stored progress (`data.songTour`) | `core/songtour.js` (re-exported from `core.js`; drawn in `road.js`, Louie's pick and Get it in `findai.js`); the highway and the listening are `rounds.js` (the only place besides chord lessons that listens for a strum; `strumFit` and `strumDetector` in `core/neck.js`) |
 | Tour quests: the month's tour, request line, tonight's setlist | `tour.js` (numbers: `questState`, `questsSettle` in `core.js`) |
 | Your band: the Band tab; Louie's friends drawn | `band.js`, `friends.js` (numbers: `bandState`, `bandParts` in `core.js`) |
 | Song duels: challenge links, the head-to-head | `duel.js` (numbers: `startDuel`, `takeDuel`, `duelRecord` in `core.js`) |
