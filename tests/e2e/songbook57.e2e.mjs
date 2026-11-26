@@ -26,14 +26,16 @@ for (const theme of ["dark", "light"]) test(`5.7.0 Songbook (${theme}): the segm
   assert.match(await page.innerText("#chips"), /All\s*5[\s\S]*Can play\s*\d[\s\S]*Almost\s*\d[\s\S]*Sets/);
   assert.equal(await page.getAttribute("#chips [data-f='all']", "aria-pressed"), "true");
   for (const b of await page.$$("#chips [data-f]")) { const r = await b.boundingBox(); assert.ok(r.height >= 40, "each segment is a real target"); }
-  /* rows: a tile, chords (a chord you don't play is marked), the key and three dots that say how well you know it */
-  const rows = await page.$$eval(".sb-row", rs => rs.map(r => ({ tile: r.querySelector(".sb-cv")?.textContent, ch: r.querySelector(".sb-ch")?.textContent, miss: [...r.querySelectorAll(".miss")].map(m => m.textContent), on: r.querySelectorAll(".sb-dots i.on").length, say: r.querySelector(".sb-dots").getAttribute("aria-label"), k: r.querySelector(".k").textContent })));
+  /* rows (5.8.0): a cover or a letter tile, the title and the artist, the key in a tag and a heart for a favourite; the level and
+     whether you can play it are said, not shown */
+  const rows = await page.$$eval(".sb-row", rs => rs.map(r => ({ tile: r.querySelector(".sb-cv")?.textContent, said: r.querySelector(".vh")?.textContent, k: r.querySelector(".k").textContent, fav: !!r.querySelector("svg.heart"), extra: r.querySelectorAll(".sb-ch, .sb-dots, .miss").length })));
   assert.equal(rows.length, 5);
-  assert.deepEqual(rows[0], { tile: "A", ch: "G C D", miss: [], on: 3, say: "Nailed it, can play", k: "G" });
-  assert.equal(rows[1].on, 2); assert.equal(rows[2].on, 1); assert.equal(rows[3].say, "New, can play");
-  assert.deepEqual(rows[4].miss, ["F"], "Ember needs F");
+  assert.deepEqual(rows[0], { tile: "A", said: ", Nailed it, can play", k: "G", fav: true, extra: 0 });
+  assert.equal(rows[2].said, ", Learning, can play"); assert.equal(rows[3].said, ", New, can play");
+  assert.equal(rows[4].said, ", New, needs F", "Ember needs F");
+  assert.ok(rows.every(r => r.extra === 0), "no chords or dots on the rows");
   /* Songs you can play next: the saved answer, minus a song already in the Songbook, with Add; More ideas opens Play next */
-  assert.match(await page.innerText(".sb-next"), /Songs you can play next[\s\S]*Wagon Wheel/);
+  assert.match(await page.innerText(".sb-next"), /Songs you can play next[\s\S]*Wagon Wheel[\s\S]*one new chord, Em/);
   assert.doesNotMatch(await page.innerText(".sb-next"), /Bell/, "a song you have isn't suggested");
   const add = await page.locator(".sb-add").boundingBox(); assert.ok(add.height >= 44);
   assert.equal(await page.locator("#sb-nmore").count(), 1);
@@ -69,4 +71,7 @@ test("5.8.0 Songbook, the calm pass: no card boxes, filters are words with an un
   assert.equal(m.segBg, "rgba(0, 0, 0, 0)", "the filter row is not a box"); assert.equal(m.onBg, "rgba(0, 0, 0, 0)", "the chosen filter is not filled");
   assert.match(m.onLine, /inset/, "the chosen filter is underlined");
   assert.ok(m.gaps.every(g => g <= 1), `the rows touch, one list (${m.gaps})`);
+  /* less rounding across Light and Dark (5.8.0) */
+  const r = await page.evaluate(() => ["--r-card", "--r-control", "--r-sheet"].map(v => getComputedStyle(document.documentElement).getPropertyValue(v).trim()));
+  assert.deepEqual(r, ["8px", "6px", "14px"]);
 });
