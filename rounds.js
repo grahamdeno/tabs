@@ -114,7 +114,7 @@ async function begin() {
   if (!part) { closeRound(); return toast("This song has no chords to play along with"); }
   const lined = !r.drill && usesMusic(song) && (rate === 1 || slows(song)) ? slotTimes(song, chordSpots(parseBlocks(song.body))) : null;
   const plan = r.drill ? drillPlan(r.drill.a, r.drill.b, { bpm }) : roundPlan(part.bars, stop.chords, { bpm, beats, rate, times: lined });
-  r.plan = plan; r.part = part; r.heard = new Set(); r.taken = new Set(); r.pending = []; r.paused = false; r.at = 0; r.bar = -1; r.finished = false;
+  r.clk = null; r.plan = plan; r.part = part; r.heard = new Set(); r.taken = new Set(); r.pending = []; r.paused = false; r.at = 0; r.bar = -1; r.finished = false;
   r.recording = !r.drill && plan.recorded && usesMusic(song);
   paint();
   /* the microphone: ready by now, or not allowed (then a round counts when it is played through) */
@@ -154,12 +154,25 @@ async function begin() {
 /* the bar playing at `x` seconds from the first bar (a drill's bars can be two beats) */
 const barAt = (plan, x) => plan.bars.find(b => x >= b.t && x < b.t + b.dur);
 
+/* 5.16.3: the recording's clock (YouTube and Apple Music) only moves in steps of a few hundredths to a quarter second, so
+   the highway stuttered at 1.0x. Run our own clock at the playback rate from the last reading, and pull it toward each new
+   reading gently (half a second to catch up); a jump of more than 0.35 s (a seek, a stall) snaps. */
+function smooth(r, c) {
+  const now = performance.now(), k = r.clk;
+  if (c == null || c < 0) { r.clk = null; return c; }
+  if (!k) { r.clk = { t: c, at: now }; return c; }
+  const guess = k.t + (now - k.at) / 1000 * r.speed, off = c - guess;
+  const t = Math.abs(off) > 0.35 ? c : guess + off * Math.min(1, (now - k.at) / 500);
+  r.clk = { t, at: now };
+  return t;
+}
+
 /* where the round is, in seconds from its first bar (negative during the count in) */
 function where(r) {
   const ctx = r.ctx;
   if (r.paused) return r.at;
   if (r.recording && r.musicOn) {
-    const c = musicClock(r.song), rate = r.speed;
+    const c = smooth(r, musicClock(r.song)), rate = r.speed;
     if (c != null && c >= r.plan.start - 3 * rate) return (c - r.plan.start) / rate; /* 5.16.0: a slowed recording */
     return Math.min(0, ctx.currentTime - r.startAt);
   }
@@ -334,6 +347,7 @@ function paint() {
 function pause(r, btn) {
   if (!r.ctx || r.finished) return;
   const to = !r.paused;
+  r.clk = null;
   if (to) { r.at = where(r); r.paused = true; r.ctx.suspend?.(); if (r.recording && r.musicOn) pauseMusic(); }
   else { r.paused = false; r.ctx.resume?.(); if (r.recording && r.musicOn) startMusic(r.song, r.plan.start + Math.max(0, r.at) * r.speed, r.speed); }
   btn.setAttribute("aria-label", to ? "Play" : "Pause");
