@@ -269,7 +269,9 @@ export function renderSession(id) {
 }
 
 /* 4.24.0: the tuner from inside the neck, so practice doesn't mean going all the way out to tune */
-const tuneBtn = () => `<button class="ib chunky-tune pk-tune" id="pk-tune" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
+/* 5.16.1: in Light and Dark the tuner is the same plate as Back */
+const rrLook = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
+const tuneBtn = () => `<button class="ib ${rrLook() ? "glass" : "chunky-tune"} pk-tune" id="pk-tune" aria-label="${tunedRecently() ? "Tuner" : "Tuner. Not tuned in the last few hours"}">${icon("fork")}${tunedRecently() ? "" : '<i class="dotmark"></i>'}</button>`;
 function bindTune() {
   const b = $("pk-tune"); if (!b) return;
   b.onclick = () => {

@@ -89,14 +89,15 @@ function headSVG(kind, t, { mini = false } = {}) {
   if (mini) return s + `<path d="${H.d}" fill="var(--head)" fill-rule="evenodd"/></svg>`;
   /* 4.25.0: the headstock in colour, flat with no outlines. The face and a darker right half, clipped to the
      drawing; acoustic adds a dark veneer along the top, electric a highlight stripe. The colours are CSS
-     variables on .tuner2[data-kind], and the electric one follows Louie's finish (body[data-wear]). */
+     variables on .tuner2[data-kind], and the electric one follows Louie's finish (body[data-wear]); in Light and Dark it is one
+     fixed finish (5.16.1). */
   s += `<defs><clipPath id="tn-clip"><path d="${H.d}" clip-rule="evenodd"/></clipPath></defs><g clip-path="url(#tn-clip)" class="tn-face"><rect x="${-pad}" y="0" width="${H.w + pad * 2}" height="${H.h}" fill="var(--tn-face)"/><rect x="${H.w / 2}" y="0" width="${H.w / 2 + pad}" height="${H.h}" fill="var(--tn-side)"/>`
     + (kind === "acoustic" ? `<rect x="${-pad}" y="0" width="${H.w + pad * 2}" height="150" fill="var(--tn-vein)"/>` : `<rect x="${H.w * 0.3}" y="0" width="70" height="${H.h}" rx="35" fill="var(--lv-hi)" opacity=".45"/>`) + `</g>`;
   const [n0, n1] = NUT[kind];
   s += `<rect x="${n0}" y="${H.nutY - 24}" width="${n1 - n0}" height="40" rx="12" fill="var(--tn-post)"/>`;
   H.strings.forEach((g, i) => {
     const [kx, ky, kw, kh] = g.key, on = i === cur, done = !!t.ok[i];
-    s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="var(--tn-post)"/><rect x="${kx}" y="${ky + 14}" width="${kw}" height="${kh}" rx="44" fill="${done && !on ? "var(--good)" : "var(--tn-keylip)"}" opacity="${done && !on ? 0.55 : 1}"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="${done && !on ? "var(--good)" : "var(--tn-key)"}"/>`;
+    s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="var(--tn-post)"/><rect x="${kx}" y="${ky + 14}" width="${kw}" height="${kh}" rx="44" fill="var(--tn-keylip)"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="var(--tn-key)"${done && !on ? ' stroke="var(--good)" stroke-width="12"' : ""}/>`; /* 5.16.1: in tune is a cream key with an outline and a tick, not a fill */
     if (on) {
       /* the string itself wavers while the mic hears it (.ringing on the stage, styles.css) */
       /* 4.29.2: a dark lip under the lit string and its post, so yellow reads on a light finish (Tweed, Gold, the wood) */
@@ -108,7 +109,7 @@ function headSVG(kind, t, { mini = false } = {}) {
     /* The note is printed on its key, so changing the tuning relabels the
        keys; a tuned string gets a check beside its key. */
     const name = stringName(notes, i);
-    s += `<text x="${kx + kw / 2}" y="${ky + kh / 2 + 34}" text-anchor="middle" font-size="${name.length > 1 ? 80 : 98}" font-weight="${on ? 800 : 700}" style="font-family: var(--display)"${on ? ' class="on"' : ""} fill="${on || done ? "#14110d" : "var(--tn-ink)"}">${name}</text>`;
+    s += `<text x="${kx + kw / 2}" y="${ky + kh / 2 + 34}" text-anchor="middle" font-size="${name.length > 1 ? 80 : 98}" font-weight="${on ? 800 : 700}" style="font-family: var(--display)"${on ? ' class="on"' : ""} fill="${on ? "var(--tn-on, #14110d)" : "var(--tn-ink)"}">${name}</text>`;
     if (done && !on) s += `<text x="${g.side < 0 ? kx - 30 : kx + kw + 30}" y="${ky + kh / 2 + 32}" text-anchor="${g.side < 0 ? "end" : "start"}" font-size="92" font-weight="600" fill="var(--good)">✓</text>`;
     // a generous tap target over the key and its name
     const hx = g.side < 0 ? kx - 230 : kx;
