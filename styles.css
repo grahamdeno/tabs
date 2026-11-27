@@ -6260,10 +6260,10 @@ body.tl-lines .sheet :is(.pr, .crow) .c[data-ch], body.tl-strip.staged .sheet :i
 body.tl-lines .sheet .crow { min-height: 0; }
 /* 5.11.1: one height for every bar (taller, 30 px), so nothing moves when the line you're on changes. While a song plays
    only the line you're on and the next show their bar, in colour; paused, every line shows a quiet grey bar to read by. */
-.sheet .tlb { display: flex; gap: 2px; width: 100%; height: 30px; margin: 16px 0 6px; border-radius: 5px; overflow: hidden; } /* 5.12.1: more room between a line's words and the next line's bar */
+.sheet .tlb { display: flex; gap: 2px; width: 100%; height: 38px; margin: 16px 0 6px; border-radius: 6px; overflow: hidden; } /* 5.12.1: more room between a line's words and the next line's bar */
 .sheet > .sec + :is(.pr, .crow) > .tlb { margin-top: 4px; }
 .sheet .crow:has(.tlb) { display: block; }
-.sheet .tls { flex: 1 1 0; min-width: 26px; display: flex; align-items: center; padding: 0 8px; background: var(--tl-bg); color: var(--tl-fg); font: 700 15px / 1 "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+.sheet .tls { flex: 1 1 0; min-width: 26px; display: flex; align-items: center; padding: 0 8px; background: var(--tl-bg); color: var(--tl-fg); font: 700 17px / 1 "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: clip; } /* 5.12.2: taller bars, 38 px */
 body.tl-lines:not(.staged) .sheet .tls { background: var(--rr-mesh, #2A2724); color: var(--rr-text, #F6EEE0); }
 body.tl-lines.staged .sheet .tlb { visibility: hidden; }
 body.tl-lines.staged .sheet :is(.st-now, .st-next) .tlb { visibility: visible; }
