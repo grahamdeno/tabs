@@ -4197,6 +4197,7 @@ const skillsDone = (...ids) => ({ done: Object.fromEntries(ids.map(id => [id, { 
 const stopState = (d, id) => C.curriculumState(d).tours.flatMap(t => t.stops).find(s => s.id === id)?.state;
 const tourState = (d, id) => C.curriculumState(d).tours.find(t => t.id === id)?.state;
 const snapshot = d => JSON.stringify(C.curriculumState(d).tours.map(t => [t.id, t.state, t.stops.map(s => [s.id, s.state])]));
+const PIECES = { v: 1, done: Object.fromEntries(["k2.5", "k2.6", "k3.5", "k4.4", "k4.5", "k4.6"].map(id => [id, 7])) };
 const T123 = ["c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C", "s:C-D", "s:G-D"];
 
 test("curriculum: 19 tours in order, every stop present, Tour 1 is Opening Night with Soundcheck first", () => {
@@ -4226,13 +4227,14 @@ test("curriculum: routes and their gates", () => {
   assert.equal(s.routes.lead.open, false, "lead is shut at the start");
   assert.equal(s.routes.fingerstyle.open, false);
   assert.equal(s.routes.held.open, false, "Encore is held");
-  const t3 = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone("c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C", "s:C-D", "s:G-D") });
+  const t3 = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone("c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C", "s:C-D", "s:G-D"), curriculum: PIECES });
   s = C.curriculumState(t3);
-  assert.equal(s.routes.lead.open, true, "lead opens after Tour 3");
+  assert.equal(s.routes.lead.open, false, "5.18.0: Street Corner (Tour 4) opens the Lead route, not Tour 3");
   assert.equal(s.routes.fingerstyle.open, false, "fingerstyle waits for Tour 4");
-  assert.equal(tourState(t3, "t14"), "open", "a lead tour has nothing to play yet, so it is open and Coming soon");
-  const t4 = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone(...T123, "c:Am", "s:Em-Am", "s:Am-C") });
+  const t4 = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone(...T123, "c:Am", "c:Dm", "s:Em-Am", "s:Am-C"), curriculum: PIECES });
+  assert.equal(C.curriculumState(t4).routes.lead.open, true, "Street Corner opens the Lead route");
   assert.equal(C.curriculumState(t4).routes.fingerstyle.open, true, "fingerstyle opens after Tour 4");
+  assert.equal(tourState(t4, "t14"), "open", "a lead tour has nothing to play yet, so it is open and Coming soon");
   assert.equal(tourState(t4, "t19"), "locked", "Encore stays locked");
   assert.equal(C.curriculumState(t4).tours.find(t => t.id === "t19").stops.every(s => s.state === "locked"), true);
 });
@@ -4247,7 +4249,7 @@ test("curriculum: the first stop to play, and a Coming soon stop never holds a p
   assert.equal(C.nextStop(past, "main").id, "c:A", "a player past Opening night has Tour 1 done");
   const em = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone("c:Em") });
   assert.equal(C.nextStop(em, "lead"), null, "a shut route has no next stop");
-  const all5 = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone(...T123, "c:Am", "s:Em-Am", "s:Am-C") });
+  const all5 = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone(...T123, "c:Am", "c:Dm", "s:Em-Am", "s:Am-C"), curriculum: PIECES });
   assert.equal(C.nextStop(all5, "main"), null, "when only Coming soon stops are left there is nothing to play");
   assert.equal(tourState(all5, "t5"), "open");
   assert.equal(C.playable(C.stopById("k5.1")), false);
@@ -4338,16 +4340,17 @@ test("curriculum: boxes on the new Tour open when reached, pay once and are coun
   assert.equal(C.curriculumRoad(d).legs.some(l => l.id === "t5" && l.stops.some(s => s.kind === "box")), false, "a three-stop tour has no box");
 });
 
-test("curriculum: the Tour draws the main line, the song tours after Tour 4, and one locked row each for lead and fingerstyle", () => {
+test("curriculum: the Tour draws the main line (the song tours are the tours' own stops), and one locked row each for lead and fingerstyle", () => {
   const d = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 } });
   const legs = C.curriculumRoad(d, { legs: [{ id: "song:open", song: true, tour: "open", stops: [{ id: "r:open-1", kind: "round", state: "now" }] }] }).legs;
-  assert.deepEqual(legs.map(l => l.id), ["t1", "t2", "t3", "t4", "song:open", "t5", "t6", "t7", "t8", "t9", "t10", "t11", "t12", "t13", "route:lead", "route:fingerstyle"]);
+  assert.deepEqual(legs.map(l => l.id), ["t1", "t2", "t3", "t4", "t5", "t6", "t7", "t8", "t9", "t10", "t11", "t12", "t13", "route:lead", "route:fingerstyle"]);
   assert.deepEqual(legs.filter(l => l.row).map(l => l.stops.length), [1, 1]);
   assert.ok(legs.filter(l => l.row).every(l => l.stops[0].state === "locked"));
   assert.ok(!legs.some(l => l.id === "t19"), "Encore is not drawn");
   const w = C.curriculumRoad(d).legs.find(l => l.id === "t2").stops;
   assert.equal(w.find(s => s.id === "c:A").chord, "A", "a lesson stop keeps its old id and chord, so the old taps work");
-  assert.equal(w.find(s => s.id === "k2.5").soon, true, "a stop with nothing to play yet is Coming soon");
+  assert.equal(w.find(s => s.id === "k2.5").soon, false, "Down-ups is a piece of the song now");
+  assert.equal(C.curriculumRoad(d).legs.find(l => l.id === "t5").stops[0].soon, true, "a stop with nothing to play yet is Coming soon");
 });
 
 test("Unlock all tours: everything open, nothing paid, nothing marked, and the map comes back exactly when it is turned off", () => {
@@ -4509,4 +4512,125 @@ test("B1 Tour 1's song: a Songbook song with easy-set chords, else the hand-chec
   assert.equal(pick.from, "songbook");
   assert.equal(pick.song.id, "s1");
   assert.equal(C.tour1Song(cur({ songs: [{ ...mine, body: "[G]la [C]la [D]la" }] })).from, "list", "a song with harder chords is not Tour 1's");
+});
+
+// ---------- 5.18.0 Release B: B6 song tours in the tours, B2 fitting songs, B3 Tours 2 to 4, B4 headlines ----------
+const sheet = (...lines) => lines.join("\n");
+test("B2 fit: a simpler chord keeps its root, the capo stops at fret 5, about one bar in four, new chords per chorus", () => {
+  assert.equal(C.simplifyChord("G/B"), "G");
+  assert.equal(C.simplifyChord("D6/9"), "D");
+  assert.equal(C.simplifyChord("Am7"), "Am");
+  assert.equal(C.simplifyChord("Cmaj7"), "C");
+  const tour3 = C.tourAllowed(3);
+  assert.ok(tour3.includes("G") && tour3.includes("C") && tour3.includes("D") && tour3.includes("Em"));
+  /* already in the set: no capo, nothing swapped */
+  const easy = sheet("[Chorus]", "[G]la [C]la [D]la [G]la");
+  const f0 = C.fitSong(easy, tour3);
+  assert.deepEqual([f0.ok, f0.capo, f0.simplified], [true, 0, false]);
+  /* a song a capo away: A, D, E shapes written in B, E, F# need capo 2 */
+  const capo2 = sheet("[Chorus]", "[B]la [E]la [F#]la [B]la");
+  const f2 = C.fitSong(capo2, C.tourAllowed(2));
+  assert.deepEqual([f2.ok, f2.capo], [true, 2], "capo at fret 2");
+  /* too far from the set: needs a capo above fret 5 */
+  assert.equal(C.fitSong(sheet("[Chorus]", "[F]la [Bb]la [C]la [F]la"), C.tourAllowed(2)).ok, false, "F, Bb, C does not fit Open Mic within a capo at fret 5");
+  /* the swap ratio: one chord in four may be swapped for a simpler one, and a root never changes */
+  const some = sheet("[Chorus]", "[G]a [Gmaj7]b [C]c [G]d [C]e [G]f [C]g [D]h");
+  const fs = C.fitSong(some, tour3);
+  assert.equal(fs.ok, true); assert.equal(fs.simplified, true); assert.ok(fs.swapped / fs.total <= 0.25);
+  const lots = sheet("[Chorus]", "[G7]a [C7]b [D7]c [G7]d");
+  assert.equal(C.fitSong(lots, tour3).ok, false, "all four swapped is more than one bar in four");
+  /* the chorus may bring in no more new chords than the tour allows */
+  const known = new Set(C.tourAllowed(1));
+  assert.equal(C.fitSong(easy, tour3, { known, maxNew: 1 }).ok, false, "G, C, D are three new chords in the chorus");
+  assert.equal(C.fitSong(easy, tour3, { known, maxNew: 3 }).ok, true);
+});
+
+test("B2 fit: 'Not yet: this opens at Tour N' places a song at the right tour, and a simplified body keeps the words", () => {
+  const am = sheet("[Chorus]", "[Am]la [Dm]la [Am]la [Dm]la");
+  assert.equal(C.opensAt(am), 4, "Am and Dm are Tour 4's chords");
+  assert.equal(C.opensAt(sheet("[Chorus]", "[A]la [D]la [E]la [A]la")), 2);
+  assert.equal(C.opensAt(sheet("[Chorus]", "[C]la [Db]la [D]la [Eb]la")), null);
+  const r = C.fitTour(am, "t2");
+  assert.deepEqual([r.ok, r.opens], [false, 4], "Tour 2 says it opens at Tour 4");
+  assert.equal(C.fitTour(sheet("[Chorus]", "[A]la [D]la [E]la [A]la"), "t2").ok, true);
+  const body = sheet("[Chorus]", "[Gmaj7]hello [C]there [G/B]friend [G]now", "[C]one [D]two [G]go");
+  const out = C.simplifyBody(body, 0, C.tourAllowed(3));
+  assert.ok(out.includes("[G]hello") && out.includes("[G]friend") && out.includes("hello") && !out.includes("maj7") && !out.includes("/B"), "chords swapped, words stay");
+  const shifted = C.simplifyBody(sheet("[B]la [E]la"), 2, C.tourAllowed(2));
+  assert.equal(shifted, "[A]la [D]la", "a capo at 2 shows the shapes you play");
+});
+
+test("B2 songs: the Songbook first, a chosen song is simplified and says so, and Not yet leaves the tour as it was", () => {
+  const d = cur({ songs: [{ id: "far", title: "Far", artist: "x", format: "chords", body: sheet("[Chorus]", "[C]a [Db]b [D]c [Eb]d") }, { id: "near", title: "Near", artist: "y", format: "chords", body: sheet("[Chorus]", "[A]a [D]b [E]c [A]d") }] });
+  const got = C.songbookFor(d, "t2");
+  assert.equal(got.song.id, "near", "a song that fits is taken, the one that does not is passed over");
+  assert.equal(C.songbookFor(d, "t1"), null, "nothing in the Songbook fits Tour 1's two shapes");
+  const no = C.tourSetSong(d, "t2", d.songs[0]);
+  assert.deepEqual(no, { ok: false, opens: null }, "a song that fits no early tour has no tour to wait at");
+  assert.equal(d.songTour, undefined, "Not yet stores nothing");
+  const simple = { id: "s", title: "Swapped", artist: "z", format: "chords", body: sheet("[Chorus]", "[G]a [Gmaj7]b [C]c [G]d [C]e [G]f [C]g [D]h") };
+  const ok = C.tourSetSong(d, "t3", simple);
+  assert.deepEqual(ok, { ok: true, capo: 0, simplified: true });
+  assert.deepEqual([d.songTour.legs.t3.simplified, d.songTour.legs.t3.capo, d.songTour.legs.t3.song], [true, 0, "s"]);
+  const later = C.tourSetSong(d, "t2", { id: "am", title: "Am", artist: "q", format: "chords", body: sheet("[Chorus]", "[Am]la [Dm]la") });
+  assert.deepEqual(later, { ok: false, opens: 4 }, "Not yet: this opens at Tour 4");
+});
+
+test("B6 song tours: the old song tours map onto Tours 3 and 4 and nothing in data.songTour changes", () => {
+  const old = { v: 1, legs: { open: { pick: { title: "T", artist: "a", chords: ["D"], new: ["D"] }, song: "x", skipped: ["a|b"], done: ["r:open-1", "h:open"], solid: true }, switch: { pick: null, song: "", skipped: [], done: ["r:switch-1"] } } };
+  const d = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, songTour: old, songs: [] });
+  const before = JSON.stringify(d.songTour);
+  assert.equal(C.mappedDone(d).has("k3.5"), true, "a finished Open chords song tour is Tour 3's headline");
+  assert.equal(C.mappedDone(d).has("k4.6"), false, "an unfinished one maps nothing");
+  C.curriculumSeed(d, 50);
+  assert.equal(JSON.stringify(d.songTour), before, "data.songTour is never rewritten");
+  assert.equal(d.curriculum.done["k3.5"], 50, "the mapped stop is remembered, add-only");
+  assert.ok(!C.curriculumRoad(d).legs.some(l => l.song), "no separate song tour rows are drawn");
+  assert.ok(C.cleanSongTour({ v: 1, legs: { t2: { pick: null, song: "a", skipped: [], done: [], capo: 3, simplified: true }, t99x: { done: [] } } }).legs.t2.capo === 3, "a tour's own song entry survives a backup");
+  const back = C.cleanSongTour(JSON.parse(JSON.stringify(old)));
+  assert.deepEqual(back.legs.open.done, ["r:open-1", "h:open"]);
+  assert.equal(back.legs.open.solid, true, "an old backup restores and maps the same way");
+});
+
+test("B4 headlines: 0.8x earns the guitar, 1.0x marks the song Solid, earned guitars stay", () => {
+  const base = () => cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone("c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E"), curriculum: { v: 1, done: { "k2.5": 3 } }, songs: [{ id: "x", title: "T", status: "learning", body: "[A]a" }], songTour: { v: 1, legs: { t2: { pick: null, song: "x", skipped: [], done: [] } } } });
+  let d = base();
+  assert.equal(C.piecePlayed(d, "k2.6", { rate: 0.6 }), null, "below 0.8x does not pass a headline");
+  assert.equal(C.guitarsOwned(d).includes("scales"), false);
+  const r8 = C.piecePlayed(d, "k2.6", { rate: 0.8, now: 77 });
+  assert.deepEqual([r8.headline, r8.solid], [true, false]);
+  assert.equal(d.curriculum.won.t2, 77);
+  assert.ok(C.guitarsOwned(d).includes("scales"), "Club Slab is earned");
+  assert.equal(d.songs[0].status, "learning", "0.8x does not mark the song Solid");
+  d = base();
+  const r1 = C.piecePlayed(d, "k2.6", { rate: 1 });
+  assert.equal(r1.solid, true); assert.equal(d.songs[0].status, "solid"); assert.equal(d.songTour.legs.t2.solid, true);
+  /* a later pass does not take anything away, and the guitars of the old road stay */
+  const old = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone("c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E") });
+  const owned = C.guitarsOwned(old);
+  C.piecePlayed(old, "k2.6", { rate: 1 });
+  assert.ok(owned.every(g => C.guitarsOwned(old).includes(g)), "guitars already earned stay");
+  /* only the stop you are on counts, and Unlock all tours pays nothing */
+  assert.equal(C.piecePlayed(base(), "k3.5", { rate: 1 }), null);
+  const u = base(); u.settings.unlockAll = true;
+  assert.equal(C.piecePlayed(u, "k2.6", { rate: 1 }), null);
+  assert.equal(u.curriculum.won, undefined);
+  /* the tour-one show played earns the first guitar; a skipped Opening night does not */
+  const op = cur({ opening: { step: 8, v: 3 } });
+  C.openingAdvance(op, "show", 9);
+  assert.equal(op.curriculum.won.t1, 9);
+  assert.ok(C.guitarsEarned(op).includes("open") && C.guitarsOwned(op).includes("switch"), "Cornerstone");
+  assert.equal(C.guitarsEarned(cur({ opening: { step: 3, v: 3, skipped: 5 } })).includes("open"), false);
+});
+
+test("B3 Tours 2 to 4: present in order, Street Corner opens the Lead route", () => {
+  assert.deepEqual(C.stopsOf("t2").map(s => s.title), ["A", "D", "E", "D to A and A to E", "Down-ups", "Headline show"]);
+  assert.deepEqual(C.stopsOf("t3").map(s => s.title), ["G", "C", "G to C", "C to D and G to D", "Headline show"]);
+  assert.deepEqual(C.stopsOf("t4").map(s => s.title), ["Am", "Dm", "Em to Am and Am to C", "The folk pattern", "Keep the hand moving", "Headline show"]);
+  assert.ok(["t2", "t3", "t4"].every(t => C.stopsOf(t).every(C.playable)), "every stop in Tours 2 to 4 plays something");
+  assert.deepEqual(C.stopsOf("t4").map(s => s.strum), ["folk", "folk", "folk", "folk", "folk", "folk"]);
+  assert.equal(C.ROUTES.lead.opens, "t4");
+  const d = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone(...T123, "c:Am", "c:Dm", "s:Em-Am", "s:Am-C"), curriculum: PIECES });
+  assert.equal(C.curriculumState(d).routes.lead.open, true);
+  assert.deepEqual(C.pieceChords("k2.6", ["A", "D", "E", "G"]), ["A", "D", "E"], "a piece plays the chords the tour has taught; the rest are rests");
 });

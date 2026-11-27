@@ -13,7 +13,7 @@ import { KNOW_PLAYS } from "./neck.js";
 export const CURRICULUM_V = 1;
 export const ROUTES = {
   main: { id: "main", name: "Main line", opens: null },
-  lead: { id: "lead", name: "Lead route", opens: "t3" },
+  lead: { id: "lead", name: "Lead route", opens: "t4" },
   fingerstyle: { id: "fingerstyle", name: "Fingerstyle route", opens: "t4" },
   held: { id: "held", name: "Held for later", opens: null }
 };
@@ -24,7 +24,7 @@ export const TOURS = [
   T(5, "The Van", "main", "t4"), T(6, "Roadhouse", "main", "t5"), T(7, "Garage", "main", "t6"),
   T(8, "Club Night", "main", "t7"), T(9, "Dance Hall", "main", "t8"), T(10, "Mountain Pass", "main", "t9"),
   T(11, "Long Haul", "main", "t10"), T(12, "Theater", "main", "t11"), T(13, "Arena", "main", "t12"),
-  T(14, "Studio Session", "lead", "t3"), T(15, "Spotlight", "lead", "t14"), T(16, "Last Call", "lead", "t15"),
+  T(14, "Studio Session", "lead", "t4"), T(15, "Spotlight", "lead", "t14"), T(16, "Last Call", "lead", "t15"),
   T(17, "Unplugged", "fingerstyle", "t4"), T(18, "Listening Room", "fingerstyle", "t17"),
   T(19, "Encore", "held")
 ];
@@ -68,6 +68,8 @@ const S = (t, n, title, skill, chords, pass, play, o = {}) => {
   return { id: lesson || `k${t}.${n}`, tour: `t${t}`, n, title, skill, chords, pass, play, kind, strum: o.strum || "down", maxNew: o.maxNew ?? Math.max(1, chords.length), allow: o.allow || null, headline: !!o.headline, held: !!o.held, carry: o.carry || "" };
 };
 const H = (t, n, title, skill, pass = "heard", o = {}) => S(t, n, title, skill, [], pass, null, { ...o, kind: "headline", headline: true });
+/* 5.18.0 (B4): the headline of Tours 2 to 4 is a piece too: the whole song, passed at 0.8x; 1.0x marks the song Solid. */
+const HP = (t, n, skill, o = {}) => ({ ...H(t, n, "Headline show", skill, "heard", o), play: P() });
 export const STOPS = [
   // Tour 1: Opening Night (5.18.0, B1): tune up, the first strum, Em, the second easy shape, the change, your first show
   S(1, 1, "Soundcheck", "Tune up and mic check", [], "heard", O("who", "hold", "strings", "mic"), { allow: EASY }),
@@ -81,21 +83,21 @@ export const STOPS = [
   S(2, 2, "D", "The D chord", ["D"], "heard", L("c:D")),
   S(2, 3, "E", "The E chord", ["E"], "heard", L("c:E")),
   S(2, 4, "D to A and A to E", "The two changes", [], "heard", L("s:D-A", "s:A-E"), { kind: "switch" }),
-  S(2, 5, "Down-ups", "Down-up strumming in eighths", [], "played", null, { strum: "eighths" }),
-  H(2, 6, "Headline show", "A whole A, D, E song", "heard", { strum: "eighths" }),
+  S(2, 5, "Down-ups", "Down-up strumming in eighths", [], "played", P(), { strum: "eighths" }),
+  HP(2, 6, "A whole A, D, E song", { strum: "eighths" }),
   // Tour 3: Coffeehouse (G, C)
   S(3, 1, "G", "The G chord", ["G"], "heard", L("c:G"), { strum: "eighths" }),
   S(3, 2, "C", "The C chord", ["C"], "heard", L("c:C"), { strum: "eighths" }),
   S(3, 3, "G to C", "The change", [], "heard", L("s:G-C"), { strum: "eighths" }),
   S(3, 4, "C to D and G to D", "The two changes", [], "heard", L("s:C-D", "s:G-D"), { strum: "eighths", kind: "switch" }),
-  H(3, 5, "Headline show", "A whole G, C, D song", "heard", { strum: "eighths" }),
+  HP(3, 5, "A whole G, C, D song", { strum: "eighths" }),
   // Tour 4: Street Corner (Am, Dm, the folk pattern)
   S(4, 1, "Am", "The Am chord", ["Am"], "heard", L("c:Am"), { strum: "folk" }),
-  S(4, 2, "Dm", "The Dm chord", ["Dm"], "heard", null, { strum: "folk" }),
+  S(4, 2, "Dm", "The Dm chord", ["Dm"], "heard", L("c:Dm"), { strum: "folk" }),
   S(4, 3, "Em to Am and Am to C", "The two changes", [], "heard", L("s:Em-Am", "s:Am-C"), { strum: "folk", kind: "switch" }),
-  S(4, 4, "The folk pattern", "Down, down-up, up-down-up", [], "played", null, { strum: "folk" }),
-  S(4, 5, "Keep the hand moving", "Strumming through the changes", [], "played", null, { strum: "folk" }),
-  H(4, 6, "Headline show", "A whole four-chord song", "heard", { strum: "folk" }),
+  S(4, 4, "The folk pattern", "Down, down-up, up-down-up", [], "played", P(), { strum: "folk" }),
+  S(4, 5, "Keep the hand moving", "Strumming through the changes", [], "played", P(), { strum: "folk" }),
+  HP(4, 6, "A whole four-chord song", { strum: "folk" }),
   // Tour 5: The Van (the capo)
   S(5, 1, "The capo", "A known song in a new key", [], "heard", null, { strum: "folk" }),
   S(5, 2, "Your own song", "The chorus of a song you picked, fitted", [], "heard", null, { strum: "folk" }),
@@ -231,15 +233,21 @@ export function mappedDone(data) {
     if (!ok && s.carry && op(s.carry)) ok = true; /* Tour 1's second shape: the show is played, so it is done */
     if (ok) out.add(s.id);
   }
+  /* 5.18.0 (B6): a finished old song tour (data.songTour.legs, read only) is the headline of the tour it became */
+  for (const [leg, stop] of Object.entries(OLD_SONG_TOUR)) if (data.songTour?.legs?.[leg]?.solid === true) out.add(stop);
   return out;
 }
+/* The old song tours became the tours' own song stops: Open chords' song tour is Tour 3's headline, Chord switches' is Tour 4's. */
+const OLD_SONG_TOUR = { open: "k3.5", switch: "k4.6" };
 /* data.curriculum is only what was mapped: it keeps a stop done once it was, so replaying or clearing an old field loses nothing. */
 export function cleanCurriculum(raw) {
   if (!isObj(raw)) return null;
   const done = {};
   for (const [id, at] of Object.entries(isObj(raw.done) ? raw.done : {})) if (STOP_BY[id] && +at > 0) done[id] = Math.floor(+at);
   const settled = [...new Set((Array.isArray(raw.settled) ? raw.settled : []).filter(isCurriculumBox))];
-  return settled.length ? { v: CURRICULUM_V, done, settled } : { v: CURRICULUM_V, done };
+  const won = {};
+  for (const [id, at] of Object.entries(isObj(raw.won) ? raw.won : {})) if (/^t\d{1,2}$/.test(id) && TOUR_BY[id] && +at > 0) won[id] = Math.floor(+at);
+  return { v: CURRICULUM_V, done, ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}) };
 }
 /* Unlock mode writes nothing. Otherwise the stops done by the old fields are remembered (once each). True when something was added. */
 export function curriculumSeed(data, now = Date.now()) {
@@ -250,7 +258,7 @@ export function curriculumSeed(data, now = Date.now()) {
   if (!cur && !add.length && !data.skills && !data.opening && !data.songTour) { data.curriculum = { v: CURRICULUM_V, done: {} }; return true; }
   /* The first time only: a new box behind where the player stands shows as opened and pays nothing (`settled`); boxes ahead pay. */
   const settled = cur ? cur.settled : curriculumState(data).tours.filter(t => t.route === "main" && t.stops.length > BOX_AFTER && boxState(data, t, new Set()) === "now").map(t => boxId(t.number));
-  data.curriculum = { v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
+  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
   return true;
 }
 const doneSet = data => new Set([...mappedDone(data), ...Object.keys(data.curriculum?.done || {}).filter(id => STOP_BY[id])]);
@@ -324,14 +332,16 @@ function drawn(s, state) {
   if (lesson && s.kind === "chord") stop.chord = s.play.lessons[0].slice(2);
   if (s.kind === "switch" && lesson) { const [a, b] = s.play.lessons[0].slice(2).split("-"); stop.a = a; stop.b = b; }
   if (s.play) stop.play = s.play;
+  if (s.play?.piece) stop.piece = true;
+  if (s.headline) stop.headline = true;
   return stop;
 }
 /* The Tour as the Road draws it: legs of { id, n, name, note, stops, done }, the main line in full with a box after each
-   tour's third stop, the song tours after Tour 4 (as they already are on the old Road), then one locked row each for the
-   lead and fingerstyle routes (in full when Unlock all tours is on). `old` is roadTour's answer, which supplies the song tours. */
-export function curriculumRoad(data, old = { legs: [] }) {
+   tour's third stop, then one locked row each for the
+   lead and fingerstyle routes (in full when Unlock all tours is on). The song tours are the tours' own song stops since 5.18.0. */
+export function curriculumRoad(data) {
   const st = curriculumState(data), opened = new Set(data.boxes?.opened || []);
-  const legs = [], songs = (old.legs || []).filter(l => l.song);
+  const legs = [];
   const make = t => {
     const stops = t.stops.filter(s => !s.held).map(s => drawn(s, s.state));
     if (stops.length > BOX_AFTER) stops.splice(BOX_AFTER, 0, { id: boxId(t.number), kind: "box", name: "Merch box", state: st.unlocked ? "open" : boxState(data, t, opened), cs: true, tourId: t.id });
@@ -339,7 +349,6 @@ export function curriculumRoad(data, old = { legs: [] }) {
   };
   for (const t of st.tours.filter(x => x.route === "main")) {
     legs.push(make(t));
-    if (t.id === "t4") for (const sl of songs) legs.push(st.unlocked ? { ...sl, stops: sl.stops.map(s => ({ ...s, state: "open" })) } : sl);
   }
   for (const r of ["lead", "fingerstyle"]) {
     const ts = st.tours.filter(x => x.route === r), open = st.routes[r]?.open;
@@ -352,9 +361,8 @@ export function curriculumRoad(data, old = { legs: [] }) {
   /* current: a waiting box first, then the song tour's next stop, then the main line's next stop */
   const main = legs.filter(l => l.route === "main").flatMap(l => l.stops);
   const box = main.find(s => s.kind === "box" && s.state === "now" && !st.unlocked);
-  const song = st.unlocked ? null : songs.flatMap(l => l.stops).find(s => s.state === "now");
   const ns = st.unlocked ? null : nextStop(data, "main");
-  const current = box || song || (ns ? main.find(s => s.id === ns.id) : null) || null;
+  const current = box || (ns ? main.find(s => s.id === ns.id) : null) || null;
   const all = legs.flatMap(l => l.stops);
   const leg = legs.find(l => l.stops.some(s => s.id === current?.id)) || legs.find(l => l.route === "main" && !l.done) || legs[0] || null;
   return { legs, current: current ? all.find(s => s.id === current.id) || current : null, leg, coming: [] };
@@ -365,4 +373,44 @@ export function playNext(data, stop) {
   if (!s || !playable(s)) return null;
   if (s.play.opening) { const op = openingDone(data); return { opening: s.play.opening.find(i => !op(i)) || s.play.opening[0] }; }
   return { lesson: s.play.lessons.find(i => !lessonDone(data, i)) || s.play.lessons[0] };
+}
+
+// ---------- A stop played as a piece of the tour's song (5.18.0, B2 and B4) ----------
+/* The chords a piece round plays at a stop: the song's chords that the tour has taught by this stop (the rest are rests).
+   Tour 1's pieces use the easy set, later tours everything allowed up to the stop. */
+export const pieceChords = (stopId, songChords) => { const ok = new Set(allowedChords(stopId)); return songChords.filter(c => ok.has(c)); };
+/* A piece round passed. Returns { id, headline, solid, tour, guitar } or null when it counts for nothing (Unlock all tours, a stop
+   that is not the one you are on, a headline played below 0.8x). The headline at 1.0x marks the song Solid. Writes only
+   data.curriculum.done and .won (add-only) and the song's own status. */
+export const HEADLINE_RATE = 0.8;
+export function piecePlayed(data, stopId, { rate = 1, now = Date.now() } = {}) {
+  if (!rewardsOn(data)) return null;
+  const s = STOP_BY[stopId];
+  if (!s?.play?.piece) return null;
+  if (s.headline && rate < HEADLINE_RATE - 1e-9) return null;
+  const at = curriculumState(data).tours.flatMap(t => t.stops).find(x => x.id === stopId);
+  if (!at || (at.state !== "now" && at.state !== "done")) return null;
+  const cur = data.curriculum && isObj(data.curriculum) ? data.curriculum : (data.curriculum = { v: CURRICULUM_V, done: {} });
+  const first = !cur.done[stopId];
+  if (first) cur.done[stopId] = now;
+  const out = { id: stopId, headline: !!s.headline, solid: false, tour: s.tour, first, guitar: null };
+  if (s.headline) {
+    if (!cur.won?.[s.tour]) cur.won = { ...(cur.won || {}), [s.tour]: now };
+    const t = data.songTour?.legs?.[s.tour];
+    if (rate >= 1 - 1e-9 && t) {
+      t.solid = true; out.solid = true;
+      const song = (data.songs || []).find(x => x.id === t.song);
+      if (song && song.status !== "got") song.status = "solid";
+    }
+  }
+  return out;
+}
+/* The tours whose headline was played (add-only), and the guitar each one earns: the old leg id whose "headlined" it stands for. */
+export const TOUR_LEG = { t1: "open", t2: "switch", t3: "scales", t4: "strum" };
+export const toursWon = data => Object.keys(data.curriculum?.won || {}).filter(id => TOUR_LEG[id]);
+/* Opening night's show was played (not skipped): Tour 1's headline. Called from openingAdvance. */
+export function curriculumWon(data, tourId, now = Date.now()) {
+  if (!TOUR_LEG[tourId]) return;
+  const cur = data.curriculum && isObj(data.curriculum) ? data.curriculum : (data.curriculum = { v: CURRICULUM_V, done: {} });
+  if (!cur.won?.[tourId]) cur.won = { ...(cur.won || {}), [tourId]: now };
 }
