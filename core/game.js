@@ -288,12 +288,18 @@ export const guitarsEarned = (data, now = Date.now()) => {
 const GUITAR_ORDER = ["open", "switch", "scales", "strum", "pick", "finger", "encore"];
 export const GUITAR_START = -1;
 export function roadGuitars(data, now = Date.now()) {
-  const won = new Map([["open", GUITAR_START]]);
-  guitarsEarned(data, now).forEach(id => {
-    const li = GUITAR_ORDER.indexOf(id);
-    if (!won.has(id)) won.set(id, li);
-    const nx = GUITAR_ORDER[li + 1]; if (nx && !won.has(nx)) won.set(nx, li);
+  const legs = roadPath(data, now).legs, won = new Map([["open", GUITAR_START]]);
+  legs.forEach((l, li) => {
+    if (!l.done) return;
+    if (!won.has(l.id)) won.set(l.id, li);
+    const nx = legs[li + 1]; if (nx && !won.has(nx.id)) won.set(nx.id, li);
   });
+  /* 5.18.0 (B4): a played headline of Tours 1 to 4 earns the tour's guitar: Cornerstone, Club Slab, Hollow Hill, Swing */
+  for (const t of toursWon(data)) {
+    const id = TOUR_LEG[t], li = GUITAR_ORDER.indexOf(id), nx = GUITAR_ORDER[li + 1];
+    if (!won.has(id)) won.set(id, li);
+    if (nx && !won.has(nx)) won.set(nx, li);
+  }
   return GUITAR_ORDER.filter(id => won.has(id)).map(id => ({ id, li: won.get(id) }));
 }
 export const guitarsOwned = (data, now = Date.now()) => roadGuitars(data, now).map(g => g.id);
@@ -307,7 +313,7 @@ export function guitarNew(data, now = Date.now()) {
   const done = guitarsEarned(data, now), last = done.at(-1);
   if (!last || (data.guitars?.seen || []).includes(last)) return null;
   const next = GUITAR_ORDER[GUITAR_ORDER.indexOf(last) + 1];
-  return next ? { leg: last, next, guitar: guitarFor(next), done } : null;
+  return next && roadGuitars(data, now).some(g => g.id === next) ? { leg: last, next, guitar: guitarFor(next), done } : null;
 }
 /* ---------- Your guitarist (painted only, 2026-11-23): the player is one of 24 paintings ----------
    data.me = { genre, who, lefty }. genre is one of ME_GENRE, who is m or w, lefty mirrors the painting. A missing or

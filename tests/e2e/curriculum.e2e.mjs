@@ -24,8 +24,8 @@ test("5.17.0: the Tour names the tours in order, the main line in full, then one
   const st = await states(page);
   assert.equal(st.filter(([id]) => id.startsWith("route:")).length, 2, "one stop each for the two routes");
   assert.ok(st.filter(([id]) => id.startsWith("route:")).every(([, s]) => s === "locked"), "both rows are locked");
-  assert.deepEqual(st.find(([id]) => id === "c:Em"), ["c:Em", "now"], "after Opening night the Em lesson is the next stop");
-  assert.equal(st.filter(([id]) => /^k1\./.test(id) && id !== "k1.4").every(([, s]) => s === "done"), true, "Opening night is done, mapped onto Tour 1's stops");
+  assert.deepEqual(st.find(([id]) => id === "c:A"), ["c:A", "now"], "5.18.0: a player who has played has Tour 1 done, so Tour 2 starts with A");
+  assert.equal(st.filter(([id]) => /^k1\./.test(id) || id === "c:Em").every(([, s]) => s === "done"), true, "Tour 1 is done, mapped from Opening night");
   const words = await page.evaluate(() => document.body.innerText + "\n" + [...document.querySelectorAll("[aria-label],[data-title],[data-sub],[data-aria]")].map(e => [e.getAttribute("aria-label"), e.dataset.title, e.dataset.sub, e.dataset.aria].filter(Boolean).join(" ")).join("\n"));
   assert.doesNotMatch(words, OLD, `no old words: ${words.match(OLD)?.[0]}`);
   const kept = await stored(page);
@@ -35,14 +35,17 @@ test("5.17.0: the Tour names the tours in order, the main line in full, then one
 test("5.17.0: a Coming soon stop opens a card that says so and plays nothing; a lesson stop starts its lesson", { skip: skip() }, async t => {
   const page = await phone(t, lib(), { home: true });
   await page.waitForSelector(".rn-neck"); await settled(page);
-  await tap(page, "k2.5");
+  await tap(page, "k5.1");
   await page.waitForSelector(".rd-pop");
   const soon = await page.textContent(".rd-pop");
-  assert.match(soon, /Coming soon/); assert.match(soon, /Down-up/);
+  assert.match(soon, /Coming soon/); assert.match(soon, /The capo/);
   assert.equal(await page.locator(".rd-pop .rd-start").count(), 0, "no Start button");
-  assert.match(soon, /Louie can't judge this one/, "a stop Louie cannot hear says so");
+  assert.match(soon, /Louie listens for it/, "a stop Louie can hear says so");
+  await tap(page, "k6.3"); await page.waitForSelector(".rd-pop");
+  assert.match(await page.textContent(".rd-pop"), /Louie can't judge this one/, "a stop Louie cannot hear says so");
   await tap(page, "k1.4"); await page.waitForSelector(".rd-pop");
-  assert.match(await page.textContent(".rd-pop"), /Louie listens/);
+  const card1 = await page.textContent(".rd-pop");
+  assert.match(card1, /piece of one song/); assert.match(card1, /USE ELEANOR RIGBY/, "Tour 1 offers a hand-checked song"); assert.match(card1, /Do you have a capo\?/, "and asks about a capo once");
   /* a lesson stop keeps its old id and starts the old lesson */
   await tap(page, "c:Em"); await page.waitForSelector(".rd-pop .rd-start");
   await page.click(".rd-pop .rd-start");
@@ -50,7 +53,7 @@ test("5.17.0: a Coming soon stop opens a card that says so and plays nothing; a 
   /* a locked row says when it opens */
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rn-neck"); await settled(page);
   await tap(page, "route:lead"); await page.waitForSelector(".rd-pop");
-  assert.match(await page.textContent(".rd-pop"), /Opens after Tour 3/);
+  assert.match(await page.textContent(".rd-pop"), /Opens after Tour 4/, "5.18.0: Street Corner opens the Lead route");
 });
 
 test("5.17.0: Unlock all tours opens every tour and stop, pays nothing, and turning it off gives the map back", { skip: skip() }, async t => {
@@ -75,7 +78,7 @@ test("5.17.0: Unlock all tours opens every tour and stop, pays nothing, and turn
   await page.click(".rd-pop .rd-start");
   await page.waitForFunction(() => location.hash.startsWith("#/practice/"));
   await page.evaluate(() => { location.hash = "#/"; }); await page.waitForSelector(".rn-neck"); await settled(page);
-  await tap(page, "k3.5"); await page.waitForSelector(".rd-pop.soon");
+  await tap(page, "k5.3"); await page.waitForSelector(".rd-pop.soon");
   assert.equal(await page.locator(".rd-pop .rd-start").count(), 0);
   const kept = await stored(page);
   assert.equal(kept.skills?.done?.["c:C"], undefined, "nothing was marked");

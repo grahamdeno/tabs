@@ -316,7 +316,9 @@ const MID = doneOf(T3);
 const BOXES = { opened: Array.from({ length: 13 }, (_, i) => `b:t${i + 1}`) };
 /* the whole first leg done, its headline show too: the second leg starts fresh */
 const LEG1 = doneOf([...OPEN, "k:open"]);
-const roadLib = (theme, skills, extra = {}) => ({ ...LIB, ...(skills ? { skills } : {}), boxes: BOXES, ...extra, settings: { ...LIB.settings, v: 6, theme } });
+/* 5.18.0: Down-ups and the headlines of Tours 2 and 3 are pieces of a song, so a player at Tour 4 has played them */
+const PIECES3 = { v: 1, done: { "k2.5": AT, "k2.6": AT, "k3.5": AT } };
+const roadLib = (theme, skills, extra = {}) => ({ ...LIB, ...(skills ? { skills } : {}), ...(skills === MID ? { curriculum: PIECES3 } : {}), boxes: BOXES, ...extra, settings: { ...LIB.settings, v: 6, theme } });
 async function road(t, theme, skills, opts = {}, extra) {
   const page = await phone(t, roadLib(theme, skills, extra), { home: true, ...opts });
   await page.waitForSelector(".rr-head .rr-stats"); await settled(page);

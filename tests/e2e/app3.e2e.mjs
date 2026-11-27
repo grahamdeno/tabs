@@ -372,7 +372,7 @@ test("The Road on a new library: the first song is ready to play on the current 
   await page.waitForSelector(".rd-path");
   assert.equal(await page.locator("#rd-bubble").count(), 0, "no message on the Road (one-row header, Grok 2026-11-19)");
   assert.equal(await page.locator("#rd-tonight").count(), 0, "no Tonight bar on the Road");
-  assert.match(await page.innerText(".rn-now-tx"), /^Em$/, "the current stop's name sits on the plate");
+  assert.match(await page.innerText(".rn-now-tx"), /^A$/, "the current stop's name sits on the plate (a player with plays has Tour 1 done, so Tour 2 starts with A)");
 });
 
 test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls up for the scene, and Play starts the song", { skip: skip() }, async t => {
@@ -481,11 +481,11 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
 });
 
 /* 5.17.0: a tour's headline is Coming soon until the song-fitting release; the old level-check headline card (a song that fits) is not on the Tour. */
-test("The Tour's headline stops: Tour 1's show plays, the others say Coming soon and play nothing", { skip: skip() }, async t => {
+test("The Tour's headline stops: Tours 1 to 4 play, the later ones say Coming soon and play nothing", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, boxes: { opened: ["b:t1"] } }, { home: true });
   await page.waitForSelector(".rn-neck"); await settled(page);
   assert.ok(await page.locator(".rd-node.headline").count() >= 13, "every tour ends on a headline stop");
-  await page.$eval('[data-stop="k2.6"]', b => { b.scrollIntoView({ block: "center" }); b.click(); }); await page.waitForSelector(".rd-pop.soon");
+  await page.$eval('[data-stop="k5.3"]', b => { b.scrollIntoView({ block: "center" }); b.click(); }); await page.waitForSelector(".rd-pop.soon");
   const soon = await page.innerText(".rd-pop.soon");
   assert.match(soon, /Headline show[\s\S]*Coming soon/);
   assert.equal(await page.locator(".rd-pop .rd-start").count(), 0, "a Coming soon headline plays nothing");
@@ -602,7 +602,7 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
 
 test("4.84.0 a lesson that opens songs you have says how many; an opened merch box is a crate in the guitar's material", { skip: skip() }, async t => {
   const now = Date.now(), done = Object.fromEntries(["G", "C", "D"].map((c, i) => [`c:${c}`, { n: 3, best: 90, at: now - 1000 + i }]));
-  const extra = { id: "x1", title: "Porch Light", artist: "", format: "chords", body: "[V]\nEm      C\nla la\nG       D\nla la" };
+  const extra = { id: "x1", title: "Porch Light", artist: "", format: "chords", body: "[V]\nA       D\nla la\nG       D\nla la" };
   /* Green Room: the old Road draws the box in the guitar's material; Road Ready's pearls are tested in roadready.e2e.mjs */
   const page = await phone(t, { ...LIB, songs: [...LIB.songs, extra], skills: { done, last: now }, boxes: { opened: ["b:open-3"] }, settings: { ...LIB.settings, v: 6, theme: "green" } }, { home: true });
   await page.waitForSelector(".rn-neck");

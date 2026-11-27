@@ -12,7 +12,10 @@ const OPEN = ["G", "C", "D", "Em", "Am", "E", "A"].map(c => "c:" + c);
 const T3 = ["c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C", "s:C-D", "s:G-D"];
 const MID = doneOf(T3);
 const BOXES = { opened: Array.from({ length: 13 }, (_, i) => `b:t${i + 1}`) };
-const lib = (theme, skills) => ({ ...LIB, skills, boxes: BOXES, merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] }, settings: { ...LIB.settings, v: 6, theme } });
+/* 5.18.0: Down-ups, the folk pattern and the headlines of Tours 2 to 4 are pieces of a song; these players have played the ones before where they stand */
+const PIECES = { v: 1, done: { "k2.5": AT, "k2.6": AT, "k3.5": AT } };
+const PIECES_ALL = { v: 1, done: { ...PIECES.done, "k4.4": AT, "k4.5": AT, "k4.6": AT } };
+const lib = (theme, skills) => ({ ...LIB, skills, curriculum: skills === MID ? PIECES : PIECES_ALL, boxes: BOXES, merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] }, settings: { ...LIB.settings, v: 6, theme } });
 
 test("Neck-only Road: the neck is 55 to 60 percent wide, a gutter drag does not open a stop, and a tap on a stop opens its card", { skip: skip() }, async t => {
   const page = await phone(t, lib("dark", MID), { home: true });
@@ -256,7 +259,7 @@ test("Road labels do not break inside a word, at 320 and 390, in both looks, inc
 });
 
 const LEG1 = doneOf([...OPEN, "k:open"]);
-const SWITCH = ["s:G-C", "s:C-D", "s:G-D", "s:Em-Am", "s:Am-C", "s:D-A", "s:A-E", "s:Em-C", "k:switch"];
+const SWITCH = ["s:G-C", "s:C-D", "s:G-D", "s:Em-Am", "s:Am-C", "s:D-A", "s:A-E", "s:Em-C", "k:switch", "c:Dm"];
 const LAST = doneOf([...OPEN, "k:open", ...SWITCH]);
 
 test("Neck-only Road: the lead and fingerstyle rows are grayed out and locked, and the neck ends just above the plate", { skip: skip() }, async t => {
