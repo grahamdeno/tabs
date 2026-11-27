@@ -8,6 +8,7 @@
 import { gelOf } from "./core.js";
 import { louie } from "./louie.js";
 import { diag, READ_AT, musicClock, usesMusic, chordTimes, isLine } from "./app.js";
+import { tlTick, tlStop } from "./timeline.js"; /* timeline: the 5.11.0 try-out */
 
 const $ = id => document.getElementById(id);
 const esc = t => String(t).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -91,6 +92,7 @@ export function stageClear() {
   document.body.classList.remove("staged");
   delete document.body.dataset.gel;
   Object.assign(st, { b: -2, on: -1, seq: null });
+  tlStop(); /* timeline */
 }
 /* the section's colour, for the band, the chords and the light */
 export function stageGel(gel) { if (document.body.dataset.gel !== gel) document.body.dataset.gel = gel; }
@@ -124,6 +126,7 @@ export function stageTick(song, w) {
   if (!w) return;
   stageGel(gelOf(w.sec || "verse"));
   stagePaint(w);
+  tlTick(w, diag.seq); /* timeline */
 }
 /* Unscored play on the stage (4.52.0): no score, no crowd, nothing on top; the folded Play is the pause */
 let plain = 0;
