@@ -154,15 +154,20 @@ async function begin() {
 /* the bar playing at `x` seconds from the first bar (a drill's bars can be two beats) */
 const barAt = (plan, x) => plan.bars.find(b => x >= b.t && x < b.t + b.dur);
 
-/* 5.16.3: the recording's clock (YouTube and Apple Music) only moves in steps of a few hundredths to a quarter second, so
-   the highway stuttered at 1.0x. Run our own clock at the playback rate from the last reading, and pull it toward each new
-   reading gently (half a second to catch up); a jump of more than 0.35 s (a seek, a stall) snaps. */
+/* 5.16.3, 5.17.0: the recording's clock (YouTube and Apple Music) moves in steps, lags, and now and then reads nothing for
+   a moment, so the highway stuttered and could jump back to the start. Run our own clock at the playback rate, and pull it
+   toward the recording by at most a tenth of the time that passed (so it never stops or runs backwards, only speeds up or
+   slows a little); only a gap of more than a second (a seek, a long stall) snaps. A missing reading keeps our clock going. */
 function smooth(r, c) {
-  const now = performance.now(), k = r.clk;
-  if (c == null || c < 0) { r.clk = null; return c; }
-  if (!k) { r.clk = { t: c, at: now }; return c; }
-  const guess = k.t + (now - k.at) / 1000 * r.speed, off = c - guess;
-  const t = Math.abs(off) > 0.35 ? c : guess + off * Math.min(1, (now - k.at) / 500);
+  const now = performance.now(), k = r.clk, have = c != null && c >= 0;
+  if (!k) { if (have) r.clk = { t: c, at: now }; return c; }
+  const dt = (now - k.at) / 1000, guess = k.t + dt * r.speed;
+  let t = guess;
+  if (have) {
+    const off = c - guess;
+    if (Math.abs(off) > 1) t = c;
+    else t = guess + Math.max(-0.1 * dt, Math.min(0.1 * dt, off * Math.min(1, dt / 0.5)));
+  }
   r.clk = { t, at: now };
   return t;
 }
