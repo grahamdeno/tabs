@@ -6378,3 +6378,5 @@ body:has(#gig.done, #gig .on-count) .app.viewer .dock { visibility: hidden; } /*
 .tq-steps li.now { color: var(--rr-text, #F4ECDD); font-weight: 700; }
 .tq-steps li.now i { border: 0; background: var(--rr-amber, #00C8B8); color: var(--rr-on-amber, #082422); }
 .tq-steps li.done i { border-color: var(--rr-amber, #00C8B8); color: var(--rr-amber, #00C8B8); }
+.rnd-self { align-self: center; min-height: 44px; font-size: var(--type-footnote, 13px); color: var(--rnd-2); }
+@media (orientation: landscape) and (max-height: 500px) { .rnd-self { display: none; } .rnd:has(.rnd-self) .rnd-bar::after { content: none; } }

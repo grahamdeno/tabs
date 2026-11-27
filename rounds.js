@@ -10,7 +10,7 @@
 //   listening  the same strum detector and chord check as the chord lessons (core/neck.js); a strum near a marked one
 //              (from half a beat before to one beat after) is checked once, for the chord marked
 //   passing    Louie heard at least 3 in 4 of the strums
-import { CHORD_FIT, FANS, Tabs, journalRound, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM } from "./core.js";
+import { CHORD_FIT, FANS, Tabs, journalRound, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, drillPlan, drillTempos, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM } from "./core.js";
 import { esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
 import { drum, strumAt, tempoFor } from "./audio.js";
 import { musicClock, musicLead, pauseMusic, recordingOn, startMusic } from "./listen.js";
@@ -32,7 +32,10 @@ const guitarBand = (ctx, src) => {
   src.connect(a); a.connect(b);
   return b;
 };
-const kicker = s => s.kind === "headline" ? "SONG TOUR · HEADLINE" : `SONG TOUR · ROUND ${s.n} OF ${s.of}`;
+const kicker = s => s.kind === "drill" ? `DRILL · ${s.bpm} BPM` : s.kind === "headline" ? "SONG TOUR · HEADLINE" : `SONG TOUR · ROUND ${s.n} OF ${s.of}`;
+/* a drill's Speed is its tempo; a round's is a share of the song's */
+const speeds = r => r.drill ? drillTempos(r.drill.to || 80) : speedsFor(r.song);
+const nameOf = (r, v) => r.drill ? `${v} BPM` : speedName(v);
 
 /* Open a round. `stop` is a song tour stop (kind "round" or "headline"); `onClose` runs when the screen closes. Call it from the
    tap that starts the round, so the phone lets the microphone and the sound start. */
@@ -49,6 +52,24 @@ export function openRound(stop, { onClose } = {}) {
   document.body.appendChild(el);
   document.getElementById("app")?.setAttribute("inert", "");
   R = { stop, song, el, onClose, speed: stop.state === "done" ? 1 : speedsFor(song)[0], micP, gen: 0 };
+  begin();
+}
+
+/* A change drill on the neck (5.16.0; Rehearse's Drill buttons and the switch lessons). `st` is the switch step
+   ({ id, a, b, to }); `onDone(bpm)` runs when Louie heard 3 in 4 at the target tempo (or it was played through with the mic
+   off), the same "done" as the old drill: the target tempo. Call it from a tap, like openRound. */
+export function openDrill(st, { onDone, onClose } = {}) {
+  closeRound();
+  let micP = null;
+  try { sound({ mic: true }); micP = getMic(micOptions()).catch(() => null); } catch { micP = Promise.resolve(null); }
+  const el = document.createElement("div");
+  el.className = "rnd"; el.id = "round"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
+  el.setAttribute("aria-label", `Drill, ${st.a} to ${st.b}`);
+  document.body.appendChild(el);
+  document.getElementById("app")?.setAttribute("inert", "");
+  const best = data.skills?.done?.[st.id]?.best || 0, steps = drillTempos(st.to || 80);
+  const from = Math.max(50, Math.min((st.to || 80) - 10, best || 50));
+  R = { drill: st, stop: { kind: "drill", sub: `${st.a} to ${st.b}`, bpm: from }, song: null, el, onClose, onDone, speed: steps.reduce((a, v) => v <= from ? v : a, steps[0]), micP, gen: 0 };
   begin();
 }
 
@@ -85,15 +106,16 @@ async function begin() {
   stopAll();
   if (!r.micP) { try { sound({ mic: true }); r.micP = getMic(micOptions()).catch(() => null); } catch { r.micP = Promise.resolve(null); } }
   const gen = ++r.gen, { stop, song } = r;
-  const bpm = song.bpm || song.listen?.feel?.bpm || await Promise.race([tempoFor(song).then(() => song.bpm || 0), new Promise(ok => setTimeout(() => ok(0), 2500))]) || DEFAULT_BPM;
+  if (r.drill) stop.bpm = r.speed;
+  const bpm = r.drill ? r.speed : song.bpm || song.listen?.feel?.bpm || await Promise.race([tempoFor(song).then(() => song.bpm || 0), new Promise(ok => setTimeout(() => ok(0), 2500))]) || DEFAULT_BPM;
   if (R !== r || r.gen !== gen) return;
-  const beats = song.beats || 4, rate = r.speed;
-  const part = stop.kind === "headline" ? wholeSong(song.body, { bpm, beats }) : songPart(song.body, { bpm, beats });
+  const beats = song?.beats || 4, rate = r.drill ? 1 : r.speed;
+  const part = r.drill ? { name: `${r.drill.a} to ${r.drill.b}` } : stop.kind === "headline" ? wholeSong(song.body, { bpm, beats }) : songPart(song.body, { bpm, beats });
   if (!part) { closeRound(); return toast("This song has no chords to play along with"); }
-  const lined = usesMusic(song) && (rate === 1 || slows(song)) ? slotTimes(song, chordSpots(parseBlocks(song.body))) : null;
-  const plan = roundPlan(part.bars, stop.chords, { bpm, beats, rate, times: lined });
+  const lined = !r.drill && usesMusic(song) && (rate === 1 || slows(song)) ? slotTimes(song, chordSpots(parseBlocks(song.body))) : null;
+  const plan = r.drill ? drillPlan(r.drill.a, r.drill.b, { bpm }) : roundPlan(part.bars, stop.chords, { bpm, beats, rate, times: lined });
   r.plan = plan; r.part = part; r.heard = new Set(); r.taken = new Set(); r.pending = []; r.paused = false; r.at = 0; r.bar = -1; r.finished = false;
-  r.recording = plan.recorded && usesMusic(song);
+  r.recording = !r.drill && plan.recorded && usesMusic(song);
   paint();
   /* the microphone: ready by now, or not allowed (then a round counts when it is played through) */
   const stream = await r.micP;
@@ -122,12 +144,15 @@ async function begin() {
     /* Louie's band: hi-hat ticks when the microphone is on (a drum would leak into it), the drums otherwise; and (5.16.0) the
        bar's chord strummed on each beat, softer on the bars you play, so you hear the song and what you rest for */
     let i = 0, t = r.startAt;
-    const tick = () => { while (t < ctx.currentTime + 0.35 && t < r.startAt + plan.secs + 0.5) { if (r.mic) drum("tick", t, i % beats === 0 ? 1 : 0.6); else drum(i % beats === 0 ? "kick" : i % 2 ? "hat" : "snare", t, 0.7); const b = plan.bars[Math.floor(i / beats)]; if (b) strumAt(b.chord, t, b.mine ? 0.45 : 1, spb * 0.95); i++; t += spb; } };
+    const tick = () => { while (t < ctx.currentTime + 0.35 && t < r.startAt + plan.secs + 0.5) { if (r.mic) drum("tick", t, i % beats === 0 ? 1 : 0.6); else drum(i % beats === 0 ? "kick" : i % 2 ? "hat" : "snare", t, 0.7); const b = barAt(plan, t - r.startAt + 1e-3); if (b) strumAt(b.chord, t, b.mine ? 0.45 : 1, spb * 0.95); i++; t += spb; } };
     tick(); const id = setInterval(tick, 40); r.beat = { stop: () => clearInterval(id) };
   }
   r.timer = setInterval(() => listen(r), 10);
   r.raf = requestAnimationFrame(function loop() { if (R !== r || r.gen !== gen) return; frame(r); r.raf = requestAnimationFrame(loop); });
 }
+
+/* the bar playing at `x` seconds from the first bar (a drill's bars can be two beats) */
+const barAt = (plan, x) => plan.bars.find(b => x >= b.t && x < b.t + b.dur);
 
 /* where the round is, in seconds from its first bar (negative during the count in) */
 function where(r) {
@@ -189,8 +214,8 @@ function frame(r) {
     ex.querySelector(".rnd-shape").setAttribute("aria-label", `${shown} chord shape`);
   }
   if (bar && h >= 0) {
-    const beat = Math.min(plan.beats - 1, Math.floor((h - bar.t) / (bar.dur / plan.beats)));
-    ex.querySelector(".rnd-next").textContent = roundNext(plan.bars, bi, beat, plan.beats);
+    const bb = bar.beats || plan.beats, beat = Math.min(bb - 1, Math.floor((h - bar.t) / (bar.dur / bb)));
+    ex.querySelector(".rnd-next").textContent = roundNext(plan.bars, bi, beat, bb);
   }
   if (h >= plan.secs && !r.finished) finish(r);
 }
@@ -217,6 +242,7 @@ function finish(r) {
   const n = r.heard.size, total = r.plan.strums.length, listened = r.mic;
   const passed = listened ? roundPassed(n, total) : true;
   let result = null;
+  if (r.drill) { r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null; return drillCard(r, { n, total, listened, passed }); }
   if (passed) {
     result = tourPlayed(data, r.stop);
     journalRound(data, r.plan.secs, Date.now(), !!result);
@@ -225,6 +251,21 @@ function finish(r) {
   }
   r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null;
   card(r, { n, total, listened, passed, result });
+}
+
+/* After a drill: at the target tempo it's done (the lesson's own done screen takes over); below it, the next tempo */
+function drillCard(r, { n, total, listened, passed }) {
+  const st = r.drill, bpm = r.speed, steps = drillTempos(st.to || 80), up = steps.find(v => v > bpm);
+  if (passed && !up) { const done = r.onDone; closeRound(true); done?.(bpm, listened ? `Louie heard ${n} of ${total} at ${bpm} BPM.` : `Played through at ${bpm} BPM.`); return; }
+  const title = listened ? `Louie heard ${n} of ${total}` : "Louie wasn't listening";
+  const sub = passed ? `That counts at ${bpm} BPM. Next: ${up} BPM.` : `Louie needs 3 in 4. Stay at ${bpm} BPM and get there a beat early.`;
+  r.nextBpm = passed ? up : null;
+  const el = r.el.querySelector(".rnd-card");
+  el.hidden = false;
+  el.innerHTML = `<b role="status">${esc(title)}</b><p>${esc(sub)}</p>
+    ${passed ? `<button class="btn primary" data-rnd="faster">Next: ${up} BPM</button>` : ""}
+    <button class="btn${passed ? "" : " primary"}" data-rnd="again">Play it again</button><button class="btn" data-rnd="back">Done for now</button>`;
+  el.querySelector("button")?.focus();
 }
 
 function card(r, { n, total, listened, passed, result }) {
@@ -252,34 +293,37 @@ function paint() {
   const blocks = plan.strums.map(s => `<i class="rnd-blk" data-s="${s.id}" style="left:${(s.t * PX_BEAT / plan.spb - 8).toFixed(1)}px"></i><span class="rnd-arr" aria-hidden="true" style="left:${(s.t * PX_BEAT / plan.spb - 14).toFixed(1)}px">↓</span>`).join("");
   /* 5.15.0: every strum names its chord, in the chord's colour (timeline.js, contrast-checked) */
   const names = plan.strums.map(s => { const c = chordColor(s.chord); return `<span class="rnd-nm" data-s="${s.id}" aria-hidden="true" style="left:${(s.t * PX_BEAT / plan.spb + 1).toFixed(1)}px;--nm-bg:${c.bg};--nm-fg:${c.fg}">${esc(s.chord)}</span>`; }).join("");
-  const art = /^https:\/\//.test(song.listen?.art || "") ? `<img src="${esc(song.listen.art)}" alt="" width="44" height="44">` : esc((song.title || "?")[0].toUpperCase());
+  const art = !song ? "" : /^https:\/\//.test(song.listen?.art || "") ? `<img src="${esc(song.listen.art)}" alt="" width="44" height="44">` : esc((song.title || "?")[0].toUpperCase());
   r.el.innerHTML = `
     <div class="rnd-top">
       <button class="rnd-x" aria-label="Close" data-rnd="close">${icon("x")}</button>
       <div class="rnd-ti"><small>${esc(kicker(stop))}</small><h2>${esc(stop.kind === "headline" ? "The whole song" : stop.sub)}</h2></div>
       <div class="rnd-heard" role="img" aria-label="Louie heard 0 of ${plan.strums.length} strums" hidden>${icon("mic")}<span class="rnd-lv" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>0/${plan.strums.length}</b></div>
     </div>
-    <div class="rnd-song"><span class="rnd-art" aria-hidden="true">${art}</span><div><b>${esc(song.title)}</b><small>${esc(`${part.name}, ${mmss(Math.round(plan.secs))}${rest ? "" : ""}`)}</small></div></div>
+    ${song ? `<div class="rnd-song"><span class="rnd-art" aria-hidden="true">${art}</span><div><b>${esc(song.title)}</b><small>${esc(`${part.name}, ${mmss(Math.round(plan.secs))}${rest ? "" : ""}`)}</small></div></div>` : ""}
     <div class="rnd-prog" aria-hidden="true"><i></i></div>
     <div class="rnd-hw" aria-label="The chords coming at you">${wood}${strings}<div class="rnd-track" style="--w:${(plan.secs * PX_BEAT / plan.spb + 400).toFixed(0)}px">${frets}${rests}${blocks}${names}</div><i class="rnd-line" aria-hidden="true"></i><span class="rnd-ci" aria-hidden="true"></span></div>
     <div class="rnd-foot">
       <div class="rnd-below"><div class="rnd-info"><small>NOW</small><div class="rnd-now" aria-hidden="true">Count in</div></div><div class="rnd-shape" role="img" aria-label="Chord shape"></div></div>
       <div class="rnd-nx"><small>NEXT</small><p class="rnd-next"></p></div>
       <div class="rnd-bar">
-        <div class="rnd-ctl"><button class="rnd-speed" data-speed="${r.speed}" aria-label="Speed, ${speedName(r.speed)}">${speedName(r.speed)}</button><span aria-hidden="true">Speed</span></div>
+        <div class="rnd-ctl"><button class="rnd-speed" data-speed="${r.speed}" aria-label="Speed, ${nameOf(r, r.speed)}">${nameOf(r, r.speed)}</button><span aria-hidden="true">Speed</span></div>
         <div class="rnd-ctl"><button class="rnd-pause" aria-label="Pause" data-rnd="pause">${icon("pause")}</button><span aria-hidden="true" class="rnd-pl">Pause</span></div>
         <div class="rnd-ctl"><button class="rnd-again" data-rnd="restart" aria-label="Restart">${icon("restart")}</button><span aria-hidden="true">Restart</span></div>
       </div>
+      ${r.drill ? `<button class="tb rnd-self" data-rnd="self">I can't hear it, I got it</button>` : ""}
     </div>
     <div class="sr-only rnd-say" aria-live="polite"></div>
     <div class="rnd-card" hidden></div>`;
   r.el.onclick = e => {
     const b = e.target.closest("[data-rnd],[data-speed]");
     if (!b || R !== r) return;
-    if (b.dataset.speed) { const sp = speedsFor(r.song); r.speed = sp[(sp.indexOf(r.speed) + 1) % sp.length] || sp[0]; return begin(); } /* 5.15.0: one button, 0.6x, 0.8x, 1.0x, then 0.6x again */
+    if (b.dataset.speed) { const sp = speeds(r); r.speed = sp[(sp.indexOf(r.speed) + 1) % sp.length] || sp[0]; return begin(); } /* 5.15.0: one button, 0.6x, 0.8x, 1.0x, then 0.6x again */
     const k = b.dataset.rnd;
     if (k === "close" || k === "back") return closeRound();
     if (k === "restart" || k === "again") return begin();
+    if (k === "faster" && r.nextBpm) { r.speed = r.nextBpm; return begin(); }
+    if (k === "self" && r.drill) { const done = r.onDone, bpm = r.speed; closeRound(true); return done?.(bpm, "Marked as got."); } /* as the old drill's button */
     if (k === "pause") return pause(r, b);
     if (k === "next") { const ns = r.next, close = r.onClose; closeRound(true); if (ns && (ns.kind === "round" || ns.kind === "headline")) openRound(ns, { onClose: close }); else if (ns?.kind === "chord") location.hash = `#/practice/${encodeURIComponent(ns.id)}`; return; }
   };

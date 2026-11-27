@@ -448,3 +448,33 @@ test("5.15.0 rounds: Speed, Pause and Restart sit on the screen at every size, c
     }
   }
 });
+
+/* 5.16.0 drills on the neck (Graham, 2026-11-27) */
+test("5.16.0 a change drill runs on the neck: two bars each, a bar each, every two beats; Speed is the tempo; at the target it's done", { skip: skip() }, async t => {
+  const d = SEEDED(); d.skills.done["s:C-F"] = { n: 1, best: 70, at: 9 };
+  const { page } = await home(t, d, { key: false }); /* no microphone: played through counts (the chord check is the rounds' own, tested above) */
+  await page.evaluate(() => { location.hash = "#/practice/s:C-F"; }); await page.waitForSelector("#pk-start");
+  assert.match(await page.innerText("#pk-start"), /Start on the neck/);
+  await page.click("#pk-start"); await page.waitForSelector("#round .rnd-hw");
+  assert.match(await page.innerText("#round .rnd-ti"), /DRILL · 70 BPM[\s\S]*C to F/);
+  assert.equal(await page.locator("#round .rnd-blk").count(), 8 * 4 + 4 * 2, "40 strums: 8 bars of four, then 4 of two");
+  assert.equal(await page.locator("#round .rnd-rest").count(), 0, "no rests in a drill");
+  assert.deepEqual(await page.$$eval("#round .rnd-nm", e => [...new Set(e.map(x => x.textContent))]), ["C", "F"], "every strum names C or F");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 70 BPM", "the best so far");
+  await page.click("#round .rnd-speed");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 80 BPM", "one step up: the target");
+  await page.waitForSelector("#pk-next", { timeout: 60000 });
+  assert.match(await page.innerText(".rd-first-t"), /Played through at 80 BPM/);
+  const s = await stored(page);
+  assert.equal(s.skills.done["s:C-F"].best, 80, "done at the target tempo, as before");
+});
+
+test("5.16.0 below the target, a passed drill offers the next tempo; I got it still marks it", { skip: skip() }, async t => {
+  const { page } = await home(t, SEEDED(), { key: false });
+  await page.evaluate(() => { location.hash = "#/practice/s:C-F"; }); await page.waitForSelector("#pk-start");
+  await page.click("#pk-start"); await page.waitForSelector("#round .rnd-hw");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 50 BPM");
+  await page.click("#round .rnd-self"); await page.waitForSelector("#pk-next");
+  assert.match(await page.innerText(".rd-first-t"), /Marked as got/);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).skills?.done?.["s:C-F"], null, { timeout: 5000 });
+});
