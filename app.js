@@ -88,7 +88,7 @@ const playWith = song => !song ? "" : usesMusic(song) ? "ALONG WITH THE RECORDIN
    lamp-lit Play, then Loop and Tools as small knobs. The wide Tools + RESUME bar is gone there. */
 const rrAmp = () => ["neon", "festival"].includes(document.documentElement.dataset.look);
 const playFace = (on, song) => `${icon(on ? "pause" : "play")}<span>${on ? "PAUSE" : gigHooks.held ? "RESUME" : "PLAY"}${!on && !gigHooks.held && playWith(song) ? `<small class="pw-with">${playWith(song)}</small>` : ""}</span>`;
-const playLabel = (song, on) => on ? "Pause auto-scroll" : gigHooks.held ? "Resume the show" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
+const playLabel = (song, on) => on ? (document.body.classList.contains("gigging") ? "Pause" : "Pause auto-scroll") : /* 5.14.0: in a Gig, the one bar's Play says Pause, as the Gig's own did */ gigHooks.held ? "Resume the show" : gigsOn(song) ? "Play as a gig" : "Start auto-scroll";
 /* Play's label, after Practice changes */
 function refreshPlay(song) {
   const pb = $("play");
@@ -388,8 +388,7 @@ function renderViewer(id) {
   $("setdial")?.addEventListener("click", e => { if (e.detail === 0) setDial(null); });
   /* German practice (4.20.0: from Tools only): the sheet, with the levels once the song is translated, else a way to translate it. */
   songDeOpen = () => germanSheet(song, () => draw());
-  /* One hand (3.19.0): the bar is out while paused and folds into Play's corner while playing (fold.js). */
-  /* Folded, Play keeps one partner: in a set the next song, otherwise the Library. */
+  /* One hand (3.19.0; 5.14.0: the bar no longer folds, fold.js). While playing, in a set, the next song shows above the bar. */
   const foldNav = () => {
     const x = fromSet, list = x ? setSongs(x) : [], nx = x && list[setCtx?.idx + 1];
     if (nx) return { html: `<span class="fn-t">${esc(nx.title)}</span><small>${setCtx.idx + 2} of ${list.length}</small>${icon("chev")}`, label: `Next song: ${nx.title}`, run: () => { stopScroll(); $("snext")?.click(); } };
@@ -1804,7 +1803,7 @@ async function startScroll(song, opts = {}) {
   /* A play is judged over the run: pausing and playing on adds up, another song or a credited play starts it again. */
   if (scroll.runId !== song.id || scroll.credited) { scroll.cover = 0; scroll.runMs = 0; scroll.runId = song.id; scroll.credited = false; }
   document.body.classList.add("playing");
-  foldApi?.mode?.(); /* the bar folds into Play's corner */
+  foldApi?.mode?.(); /* the next song and the beat show above the bar */
   setTimeout(() => {
     if (scroll.on && viewing === song && coachTip("pause")) demoPause();
   }, 2500);
@@ -1827,7 +1826,7 @@ async function startScroll(song, opts = {}) {
   updateDiagrams();
   const btn = $("play");
   btn.innerHTML = playFace(true);
-  btn.setAttribute("aria-label", "Pause auto-scroll");
+  btn.setAttribute("aria-label", playLabel(viewing || {}, true));
   try { scroll.lock = await navigator.wakeLock?.request("screen"); } catch {}
   if (metroOn()) {
     if (!song.bpm) tempoFor(song); /* look it up during the count-in */
@@ -1930,7 +1929,7 @@ function stopScroll() {
   document.body.classList.remove("playing");
   stageStop();
   if (was) gigHooks.stopped?.();
-  foldApi?.mode?.(); /* and unfolds when the song stops */
+  foldApi?.mode?.(); /* and go when the song stops */
   wakeControls();
   cancelAnimationFrame(scroll.raf);
   scroll.lock?.release?.().catch(() => {});

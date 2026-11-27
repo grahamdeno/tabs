@@ -70,7 +70,7 @@ Everything not listed here uploads and deploys nothing. If you find a trigger th
 
 # Working on Tabs
 
-Louie: Learn Guitar (5.13.0; version 5 began with 5.0.0 on 2026-11-24: the Road Ready look and the painted-only guitarist; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road" in code; players see it as the Tour tab, and a leg as a tour ("Tour 1"), since 5.7.0 (Graham, 2026-11-26). The old Tour tab (the fan map, `#/playmap`) is the Map tab, and the month's tour (`#/tour`) is the month's challenge. Never show "Leg", "legs", "The Road" or "Tour Map" to a player (`tests/e2e/tourwords.e2e.mjs`). Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
+Louie: Learn Guitar (5.14.0; version 5 began with 5.0.0 on 2026-11-24: the Road Ready look and the painted-only guitarist; Louie on the home screen; called The Road from version 3, Tabs before that; the repo and storage keys keep the name tabs) is Graham's personal guitar PWA. The home tab and its path are still "the Road" in code; players see it as the Tour tab, and a leg as a tour ("Tour 1"), since 5.7.0 (Graham, 2026-11-26). The old Tour tab (the fan map, `#/playmap`) is the Map tab, and the month's tour (`#/tour`) is the month's challenge. Never show "Leg", "legs", "The Road" or "Tour Map" to a player (`tests/e2e/tourwords.e2e.mjs`). Name rules (Graham, 2026-11-11): always the full name in listings and share text, never plain "Louie" as the app's listed name; Louie is a cartoon amp, never described as an AI assistant. It is plain ES modules, no build step, live on
 GitHub Pages from `main`. The README's Development section is the architecture
 map; docs/DATA.md describes every stored field. Read those before guessing.
 
@@ -96,9 +96,12 @@ map; docs/DATA.md describes every stored field. Read those before guessing.
 - Songs don't listen (Graham, 2026-11-13, 4.91.0): no chord catching during a song, a gig, Wait for me or
   Follow my tempo. Listening for chords is only for one chord held or a switch between two, at your own pace
   (the Chord check and Switch check in `docs/NO-CATCH-PLAN.md`), plus single notes (tuner, string checks). Song tour rounds (5.10.0, `rounds.js`) listen for the chord at each marked strum and never for timing; nothing else listens.
-- No ring controls (Graham, 3.19.0): on a phone the rectangular bar is out
-  while paused and folds into Play's corner while playing. Don't bring back
-  the hold-Play ring, the arc, the island or Play following the hand.
+- One bar, no ring controls (Graham, 3.19.0; 5.14.0, 2026-11-27): the song
+  page's bar (Speed, Play, Loop, Tools) stays put while playing, paused, and
+  in a Gig. It never folds, moves or changes shape; only Play's icon and name
+  change. A Gig draws no bar of its own; it fades the page's bar when idle.
+  Don't bring back the fold, a second bar, the hold-Play ring, the arc, the
+  island or Play following the hand.
 - Writing he sees (UI text, README, commit messages, replies): plain and
   direct, no em dashes.
 - Onboarding (2026-10-22): docs/ONBOARDING.md lists every hidden feature by

@@ -10,16 +10,20 @@ import { chromium, base, phone, skip, LIB, FAKE_MIC, useBrowser, until, settled,
 useBrowser();
 
 
-test("3.19.0 in a set, 4 of 9 is in the bar; playing folds it away with the rest; iPad keeps the bar", { skip: skip() }, async t => {
+test("3.19.0 in a set, 4 of 9 is in the bar and stays there while playing (5.14.0); the next song shows above the bar; iPad keeps the bar", { skip: skip() }, async t => {
   const songs = [...LIB.songs.map(x => x.id === "a" ? { ...x, duration: 900 } : x), { id: "x0", title: "One", artist: "Y", format: "chords", body: "[Verse]\nG C\nla" }];
   const page = await phone(t, { ...LIB, songs, sets: [{ id: "s", name: "Gig", songIds: ["a", "x0"] }], settings: { ...LIB.settings, countIn: false } });
   await page.goto(base + "#/set/s"); await page.waitForSelector("[data-open='0']");
   await page.click("[data-open='0']"); await page.waitForSelector('#setdial'); await settled(page);
   assert.match(await page.innerText("#setdial"), /1 of 2/, "4 of 9 sits in the bar");
   assert.ok(await page.locator("#setdial").isVisible());
-  await page.click("#play"); await page.waitForFunction(() => document.body.classList.contains('fold'));
-  assert.equal(await page.locator("#setdial").isVisible(), false, "folded away while playing");
-  assert.match(await page.innerText("#fp-nav"), /One\s*2 of 2/, "3.20.0: beside Play, the next song in the set");
+  await page.click("#play"); await page.waitForFunction(() => document.getElementById("play").getAttribute("aria-label") === "Pause auto-scroll");
+  assert.equal(await page.evaluate(() => document.body.classList.contains("fold")), false, "5.14.0: no fold");
+  assert.equal(await page.locator("#setdial").isVisible(), true, "5.14.0: the bar stays, 4 of 9 with it");
+  await page.waitForSelector("#fp-nav", { state: "visible" });
+  assert.match(await page.innerText("#fp-nav"), /One\s*2 of 2/, "3.20.0: above the bar, the next song in the set");
+  const nav = await page.locator("#fp-nav").boundingBox(), bar = await page.locator(".app.viewer .pw.glass").boundingBox();
+  assert.ok(nav.y + nav.height <= bar.y + 1, "it sits above the bar, not on it");
   await page.click("#fp-nav"); await page.waitForFunction(() => /One/.test(document.querySelector('.song-title')?.innerText || ''));
   assert.match(await page.innerText(".song-title"), /One/, "a tap moves on to it");
 
@@ -414,7 +418,7 @@ test("4.12.0 song duels: a challenge link opens a duel and the gig; a reply show
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")));
   assert.ok(saved.songs.some(s => s.title === "Wagon Wheel"), "the song came with it");
   assert.equal(saved.duels.list[0].opp, "Mike");
-  await page.click("#gg-pause"); await page.waitForSelector("body.held");
+  await page.click("#play"); await page.waitForSelector("body.held");
   /* a duel you sent comes back answered */
   const reply = await page.evaluate(async () => {
     const C = await import("/core.js"), app = await import("/app.js"), d = C.startDuel(app.data, app.data.songs[0], { pct: 70, combo: 5, crowd: 8 }); C.Tabs.save(app.data);
