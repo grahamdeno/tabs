@@ -4182,3 +4182,11 @@ test("song tour data: cleaned on load, in backups, and a backup from before 5.9.
   assert.equal("songTour" in back.data, false);
   assert.equal(C.cleanImport({ ...file, songTour: "junk" }).data.songTour, undefined);
 });
+
+test("5.12.3 handMove: a tap on the page while the recording plays is not a sync mark; a small drag is; a long one is a jump", () => {
+  assert.equal(C.handMove({ y0: 500, y1: 500, musicY: 520, screen: 844 }), "none", "a tap");
+  assert.equal(C.handMove({ y0: 500, y1: 508, musicY: 520, screen: 844 }), "none", "a finger that shifted a few px is still a tap");
+  assert.equal(C.handMove({ y0: 500, y1: 560, musicY: 520, screen: 844 }), "mark", "a small drag: this line is what I hear");
+  assert.equal(C.handMove({ y0: 500, y1: 1400, musicY: 520, screen: 844 }), "jump", "a long drag goes there");
+  assert.equal(C.handMove({ y0: 500, y1: 503, musicY: 520, screen: 844, wheel: true }), "mark", "a wheel always moved the page");
+});

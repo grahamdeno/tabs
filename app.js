@@ -1,8 +1,8 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
+import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, handMove, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
-import { tlDecorate, tlView, tlPick, TL_NAMES } from "./timeline.js"; /* timeline (5.11.0; the way songs show since 5.12.0) */
+import { tlDecorate, tlView, tlPick, TL_NAMES, chordColor, lineWeights } from "./timeline.js"; /* timeline (5.11.0; the way songs show since 5.12.0) */
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderSet, setCtx, setRun, setSongs, setSetCtx } from "./sets.js";
 import { clearPortraitLeftovers, copyDiagnostics, loadLibrary, noteError } from "./store.js";
@@ -737,15 +737,40 @@ let loopPick = null;   // { song, a } while choosing
 onLeave(() => { if (loopPick) { loopPick = null; document.querySelector(".loopbanner")?.remove(); } });
 let loopRun = { pass: 0 };
 const sheetLines = () => [...($("sheet")?.children || [])].filter(el => !el.classList.contains("prow") && !el.classList.contains("dpop"));
+/* 5.13.0 (Graham, 2026-11-26): picking a section is a strip of the whole song at the bottom, in thumb reach: a part for
+   every line, as wide as the line lasts and in its first chord's colour, with the sections as buttons above it. Drag
+   across the strip to loop those lines, or tap a section. Tapping lines on the page still works, as before. */
 function startLoopPick(song) {
   stopScroll();
   loopPick = { song, a: null };
   document.querySelector(".loopbanner")?.remove();
+  const lines = sheetLines(), parts = [], secs = [];
+  lines.forEach((el, i) => {
+    if (el.classList.contains("sec")) { secs.push({ i, name: el.textContent.trim() || "Section" }); return; }
+    if (!el.matches(".pr, .crow, .ly")) return;
+    const ws = lineWeights(el), first = el.querySelector(".c[data-ch]")?.dataset.ch;
+    parts.push({ i, w: ws.length ? ws.reduce((a, x) => a + x.w, 0) : 2, c: first ? chordColor(first) : null });
+  });
   const b = document.createElement("div");
-  b.className = "loopbanner glass float";
-  b.innerHTML = `<span id="lb-t">Tap the first line of the section, or a section name like Chorus.</span><button class="tb go" id="lb-x">Cancel</button>`;
+  b.className = "loopbanner lpk";
+  b.setAttribute("role", "dialog"); b.setAttribute("aria-label", "Pick a section to loop");
+  b.innerHTML = `<div class="lpk-top"><span id="lb-t">Drag across the part to loop, or tap a section.</span><button class="tb go" id="lb-x">Cancel</button></div>
+    ${secs.length ? `<div class="lpk-secs">${secs.map(s => `<button class="chip" data-sec="${s.i}">${esc(s.name)}</button>`).join("")}</div>` : ""}
+    <div class="lpk-strip" id="lpk-strip" aria-hidden="true">${parts.map(p => `<i data-i="${p.i}" style="flex-grow:${p.w.toFixed(2)}${p.c ? `;background:${p.c.bg}` : ""}"></i>`).join("")}</div>
+    <p class="lpk-say" id="lpk-say" aria-live="polite"></p>`;
   document.body.appendChild(b);
   $("lb-x").onclick = () => { loopPick = null; b.remove(); paintLoop(song); };
+  b.querySelectorAll("[data-sec]").forEach(x => x.onclick = () => pickLoopLine(lines[+x.dataset.sec]));
+  const strip = $("lpk-strip"), segs = [...strip.children];
+  const at = e => { const r = strip.getBoundingClientRect(), x = Math.min(r.right - 1, Math.max(r.left, e.clientX)); return segs.find(s => { const q = s.getBoundingClientRect(); return x >= q.left && x < q.right + 2; }) || segs[segs.length - 1]; };
+  let from = null;
+  const show = (a, z) => { const lo = Math.min(a, z), hi = Math.max(a, z); segs.forEach(s => s.classList.toggle("on", +s.dataset.i >= lo && +s.dataset.i <= hi));
+    lines.forEach((el, k) => el.classList.toggle("loopa", k >= lo && k <= hi)); $("lpk-say").textContent = `Lines ${parts.findIndex(p => p.i === lo) + 1} to ${parts.findIndex(p => p.i === hi) + 1}`; };
+  strip.addEventListener("pointerdown", e => { const s = at(e); if (!s) return; e.preventDefault(); strip.setPointerCapture?.(e.pointerId); from = +s.dataset.i; show(from, from); });
+  strip.addEventListener("pointermove", e => { if (from === null) return; show(from, +at(e).dataset.i); });
+  const end = e => { if (from === null) return; const to = +at(e).dataset.i, a = from; from = null; lines.forEach(el => el.classList.remove("loopa")); finishLoop(song, Math.min(a, to), Math.max(a, to)); };
+  strip.addEventListener("pointerup", end);
+  strip.addEventListener("pointercancel", () => { from = null; segs.forEach(s => s.classList.remove("on")); lines.forEach(el => el.classList.remove("loopa")); });
 }
 function pickLoopLine(el) {
   const lines = sheetLines(), i = lines.indexOf(el), song = loopPick.song;
@@ -1601,7 +1626,10 @@ function releaseSoon(ms) {
        jump: the recording goes to that place. */
     if (hold.active && scroll.on && viewing && usesMusic(viewing) && musicClock(viewing) !== null) {
       const song = viewing, clock = musicClock(song), len = recSecs(song), range = Math.max(1, sheetRange());
-      if (Math.abs(scrollY - musicY(song, clock)) < innerHeight * 0.6) {
+      /* 5.12.3: a tap (the page didn't move) is not a correction: it used to save a sync mark where the page was */
+      const move = handMove({ y0: hold.y0, y1: scrollY, musicY: musicY(song, clock), screen: innerHeight, wheel: hold.wheel });
+      if (move === "none") { hold.active = false; hold.wheel = false; return; }
+      if (move === "mark") {
         const before = (song.syncs || []).length;
         song.syncs = addSync(song.syncs, scrollY / range, clock, len);
         if (!song.syncs.length) delete song.syncs;
@@ -1613,16 +1641,17 @@ function releaseSoon(ms) {
         seekMusic(song, sec);
       }
     }
-    hold.active = false;
+    hold.active = false; hold.wheel = false;
   }, ms);
 }
 window.addEventListener("touchstart", e => {
   if (e.target instanceof Element && e.target.closest(".dock")) return;
+  if (!hold.touching && !hold.active) hold.y0 = scrollY; /* where the page was when the hand came */
   hold.touching = true; hold.active = true; clearTimeout(hold.timer);
 }, { passive: true });
 window.addEventListener("touchend", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
 window.addEventListener("touchcancel", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
-window.addEventListener("wheel", () => { hold.active = true; releaseSoon(250); }, { passive: true });
+window.addEventListener("wheel", () => { hold.active = true; hold.wheel = true; releaseSoon(250); }, { passive: true });
 
 // Compact header fade: scrolling up reveals it (Back and the title) within a short pull, scrolling down hides it.
 // Near the top the full header is in view, so the compact one hands back to it.

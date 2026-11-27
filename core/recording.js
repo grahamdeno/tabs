@@ -33,6 +33,14 @@ function along(pts, v, from, to) {
 export const syncSeconds = (marks, where, len) => along(syncLine(marks, len), Math.min(1, Math.max(0, where)), 0, 1);
 export const syncWhere = (marks, sec, len) => along(syncLine(marks, len), Math.min(len, Math.max(0, sec)), 1, 0);
 /* a new mark replaces any close to it, and drops the ones that would cross it */
+/* 5.12.3: what a hand on the page while the recording plays means, from where the page was when the finger went down
+   (y0) and where it is when it settles (y1). A tap (the page moved less than 12 px, and no wheel) means nothing: it
+   was a tap to pause or to bring the controls back, not "this line is what I hear". A small move is a mark; a move
+   of more than 60% of the screen from where the recording is (musicY) is a jump. */
+export function handMove({ y0, y1, musicY, screen, wheel = false }) {
+  if (!wheel && Math.abs(y1 - y0) < 12) return "none";
+  return Math.abs(y1 - musicY) < screen * 0.6 ? "mark" : "jump";
+}
 export function addSync(marks, where, sec, len) {
   if (!(len > 0) || where <= 0.01 || where >= 0.99 || sec <= 1 || sec >= len - 1) return cleanSyncs(marks);
   const keep = cleanSyncs(marks).filter(m => Math.abs(m[0] - where) > 0.02 && Math.abs(m[1] - sec) > 3 && (m[0] < where) === (m[1] < sec));

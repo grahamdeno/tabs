@@ -248,3 +248,7 @@ Restoring a backup (`Tabs.import` and `cleanImport` in `core.js`) checks every f
 1. Bump `settings.v` in `DEFAULT_SETTINGS` and add a step to `migrate()`.
 2. Add the field to the tables above, and to `SONG_TYPES` in `core.js` if it has a fixed type.
 3. Add a unit test that an older save migrates.
+
+## Daily copies (5.13.0)
+
+In the `tabs-library` database, store `copy`, beside `lib`: keys `day-YYYY-MM-DD` (the phone's date), each `{ json, at, songs }`, where `json` is the library as a backup file would have it (`Tabs.export`, no API key, no cover photos), `at` when it was made and `songs` how many songs. The first save of each day (and a start four seconds after loading) makes the day's copy if there isn't one, and only the newest 7 are kept (`DAY_KEEP` in `store.js`). Restoring one runs it through `Tabs.import` (`cleanImport`), as an imported backup is, and replaces the library. Clear problems (Settings, Help) removes `tabs.errors.v1`.

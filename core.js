@@ -1,7 +1,7 @@
 // Tabs — core logic
 // Personal chord sheet and tab library. All data stays in localStorage.
 // Topics live in core/ (4.15.1); everything is re-exported here, so the rest of the app imports from core.js.
-import { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, spotTimes, syncSeconds, syncWhere, wordTimes } from "./core/recording.js";
+import { addSync, handMove, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, spotTimes, syncSeconds, syncWhere, wordTimes } from "./core/recording.js";
 import { LEAD_GAP, WIDE_GAP, SECTION_RE, buildWords, chordShape, dashChords, detectPaste, guessKey, isChord, isChordLine, isTabLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, secName, transposeChord, transposeKey, wrapTab, voicingShape } from "./core/chords.js";
 import { beatsOf, chartOfSheet, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, cleanPlaced, chartChord, liningDue, SPOTS_V, looksGuessed, lyricsOfSheet, mergeWords, nameRepeats, numberLyrics, placedSheet, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, splitTake, takeLines, sungLines, syllables, tempoPick, unpackNotes } from "./core/sketch.js";
 import { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalRound, journalTime, journalTune, playBars, profileOf, streakMoment, whenYouPlay } from "./core/playing.js";
@@ -14,7 +14,7 @@ import { BOOTH_MAX, BOOTH_PLACES, BOOTH_RATE, BOOTH_RIVALS, boothCall, boothChor
 import { ytId, cleanYt, ytAt, ytSong, ytMatches } from "./core/youtube.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "5.12.2";
+export const VERSION = "5.13.0";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -1539,7 +1539,7 @@ export function playCredited({ end = 0, cover = 0, ms = 0, expectedMs = 0 } = {}
 export const axOf = px => px >= 40 ? "3" : px >= 28 ? "1" : "";
 
 // ---------- Re-exported topics (core/) ----------
-export { addSync, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, spotTimes, syncSeconds, syncWhere, wordTimes };
+export { addSync, handMove, bodyKey, cleanFeel, cleanSyncs, cleanTimed, feelOf, keyGap, keyOfChroma, keyParts, matchLines, mergeSyncs, parseLrc, spotTimes, syncSeconds, syncWhere, wordTimes };
 export { buildWords, chordShape, dashChords, detectPaste, guessKey, isChord, isChordLine, looksLikeTab, parseBlocks, parseSheet, prefersFlats, transposeChord, transposeKey, wrapTab, voicingShape };
 export { beatsOf, chartOfSheet, chordFit, chordLine, chordName, chordWords, detectKey, harmonize, keyConfidence, keyFamily, lineHint, lineOptions, lyricStanzas, melodyNotes, cleanPlaced, chartChord, liningDue, SPOTS_V, looksGuessed, lyricsOfSheet, mergeWords, nameRepeats, numberLyrics, placedSheet, midiOfHz, notesUnder, packNotes, pickVersions, pitchShares, restyle, richName, setSungLine, sketchKey, sketchSong, splitTake, takeLines, sungLines, syllables, tempoPick, unpackNotes };
 export { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalRound, journalTime, journalTune, playBars, profileOf, streakMoment, whenYouPlay };
