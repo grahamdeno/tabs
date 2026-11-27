@@ -1,5 +1,6 @@
-// Chord timeline (5.11.0, a try-out): two ways to see the chords while you play, picked in Settings, Playing,
-// "Chords while playing". Off by default; turning it back to "Over the words" puts the song page as it was.
+// Chord timeline (5.11.0): ways to see the chords while you play, picked in Settings, Playing, "Chords while playing".
+// Since 5.12.0 Timeline over each line is how songs show unless you pick another (Graham, 2026-11-26); "Over the
+// words" puts the song page as it was before 5.11.0.
 //   lines: every line of the song page gets a thin bar split by how long each chord lasts, with the chord's
 //          name in each part; the chord letters over the words are hidden (kept for VoiceOver and for timing).
 //   strip: while a song plays, a panel at the top shows the whole song as a thin strip and the chords coming up as
@@ -11,9 +12,11 @@ import { data } from "./app.js";
 import { esc } from "./core.js";
 
 export const TL_VIEWS = ["lines", "strip"];
-/* what each is called, in Settings and Tools */
-export const TL_NAMES = { "": "Over the words", lines: "Timeline over each line", strip: "Chord timeline" };
-export const tlView = () => TL_VIEWS.includes(data.settings?.playView) ? data.settings.playView : "";
+/* what each is called, in Settings and Tools ("" is Over the words, stored as "words") */
+export const TL_NAMES = { lines: "Timeline over each line", strip: "Chord timeline", "": "Over the words" };
+export const tlView = () => { const v = data.settings?.playView; return v === "words" ? "" : TL_VIEWS.includes(v) ? v : "lines"; };
+/* store a pick: Timeline over each line is the default, so it needs nothing stored */
+export function tlPick(v) { if (v === "lines") delete data.settings.playView; else data.settings.playView = v || "words"; }
 
 /* One colour per chord, by its root: the same chord is the same colour everywhere. Minor chords are a shade deeper.
    Text on each is white or espresso, whichever reads (both pass 4.5:1 on these). */
@@ -116,6 +119,7 @@ export function tlTick(w, seq) {
   if (!view || !w || !sheet) return;
   const on = seq?.[w.from]?.el;
   if (view === "lines") {
+    fadeLines(sheet);
     const line = on?.closest(".pr, .crow");
     if (line && strip.lineOn !== on) {
       strip.lineOn = on;
@@ -135,8 +139,30 @@ export function tlTick(w, seq) {
   strip.el.querySelector(".tlp-you").style.left = `${(s.t / strip.total * 100).toFixed(2)}%`;
   strip.el.querySelectorAll(".tlk").forEach((k, n) => { k.classList.toggle("past", n < i); k.classList.toggle("on", n === i); });
 }
+/* 5.12.0: a line fades out as it rises past the one you're on, and the lines further down fade in as they come up,
+   fully there by two lines after the one you're on. Set on each line every frame from where it sits on the screen. */
+const isRow = el => el.matches(".pr, .ly, .crow, .sec");
+function fadeLines(sheet) {
+  const now = sheet.querySelector(":scope > .st-now");
+  if (!now) return;
+  let full = now, n = 0;
+  for (let el = now.nextElementSibling; el && n < 2; el = el.nextElementSibling) if (el.matches(".pr, .ly, .crow")) { full = el; n++; }
+  const top = now.getBoundingClientRect().top, fullTop = full.getBoundingClientRect().top, H = innerHeight;
+  const roof = Math.min(top - 1, Math.max(40, top * 0.25)); /* gone by here */
+  for (const el of sheet.children) {
+    if (!isRow(el)) continue;
+    const y = el.getBoundingClientRect().top;
+    if (y > H + 40 || y < -200) { el.style.removeProperty("opacity"); continue; }
+    let o = 1;
+    if (y < top - 1) o = Math.max(0, Math.min(1, (y - roof) / (top - roof))) * 0.85;
+    else if (y > fullTop + 1) o = Math.max(0.12, 1 - (y - fullTop) / Math.max(80, H - fullTop));
+    /* important: the stage holds every line at full opacity with an important rule of its own */
+    if (o >= 0.995) el.style.removeProperty("opacity"); else el.style.setProperty("opacity", o.toFixed(3), "important");
+  }
+}
 /* The song stops or the page goes: the panel goes too. */
 export function tlStop() {
+  document.querySelectorAll("#sheet > [style*='opacity']").forEach(el => el.style.removeProperty("opacity"));
   strip.el?.remove();
   Object.assign(strip, { el: null, key: null, at: -1, lineOn: null });
   document.querySelectorAll("#sheet .tls.on, #sheet .tls.past").forEach(s => s.classList.remove("on", "past"));

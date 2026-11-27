@@ -48,7 +48,7 @@ sees, and what teaches them anything.
 | Song title and chord row | A title too long to fit scrolls as a banner for three loops; tap it to replay. More chords than fit scroll with a faded edge (4.62.0) | Seen, not taught | Replaying the banner by a tap is never taught |
 | Tap the Gig | Pauses: the song page comes back as it always is, Play reads Resume, a quiet band on the line you stopped on (4.52.0) | Found by accident | Tap to pause and drag the lines are never taught |
 | Tools | Play, Practice and Song tabs at the foot, dots on Practice and Song | Dots | Fine |
-| Chords while playing (5.11.0) | Settings, Playing, and a row in Tools, Play: Over the words, Timeline over each line, Chord timeline | Listed | A try-out; nothing teaches it |
+| Chords while playing (5.11.0; timeline by default since 5.12.0) | Settings, Playing, and a row in Tools, Play: Timeline over each line, Chord timeline, Over the words. A tap on a part of a line's bar shows the chord's shape | Listed | Nothing teaches the tap on a bar part yet |
 | Tour | October Tour, a request line asking for Harbor Lights, tonight's setlist | On screen | Good. A lot at once on day one |
 | Charts | Nine computer players already scoring, a Battle on day one | On screen | **Day one shows a full league and a rival battle before one song is played** |
 | Band | 0 of 27, silhouettes | On screen | The first silhouette read "1 SONGS" (fixed in 4.39.2) |
