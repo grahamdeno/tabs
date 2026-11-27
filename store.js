@@ -46,7 +46,47 @@ function writeMain(json) {
     if (where.copy === false) saveFailed();
   });
   copyNext = { json, at }; writeCopy();
+  dailyCopy();
   return true;
+}
+
+// ---------- Daily copies (5.13.0, Graham 2026-11-26) ----------
+// The first save of each day also keeps a copy of the whole library, as a backup file would be, in the database under
+// "day-YYYY-MM-DD" (the phone's own date). The newest 7 are kept, so Settings, Songbook and backups, Daily copies can
+// put back the library as it was on any of the last 7 days. They stay on this phone: a backup to Files is still how a
+// library survives a lost phone, so the weekly reminder stays. Cover photos aren't in them (they live outside the save).
+export const DAY_KEEP = 7;
+const dayKey = d => `day-${d}`;
+const today = () => { const n = new Date(); return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`; };
+let dayDone = null;
+async function dailyCopy() {
+  const d = today();
+  if (dayDone === d) return;
+  let lib;
+  try { lib = data; } catch { return; /* very early in the start: the app hasn't its library yet */ }
+  if (!lib?.songs?.length) return;
+  dayDone = d;
+  try {
+    const keys = (await libTx("readonly", st => st.getAllKeys())).map(String);
+    if (!keys.includes(dayKey(d))) await libTx("readwrite", st => st.put({ json: Tabs.export(lib), at: new Date().toISOString(), songs: lib.songs.length }, dayKey(d)));
+    const days = [...new Set([...keys, dayKey(d)])].filter(k => /^day-\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
+    const gone = days.slice(DAY_KEEP);
+    if (gone.length) await libTx("readwrite", st => gone.forEach(k => st.delete(k)));
+  } catch { dayDone = null; /* the database refused: try again on the next save */ }
+}
+/* The daily copies kept, newest first: [{ day, at, songs }] */
+export async function dailyCopies() {
+  try {
+    const keys = (await libTx("readonly", st => st.getAllKeys())).map(String).filter(k => /^day-\d{4}-\d{2}-\d{2}$/.test(k)).sort().reverse();
+    const out = [];
+    for (const k of keys) { const v = await libTx("readonly", st => st.get(k)); if (v?.json) out.push({ day: k.slice(4), at: v.at, songs: v.songs || 0 }); }
+    return out;
+  } catch { return []; }
+}
+/* Put back the library from one day's copy: checked and cleaned like an imported backup (Tabs.import). null if it can't be read. */
+export async function restoreDay(day) {
+  try { const v = await libTx("readonly", st => st.get(dayKey(day))); return v?.json ? Tabs.import(v.json) : null; }
+  catch { return null; }
 }
 
 /* 5.2.0 (Graham, 2026-11-23): the text size now goes down to 50% and new songs start there. Once, a song still at the old
@@ -76,6 +116,7 @@ async function loadLibrary0() {
   /* Moving across from an older Tabs, or the copy was newer: bring the database up to date. */
   if (from === "copy") { Tabs.save(lib); Tabs.flush(); }
   if (from === "copy" && mainBroken) setTimeout(() => toast("Your library was restored from its safety copy."), 600);
+  setTimeout(dailyCopy, 4000); /* 5.13.0: today's copy, even on a day with no edits */
   return lib;
 }
 // ---------- Problems ----------
@@ -127,6 +168,11 @@ function problemLines() {
   const now = problems.filter(p => p.v === VERSION).reverse(), old = problems.filter(p => p.v !== VERSION).reverse();
   return [`Problems in ${VERSION} (${now.length}):`, ...(now.length ? now.map(line) : ["- none"]),
     ...(old.length ? [`Before ${VERSION} (${old.length}, may already be fixed; they drop off after ${OLD_DAYS} days):`, ...old.map(line)] : [])];
+}
+/* 5.13.0: Settings, Help, Clear problems empties the log (they still drop off by themselves after 30 days). */
+export function clearProblems() {
+  problems.splice(0);
+  try { localStorage.removeItem(ERR_KEY); } catch { /* blocked */ }
 }
 async function copyDiagnostics() {
   const text = await diagnostics();

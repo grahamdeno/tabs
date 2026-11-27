@@ -112,14 +112,14 @@ function sceneSheet(sc) {
   if (t) {
     const from = playsForCells(sc.earned), to = playsForCells(sc.plan.index + 1 + sc.lost);
     const done = Math.max(0, Math.min(1, to > from ? (sc.plays - from) / (to - from) : 0));
-    $("tm-take").classList.add("tm-goalrow");
+    /* 5.13.0 (Graham, 2026-11-26): closed, the card is one slim line, so the map has the screen: the corner, the minutes,
+       a thin bar of how far along, and Play. Pulled up: the song it starts with and the scene. */
+    $("tm-take").classList.add("tm-goalrow", "tm-slimrow");
     $("tm-take").innerHTML = `
-      <div class="tm-goal"><button class="tm-badge" id="tm-find" style="--c:${t.color}" aria-label="Show ${esc(t.rival.name)}'s hexagon on the map">${esc(initials(t.rival.name))}</button>
-        <span class="tm-sh-t" data-grab><small>NEXT CORNER TO TAKE</small><b>${esc(t.rival.name)}'s corner</b></span></div>
-      <div class="tm-prog" data-grab><span>About <b>${t.mins} min</b> of playing takes it</span><i style="--w:${Math.max(4, Math.round(done * 100))}%;--c:${t.color}" role="img" aria-label="${Math.round(done * 100)}% of the way"></i></div>
-      <div class="tm-start"><span><small>START WITH</small><b>${esc(t.first.title)}</b> · ${mmss(songLength(t.first))}</span>
-        <button class="btn primary tm-go" id="tm-take-go" aria-label="Play ${esc(t.first.title)}">${icon("play")}Play</button></div>
-      <p class="tm-pull" data-grab>Pull up for your scene</p>`;
+      <div class="tm-slim"><button class="tm-badge" id="tm-find" style="--c:${t.color}" aria-label="Show ${esc(t.rival.name)}'s hexagon on the map">${esc(initials(t.rival.name))}</button>
+        <span class="tm-sh-t" data-grab><small>NEXT CORNER · ${t.mins} MIN</small><b>${esc(t.rival.name)}'s corner</b></span>
+        <button class="tm-play" id="tm-take-go" aria-label="Play ${esc(t.first.title)}">${icon("play")}</button></div>
+      <i class="tm-thin" data-grab style="--w:${Math.max(4, Math.round(done * 100))}%;--c:${t.color}" role="img" aria-label="${Math.round(done * 100)}% of the way to ${esc(t.rival.name)}'s corner"></i>`;
   } else $("tm-take").innerHTML = `<span class="tm-sh-t" data-grab><b>Your scene</b><span>${ordinal(sc.rank)} of ${sc.players} players nearby</span></span>`;
   /* the scene this week: everyone ranked by minutes a day, you always shown, the next corner marked */
   const board = [...sc.rivals.map((r, i) => ({ id: r.id, name: r.name, avg: r.avg7, c: RIVAL_COLORS[i % RIVAL_COLORS.length] })), { name: "You", avg: sc.avg, you: true }].sort((a, b) => b.avg - a.avg);
@@ -130,6 +130,7 @@ function sceneSheet(sc) {
   const shown = board.map((b, i) => keep.has(i) ? row(b, i) : "").filter(Boolean);
   const push = pressureLine(sc);
   $("tm-sbody").innerHTML = `
+    ${t ? `<p class="tm-line tm-first">About <b>${t.mins} min</b> of playing takes ${esc(t.rival.name)}'s corner. Play starts with <b>${esc(t.first.title)}</b> · ${mmss(songLength(t.first))}.</p>` : ""}
     ${push ? `<p class="tm-push">${esc(push)}</p>` : ""}
     <h2 class="tm-lab"><span>Your scene this week</span><span>min a day</span></h2>
     <div class="tm-board">${shown.join("")}</div>

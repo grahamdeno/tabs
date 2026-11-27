@@ -373,10 +373,13 @@ test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls u
   const page = await phone(t, LIB);
   await page.evaluate(() => { location.hash = "#/playmap"; });
   await page.waitForSelector("#tm-take-go");
-  assert.match(await page.innerText("#tm-take"), /NEXT CORNER TO TAKE\s*\S+ \S+'s corner[\s\S]*About \d+ min of playing takes it[\s\S]*START WITH/);
+  /* 5.13.0: closed, one slim line: the corner and its minutes, Play, and a thin bar */
+  assert.match(await page.innerText("#tm-take"), /NEXT CORNER · \d+ MIN\s*\S+ \S+'s corner/);
+  assert.ok((await page.locator("#tm-sh").boundingBox()).height <= 110, "the closed card is slim");
   assert.equal(await page.getAttribute("#tm-sheet", "data-state"), "closed");
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("tm-sbody")).opacity), "0", "the details stay hidden until the sheet is pulled up");
   await page.click(".tm-sh-t"); await page.waitForFunction(() => document.getElementById("tm-sheet").dataset.state === "open");
+  assert.match(await page.innerText("#tm-sbody"), /About \d+ min of playing takes .+ corner\. Play starts with/);
   assert.match(await page.innerText("#tm-sbody"), /Your scene this week[\s\S]*min a day[\s\S]*NEXT[\s\S]*HEXAGONS? YOU HOLD[\s\S]*CORNERS? TAKEN/i);
   if (process.env.SHOT) { await page.waitForTimeout(500); /* real timer */ await page.screenshot({ path: process.env.SHOT + "/scene-open.png" }); }
   await page.click(".tm-sh-t"); await page.waitForFunction(() => document.getElementById("tm-sheet").dataset.state === "closed");

@@ -3,7 +3,7 @@ import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, loo
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { TL_NAMES, tlView, tlPick } from "./timeline.js"; /* timeline */
-import { ago, backupNow, copyDiagnostics, needsBackup, problems, storageKept, where } from "./store.js";
+import { ago, backupNow, clearProblems, copyDiagnostics, dailyCopies, DAY_KEEP, needsBackup, problems, restoreDay, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
 // ---------- Settings ----------
@@ -180,10 +180,14 @@ function renderSettings() {
     <div class="set-group glass">
       <button class="set" id="s-export"><span class="tile">${icon("cloud")}</span><span class="name">Back up now</span><span class="val muted">${ago(s.lastBackup)}</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-import"><span class="tile">${icon("download")}</span><span class="name">Import backup</span>${icon("chev", "chev")}</button>
+      <button class="set" id="s-days"><span class="tile">${icon("calendar")}</span><span class="name">Daily copies<small class="sub">The last ${DAY_KEEP} days, on this phone</small></span>${icon("chev", "chev")}</button>
       <button class="set" id="s-trash"><span class="tile">${icon("trash")}</span><span class="name">Recently deleted</span><span class="val muted">${data.trash.length || ""}</span>${icon("chev", "chev")}</button>
     </div>
     <input type="file" id="file" accept=".json,application/json" hidden>
-    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Louie isn't added to your Home Screen" : ""}. Back up weekly to iCloud Drive: tap Back up now, then Save to Files. Add Louie to your Home Screen from the Share menu to use it offline.</p>`],
+    <p class="foot">${data.songs.length} song${data.songs.length === 1 ? "" : "s"}, stored only on this phone${where.db ? ` in its database (${kb(where.size || JSON.stringify(data).length)})${where.copy === false ? "" : ", with a copy in browser storage"}` : ""}${storageKept ? ", kept permanently" : storageKept === false ? ". The browser may clear it if Louie isn't added to your Home Screen" : ""}. Louie keeps a copy of your library each day for ${DAY_KEEP} days, on this phone only. Back up weekly to iCloud Drive too: tap Back up now, then Save to Files, so your songs survive a lost phone. Add Louie to your Home Screen from the Share menu to use it offline.</p>`],
+    days: ["Daily copies", `
+    <div class="set-group glass" id="s-daylist"><div class="set"><span class="name muted">Looking for copies…</span></div></div>
+    <p class="foot">Louie keeps a copy of your whole library each day, the first time it saves, and keeps the last ${DAY_KEEP}. Restoring puts your songs, sets and progress back as they were that day. They stay on this phone, so keep backing up to Files too. Cover photos aren't in them.</p>`],
     lang: ["Language practice", `
     <div class="label">Every song uses</div>
     <div class="lp-list s-lp" role="radiogroup" aria-label="Language">${Object.entries(LANGS).map(([k, L]) => { const on = langChosen(data) && langOf(data) === k; return `<button class="lp-row${on ? " on" : ""}" role="radio" aria-checked="${on}" data-lang="${k}"><span class="lp-em lp-${k}">${L.short}</span><span class="lp-t"><b>${L.name}</b><small>${esc(L.own)} · ${esc(L.sample)}</small></span><i></i></button>`; }).join("")}</div>
@@ -198,6 +202,7 @@ function renderSettings() {
     <div class="set-group glass">
       <button class="set" id="s-tips"><span class="tile">${icon("info")}</span><span class="name">Tips &amp; gestures</span>${icon("chev", "chev")}</button>
       <button class="set" id="s-diag"><span class="tile">${icon("info")}</span><span class="name">Copy diagnostics</span><span class="val muted">${problems.length ? `${problems.length} problem${problems.length === 1 ? "" : "s"}` : ""}</span>${icon("chev", "chev")}</button>
+      ${problems.length ? `<button class="set" id="s-clearp"><span class="tile">${icon("x")}</span><span class="name">Clear problems<small class="sub">They also drop off after 30 days</small></span></button>` : ""}
     </div>
     <div class="label">Testing</div>
     <div class="set-group glass">
@@ -344,6 +349,23 @@ function renderSettings() {
   $("s-trash").onclick = () => go("#/trash");
   $("s-tips").onclick = () => go("#/gestures");
   $("s-diag").onclick = copyDiagnostics;
+  $("s-clearp")?.addEventListener("click", () => { clearProblems(); renderSettings(); toast("Problems cleared"); });
+  $("s-days")?.addEventListener("click", () => go("#/settings/days"));
+  if ($("s-daylist")) dailyCopies().then(list => {
+    const box = $("s-daylist");
+    if (!box) return;
+    const name = d => new Date(`${d}T12:00:00`).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+    box.innerHTML = list.length ? list.map(c => `<div class="set"><span class="tile">${icon("calendar")}</span><span class="name">${esc(name(c.day))}<small class="sub">${c.songs} song${c.songs === 1 ? "" : "s"}</small></span><button class="btn sm primary" data-day="${esc(c.day)}">Restore</button></div>`).join("")
+      : `<div class="set"><span class="name muted">No copies yet. The first one is made the next time Louie saves.</span></div>`;
+    box.querySelectorAll("[data-day]").forEach(b => b.onclick = () => ask({ title: `Restore ${name(b.dataset.day)}?`, text: "Your songs, sets and progress go back to how they were that day. Anything since then is replaced.", ok: "Restore", keep: "Keep what I have" }, async () => {
+      const imported = await restoreDay(b.dataset.day);
+      if (!imported) return toast("That copy couldn't be read");
+      setData(imported.data);
+      applyTheme();
+      toast(`Restored ${name(b.dataset.day)}: ${imported.data.songs.length} song${imported.data.songs.length === 1 ? "" : "s"}`);
+      go("#/");
+    }));
+  });
   /* 4.16.0: test fans, to try the Merch table */
   $("s-testfans")?.addEventListener("click", () => { const m = data.merch || (data.merch = {}); m.test = Math.min(1e6, (m.test || 0) + 1000); Tabs.save(data); renderSettings(); toast("$1,000 in test tips added"); });
   $("s-testfans-x")?.addEventListener("click", () => { delete data.merch.test; Tabs.save(data); renderSettings(); toast("Test tips removed"); });
