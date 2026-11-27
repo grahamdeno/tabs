@@ -34,7 +34,13 @@ test("timeline over each line: a bar per line, split by the words each chord cov
   assert.ok(!(await page.locator(".sheet .c[data-ch]").first().isVisible()) || (await page.locator(".sheet .c[data-ch]").first().boundingBox()).height <= 1, "but take no room");
   await page.click("#play");
   await page.waitForFunction(() => document.querySelectorAll(".sheet .tls.on").length === 1, null, { timeout: 15000 });
+  /* 5.11.1: while it plays only the line you're on and the next show their bar; every bar keeps its 30 px */
+  const shown = await page.evaluate(() => [...document.querySelectorAll(".sheet .tlb")].map(b => ({ v: getComputedStyle(b).visibility, h: b.offsetHeight, line: b.parentElement.classList.contains("st-now") ? "now" : b.parentElement.classList.contains("st-next") ? "next" : "" })));
+  assert.deepEqual(shown.filter(x => x.v === "visible").map(x => x.line).sort(), ["next", "now"], "the current and next lines only");
+  assert.ok(shown.every(x => x.h === shown[0].h), `every bar the same layout height (the stage only scales lines), so nothing moves (${shown.map(x => x.h)})`);
   await stop(page);
+  await page.waitForFunction(() => !document.body.classList.contains("staged"));
+  assert.ok(await page.evaluate(() => [...document.querySelectorAll(".sheet .tlb")].every(b => getComputedStyle(b).visibility === "visible")), "paused, every line shows its quiet bar");
   await page.evaluate(() => { location.hash = "#/settings/playing"; }); await page.waitForSelector("#s-tlview");
   await page.selectOption("#s-tlview", "");
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
