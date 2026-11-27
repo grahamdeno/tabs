@@ -31,6 +31,8 @@ test("timeline over each line: a bar per line, split by the words each chord cov
   const [g, d] = await page.locator(".sheet .tlb").first().locator(".tls").evaluateAll(els => els.map(e => e.getBoundingClientRect().width));
   assert.ok(d > g, `D covers more of the words than G, so its part is wider (${g} vs ${d})`);
   assert.equal(await page.getAttribute(".sheet .tlb", "aria-hidden"), "true");
+  const gap = await page.evaluate(() => { const bars = [...document.querySelectorAll(".sheet .tlb")], words = bars[0].parentElement.getBoundingClientRect(); return bars[1].getBoundingClientRect().top - words.bottom; });
+  assert.ok(gap >= 14, `5.12.1: room between a line's words and the next line's bar (${gap} px)`);
   assert.equal(await page.locator(".sheet .c[data-ch]").count(), 7, "the letters stay in the page");
   assert.ok(!(await page.locator(".sheet .c[data-ch]").first().isVisible()) || (await page.locator(".sheet .c[data-ch]").first().boundingBox()).height <= 1, "but take no room");
   await page.click("#play");
