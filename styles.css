@@ -5851,11 +5851,9 @@ html:root:is([data-look="neon"], [data-look="festival"]) body .app.viewer .playe
    strip, the filters, the backup card, one-line rows with the status and the key), drawn in Dark and Light in the agreed
    Road Ready components (r10-05): the hint strip and capsule chips above, outlined plates in the header, a card per song. */
 :root:is([data-look="neon"], [data-look="festival"]) #app .head .title { font: 700 clamp(26px, 8.6vw, 34px) / 1.1 var(--display); letter-spacing: -.01em; color: var(--rr-text); }
-:root:is([data-look="neon"], [data-look="festival"]) #app .head :is(.btn.sets-btn, .ib.chunky-tune) { min-height: 44px; height: 44px; box-sizing: border-box; border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); box-shadow: none; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .btn.sets-btn { min-height: 44px; height: 44px; box-sizing: border-box; border: 1.5px solid var(--rr-outline); background: transparent; color: var(--rr-text); box-shadow: none; }
 :root:is([data-look="neon"], [data-look="festival"]) #app .head .btn.sets-btn { padding: 0 16px; border-radius: var(--r-chip); font: var(--type-subhead-w) var(--type-subhead) / 1 var(--sans); }
 :root:is([data-look="neon"], [data-look="festival"]) #app .head .btn.sets-btn.on { background: var(--rr-amber); border-color: var(--rr-amber); color: var(--rr-on-amber); }
-:root:is([data-look="neon"], [data-look="festival"]) #app .head .ib.chunky-tune { width: 44px; border-radius: 50%; color: var(--rr-amber-text); }
-:root:is([data-look="neon"], [data-look="festival"]) #app .head .ib.chunky-tune:active { transform: none; box-shadow: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .today.rr-hint { margin-top: var(--sp-3); }
 :root:is([data-look="neon"], [data-look="festival"]) #app > #chips.rr-chips { margin-bottom: var(--sp-1); }
 :root:is([data-look="neon"], [data-look="festival"]) .bk.glass { border: 1px solid var(--rr-hairline); background: var(--rr-card); box-shadow: none; border-radius: var(--r-card); }
@@ -6380,3 +6378,18 @@ body:has(#gig.done, #gig .on-count) .app.viewer .dock { visibility: hidden; } /*
 .tq-steps li.done i { border-color: var(--rr-amber, #00C8B8); color: var(--rr-amber, #00C8B8); }
 .rnd-self { align-self: center; min-height: 44px; font-size: var(--type-footnote, 13px); color: var(--rnd-2); }
 @media (orientation: landscape) and (max-height: 500px) { .rnd-self { display: none; } .rnd:has(.rnd-self) .rnd-bar::after { content: none; } }
+
+/* 5.16.1 the tuner in Light and Dark (Graham, 2026-11-27): the Road Ready teal for the string you're tuning and for in tune
+   (in tune is a cream key with a teal outline and a tick, so it isn't colour alone), a teal zone on the meter, one fixed
+   electric finish, and the tuner button as the same plate as Back with an amber "not tuned lately" dot that rings once */
+:root:is([data-look="neon"], [data-look="festival"]) .tuner2 { --tn-lit: var(--rr-amber); --good: var(--rr-amber); --tn-on: var(--rr-on-amber); }
+:root:is([data-look="neon"], [data-look="festival"]) .tn-zone { background: color-mix(in srgb, var(--rr-amber) 26%, transparent); }
+:root[data-look="festival"] .tn-tick { background: color-mix(in srgb, var(--rr-text-2) 40%, transparent); }
+:root[data-look="festival"] .tn-tick.big { background: color-mix(in srgb, var(--rr-text-2) 70%, transparent); }
+:root[data-look="neon"] .tuner2[data-kind="electric"] { --tn-face: #3B2417; --tn-side: #26160D; --lv-hi: #C98A3E; --tn-key: #EFE6D2; --tn-keylip: #A8997C; --tn-post: #EFE6D2; }
+:root[data-look="festival"] .tuner2[data-kind="electric"] { --tn-face: #E9DDC4; --tn-side: #D6C6A6; --lv-hi: #FFFFFF; --tn-key: #FBF6EC; --tn-keylip: #B9A783; --tn-post: #FBF6EC; }
+:root:is([data-look="neon"], [data-look="festival"]) #app .head .pk-tune { position: relative; color: var(--rr-amber-text); }
+:root:is([data-look="neon"], [data-look="festival"]) .ib .dotmark { background: #E0A43A; box-shadow: 0 0 0 2px var(--rr-base, #141312); }
+:root:is([data-look="neon"], [data-look="festival"]) .ib .dotmark::before { border-color: #E0A43A; animation-iteration-count: 1; }
+:root:is([data-look="neon"], [data-look="festival"]) .ib .dotmark::after { display: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .more-ic .dotmark { background: #E0A43A; box-shadow: 0 0 0 2px var(--rr-card, #1F1D1A); } /* the Me and More tuner rows */

@@ -336,9 +336,11 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.tunerMode === "electric");
   assert.equal(await page.isVisible("#tn-menu"), false, "choosing closes the menu");
   assert.equal((await page.innerText("#tn-menubtn")).trim(), "Standard · Electric");
-  assert.equal(await faceFill(), "rgb(58, 134, 255)", "electric follows Louie's finish: the stock blue");
+  const look = await page.evaluate(() => document.documentElement.dataset.look);
+  const electric = look === "festival" ? "rgb(233, 221, 196)" : look === "neon" ? "rgb(59, 36, 23)" : "rgb(58, 134, 255)";
+  assert.equal(await faceFill(), electric, "5.16.1: in Light and Dark the electric is one fixed finish");
   await page.evaluate(() => { document.body.dataset.wear = "pink"; });
-  assert.equal(await faceFill(), "rgb(255, 79, 163)", "and Pink");
+  if (look === "neon" || look === "festival") assert.equal(await faceFill(), electric, "and it no longer follows Louie's finish");
   await page.evaluate(() => { delete document.body.dataset.wear; });
   await page.click("#tn-menubtn"); await page.click("[data-mode='acoustic']");
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.tunerMode === "acoustic");
