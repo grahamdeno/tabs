@@ -2,7 +2,6 @@
 import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, shownTheme, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
-import { TL_NAMES, tlView, tlPick } from "./timeline.js"; /* timeline */
 import { ago, backupNow, clearProblems, copyDiagnostics, dailyCopies, DAY_KEEP, needsBackup, problems, restoreDay, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
@@ -25,10 +24,7 @@ function renderSettings() {
   const PAGES = {
     playing: ["Playing", `
     <div class="set-group glass">
-      <div class="set">
-        <span class="tile">${icon("list")}</span><span class="name">Chords while playing</span><span class="val">${TL_NAMES[tlView()]}</span>${icon("chev", "chev")}
-        <select id="s-tlview" aria-label="Chords while playing">${Object.entries(TL_NAMES).map(([k, n]) => `<option value="${k}" ${tlView() === k ? "selected" : ""}>${n}</option>`).join("")}</select>
-      </div>
+      
     </div>
     <p class="foot">Timeline over each line shows how long each chord lasts. Over the words is how songs looked before 5.11.0.</p>
     <div class="set-group glass">
@@ -266,7 +262,6 @@ function renderSettings() {
   $("s-speed")?.addEventListener("change", e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
-  if ($("s-tlview")) $("s-tlview").onchange = e => { tlPick(e.target.value); Tabs.save(data); renderSettings(); }; /* timeline */
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   /* Road Ready 05: the playing controls stay on screen instead of hiding after 3 s */
