@@ -5,19 +5,25 @@
 // Louie listens at each marked strum for the chord, never for the timing (Graham, 2026-11-26): outside song tour rounds and
 // chord lessons nothing listens. With no microphone a round counts when it is played through.
 //   the music  the recording at the part's lined-up times when it is lined up (Apple Music or YouTube) and the speed is
-//              100%; otherwise Louie's band at the song's tempo, scaled by the speed
+//              1.0x, or any speed with YouTube (0.5x, 0.75x, 1.0x, 5.16.0); otherwise Louie's band at the song's tempo,
+//              scaled by the speed, strumming each bar's chord (5.16.0) so you hear the song, rests included
 //   listening  the same strum detector and chord check as the chord lessons (core/neck.js); a strum near a marked one
 //              (from half a beat before to one beat after) is checked once, for the chord marked
 //   passing    Louie heard at least 3 in 4 of the strums
 import { CHORD_FIT, FANS, Tabs, journalRound, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM } from "./core.js";
 import { esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
-import { drum, tempoFor } from "./audio.js";
-import { musicClock, musicLead, pauseMusic, startMusic } from "./listen.js";
+import { drum, strumAt, tempoFor } from "./audio.js";
+import { musicClock, musicLead, pauseMusic, recordingOn, startMusic } from "./listen.js";
 import { chordSVG, data, mmss, usesMusic } from "./app.js";
 import { chordColor } from "./timeline.js";
 
 /* 5.10.1: the strums spread out (34 px a beat was crowded) */
-const PX_BEAT = 56, SPEEDS = [0.6, 0.8, 1];
+const PX_BEAT = 56;
+/* 5.16.0: a YouTube recording slows without changing pitch, but only to 0.5x and 0.75x; so with one the speeds are those,
+   and you hear the song at every speed. Otherwise 0.6x and 0.8x play with Louie's band, and 1.0x with the recording. */
+const slows = song => usesMusic(song) && recordingOn(song) === "youtube";
+export const speedsFor = song => slows(song) ? [0.5, 0.75, 1] : [0.6, 0.8, 1];
+export const speedName = v => v === 1 ? "1.0x" : `${+v.toFixed(2)}x`;
 let R = null; // the round on screen
 
 const guitarBand = (ctx, src) => {
@@ -36,21 +42,19 @@ export function openRound(stop, { onClose } = {}) {
   if (!song) return toast("Get the song first");
   /* the tap: ask for the microphone and wake the sound before anything is awaited */
   let micP = null;
-  try { sound({ mic: true }); micP = getMic(micOptions(song, stop.state === "done" ? 1 : 0.6)).catch(() => null); } catch { micP = Promise.resolve(null); }
+  try { sound({ mic: true }); micP = getMic(micOptions()).catch(() => null); } catch { micP = Promise.resolve(null); }
   const el = document.createElement("div");
   el.className = "rnd"; el.id = "round"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
   el.setAttribute("aria-label", `${kicker(stop).replace("SONG TOUR · ", "").toLowerCase()}, ${stop.sub || ""}`);
   document.body.appendChild(el);
   document.getElementById("app")?.setAttribute("inert", "");
-  R = { stop, song, el, onClose, speed: stop.state === "done" ? 1 : 0.6, micP, gen: 0 };
+  R = { stop, song, el, onClose, speed: stop.state === "done" ? 1 : speedsFor(song)[0], micP, gen: 0 };
   begin();
 }
 
-/* With the recording playing (100% and a lined-up recording) the speaker is loud, so the phone cancels the echo; Louie's band
-   keeps the plain settings. Decided from the speed and the song, so it can be asked for from the tap. */
-const micOptions = (song, rate) => rate === 1 && usesMusic(song)
-  ? { echoCancellation: true, noiseSuppression: false, autoGainControl: false }
-  : { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+/* 5.16.0: music always plays now (the recording, or Louie's band with the chords), so the phone always cancels the echo
+   from its own speaker; the guitar is heard plainly otherwise. */
+const micOptions = () => ({ echoCancellation: true, noiseSuppression: false, autoGainControl: false });
 export function closeRound(done = false) {
   const r = R;
   if (!r) return;
@@ -79,14 +83,14 @@ async function begin() {
   const r = R;
   if (!r) return;
   stopAll();
-  if (!r.micP) { try { sound({ mic: true }); r.micP = getMic(micOptions(r.song, r.speed)).catch(() => null); } catch { r.micP = Promise.resolve(null); } }
+  if (!r.micP) { try { sound({ mic: true }); r.micP = getMic(micOptions()).catch(() => null); } catch { r.micP = Promise.resolve(null); } }
   const gen = ++r.gen, { stop, song } = r;
   const bpm = song.bpm || song.listen?.feel?.bpm || await Promise.race([tempoFor(song).then(() => song.bpm || 0), new Promise(ok => setTimeout(() => ok(0), 2500))]) || DEFAULT_BPM;
   if (R !== r || r.gen !== gen) return;
   const beats = song.beats || 4, rate = r.speed;
   const part = stop.kind === "headline" ? wholeSong(song.body, { bpm, beats }) : songPart(song.body, { bpm, beats });
   if (!part) { closeRound(); return toast("This song has no chords to play along with"); }
-  const lined = rate === 1 && usesMusic(song) ? slotTimes(song, chordSpots(parseBlocks(song.body))) : null;
+  const lined = usesMusic(song) && (rate === 1 || slows(song)) ? slotTimes(song, chordSpots(parseBlocks(song.body))) : null;
   const plan = roundPlan(part.bars, stop.chords, { bpm, beats, rate, times: lined });
   r.plan = plan; r.part = part; r.heard = new Set(); r.taken = new Set(); r.pending = []; r.paused = false; r.at = 0; r.bar = -1; r.finished = false;
   r.recording = plan.recorded && usesMusic(song);
@@ -113,11 +117,12 @@ async function begin() {
   const spb = 60 / (bpm * rate), t0 = ctx.currentTime + 0.4;
   r.startAt = t0 + beats * spb; r.spb = spb; r.lag = (ctx.baseLatency || 0) + (ctx.outputLatency || 0);
   for (let i = 0; i < beats; i++) drum("tick", t0 + i * spb, i === 0 ? 1 : 0.6);
-  if (r.recording) r.musicTimer = setTimeout(() => { if (R === r && r.gen === gen) { r.musicOn = true; startMusic(song, plan.start, 1); } }, Math.max(0, (r.startAt - ctx.currentTime) * 1000 - musicLead()));
+  if (r.recording) r.musicTimer = setTimeout(() => { if (R === r && r.gen === gen) { r.musicOn = true; startMusic(song, plan.start, rate); } }, Math.max(0, (r.startAt - ctx.currentTime) * 1000 - musicLead()));
   else {
-    /* Louie's band: hi-hat ticks when the microphone is on (a drum would leak into it), the drums otherwise */
+    /* Louie's band: hi-hat ticks when the microphone is on (a drum would leak into it), the drums otherwise; and (5.16.0) the
+       bar's chord strummed on each beat, softer on the bars you play, so you hear the song and what you rest for */
     let i = 0, t = r.startAt;
-    const tick = () => { while (t < ctx.currentTime + 0.35 && t < r.startAt + plan.secs + 0.5) { if (r.mic) drum("tick", t, i % beats === 0 ? 1 : 0.6); else drum(i % beats === 0 ? "kick" : i % 2 ? "hat" : "snare", t, 0.7); i++; t += spb; } };
+    const tick = () => { while (t < ctx.currentTime + 0.35 && t < r.startAt + plan.secs + 0.5) { if (r.mic) drum("tick", t, i % beats === 0 ? 1 : 0.6); else drum(i % beats === 0 ? "kick" : i % 2 ? "hat" : "snare", t, 0.7); const b = plan.bars[Math.floor(i / beats)]; if (b) strumAt(b.chord, t, b.mine ? 0.45 : 1, spb * 0.95); i++; t += spb; } };
     tick(); const id = setInterval(tick, 40); r.beat = { stop: () => clearInterval(id) };
   }
   r.timer = setInterval(() => listen(r), 10);
@@ -129,8 +134,8 @@ function where(r) {
   const ctx = r.ctx;
   if (r.paused) return r.at;
   if (r.recording && r.musicOn) {
-    const c = musicClock(r.song);
-    if (c != null && c >= r.plan.start - 3) return c - r.plan.start;
+    const c = musicClock(r.song), rate = r.speed;
+    if (c != null && c >= r.plan.start - 3 * rate) return (c - r.plan.start) / rate; /* 5.16.0: a slowed recording */
     return Math.min(0, ctx.currentTime - r.startAt);
   }
   return ctx.currentTime - r.startAt - (r.recording ? 0 : r.lag);
@@ -261,7 +266,7 @@ function paint() {
       <div class="rnd-below"><div class="rnd-info"><small>NOW</small><div class="rnd-now" aria-hidden="true">Count in</div></div><div class="rnd-shape" role="img" aria-label="Chord shape"></div></div>
       <div class="rnd-nx"><small>NEXT</small><p class="rnd-next"></p></div>
       <div class="rnd-bar">
-        <div class="rnd-ctl"><button class="rnd-speed" data-speed="${r.speed}" aria-label="Speed, ${r.speed.toFixed(1)}x">${r.speed.toFixed(1)}x</button><span aria-hidden="true">Speed</span></div>
+        <div class="rnd-ctl"><button class="rnd-speed" data-speed="${r.speed}" aria-label="Speed, ${speedName(r.speed)}">${speedName(r.speed)}</button><span aria-hidden="true">Speed</span></div>
         <div class="rnd-ctl"><button class="rnd-pause" aria-label="Pause" data-rnd="pause">${icon("pause")}</button><span aria-hidden="true" class="rnd-pl">Pause</span></div>
         <div class="rnd-ctl"><button class="rnd-again" data-rnd="restart" aria-label="Restart">${icon("restart")}</button><span aria-hidden="true">Restart</span></div>
       </div>
@@ -271,7 +276,7 @@ function paint() {
   r.el.onclick = e => {
     const b = e.target.closest("[data-rnd],[data-speed]");
     if (!b || R !== r) return;
-    if (b.dataset.speed) { r.speed = SPEEDS[(SPEEDS.indexOf(r.speed) + 1) % SPEEDS.length] || SPEEDS[0]; return begin(); } /* 5.15.0: one button, 0.6x, 0.8x, 1.0x, then 0.6x again */
+    if (b.dataset.speed) { const sp = speedsFor(r.song); r.speed = sp[(sp.indexOf(r.speed) + 1) % sp.length] || sp[0]; return begin(); } /* 5.15.0: one button, 0.6x, 0.8x, 1.0x, then 0.6x again */
     const k = b.dataset.rnd;
     if (k === "close" || k === "back") return closeRound();
     if (k === "restart" || k === "again") return begin();
@@ -286,7 +291,7 @@ function pause(r, btn) {
   if (!r.ctx || r.finished) return;
   const to = !r.paused;
   if (to) { r.at = where(r); r.paused = true; r.ctx.suspend?.(); if (r.recording && r.musicOn) pauseMusic(); }
-  else { r.paused = false; r.ctx.resume?.(); if (r.recording && r.musicOn) startMusic(r.song, r.plan.start + Math.max(0, r.at), 1); }
+  else { r.paused = false; r.ctx.resume?.(); if (r.recording && r.musicOn) startMusic(r.song, r.plan.start + Math.max(0, r.at) * r.speed, r.speed); }
   btn.setAttribute("aria-label", to ? "Play" : "Pause");
   btn.innerHTML = icon(to ? "play" : "pause");
   const pl = btn.parentElement?.querySelector(".rnd-pl"); if (pl) pl.textContent = to ? "Play" : "Pause";

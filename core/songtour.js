@@ -182,8 +182,9 @@ export function roundPlan(bars, mine, { bpm = DEFAULT_BPM, beats = 4, rate = 1, 
   const usable = times && bars.length && bars.every(b => Number.isFinite(times[b.n]));
   const t0 = usable ? times[bars[0].n] : 0;
   const out = bars.map((b, i) => {
-    const t = usable ? times[b.n] - t0 : i * beats * spb;
-    const next = i + 1 < bars.length ? (usable ? times[bars[i + 1].n] - t0 : (i + 1) * beats * spb) : t + beats * spb;
+    /* a lined-up recording plays at `rate` too (5.16.0, slowed YouTube), so its times stretch by 1 / rate */
+    const t = usable ? (times[b.n] - t0) / rate : i * beats * spb;
+    const next = i + 1 < bars.length ? (usable ? (times[bars[i + 1].n] - t0) / rate : (i + 1) * beats * spb) : t + beats * spb;
     return { i, chord: b.chord, n: b.n, mine: mine.includes(b.chord), t, dur: Math.max(0.2, next - t) };
   });
   const strums = [];
