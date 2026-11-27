@@ -60,7 +60,7 @@ export function renderTour() {
       ${cv ? `<section class="tq-cover" aria-label="Cover quest">
         <small>COVER QUEST</small>
         <div class="tq-cvt"><span class="tq-art">${ART(cv)}</span><p><b>${esc(cv.title)}</b>${cv.artist ? ` · ${esc(cv.artist)}` : ""}<br>You've been listening to it. Learn it and your first gig of it pays ${COVER_MULT}x fans.</p></div>
-        <div class="tq-steps">${[["Get the song", 1], [cv.missing.length ? `Learn ${cv.missing.slice(0, 2).join(" and ")}` : "Learn the chords", 2], ["Play the gig", 3]].map(([t, n]) => `<span class="${cv.step > n ? "done" : cv.step === n ? "now" : ""}">${n} · ${esc(t)}</span>`).join("")}</div>
+        <ol class="tq-steps" style="--tq-at:${Math.min(2, cv.step - 1)}">${[["Get the song", 1], [cv.missing.length ? `Learn ${cv.missing.slice(0, 2).join(" and ")}` : "Learn the chords", 2], ["Play the gig", 3]].map(([t, n]) => `<li class="${cv.step > n ? "done" : cv.step === n ? "now" : ""}"${cv.step === n ? ' aria-current="step"' : ""}><i aria-hidden="true">${cv.step > n ? "✓" : n}</i><span class="sr-only">Step ${n} of 3${cv.step > n ? ", done" : ""}: </span>${esc(t)}</li>`).join("")}</ol>
         <button class="btn primary" id="tq-cover">${cv.step === 1 ? "GET THE SONG" : cv.step === 2 ? `LEARN ${esc(cv.missing[0])}` : `PLAY THE GIG · ${COVER_MULT}X FANS`}</button>
       </section>` : ""}
       <h2 class="tq-h"><span>TONIGHT'S SETLIST</span><span class="tq-hrs">${hrs} HR${hrs === 1 ? "" : "S"}</span></h2>

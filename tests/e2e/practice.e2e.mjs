@@ -115,15 +115,15 @@ test("4.33.0 Your changes takes in the soundcheck: the changes you dropped come 
   assert.match(yc, /Soundcheck: drill both marked for \+20 XP/);
   assert.match(yc, /C → F[\s\S]*Dropped 4× in your gigs this week[\s\S]*G → Em[\s\S]*Dropped 2×/);
   assert.match(await page.innerText("#rh-ycall"), /\+20 XP/);
-  await page.click(".rh-ycd >> nth=0"); await page.waitForSelector(".pk-pair");
-  assert.match(await page.innerText("h1.title"), /C to F/, "C to F isn't on the neck, but it drills");
-  await page.click("#pk-self"); await page.waitForSelector("#pk-next");
+  await page.click(".rh-ycd >> nth=0"); await page.waitForSelector("#round .rnd-hw");
+  assert.match(await page.innerText("#round .rnd-ti"), /C to F/, "5.16.0: C to F drills on the neck");
+  await page.click("#round .rnd-self"); await page.waitForSelector("#pk-next");
   assert.match(await page.innerText(".rd-first-t"), /One more change for today's soundcheck/);
   assert.equal(await page.innerText("#pk-next"), "Back to Rehearse");
   await page.click("#pk-next"); await page.waitForSelector(".rh-ycr.ok");
-  await page.click(".rh-ycd >> nth=1"); await page.waitForSelector(".pk-pair");
-  assert.match(await page.innerText("h1.title"), /G to Em/, "on to the second");
-  await page.click("#pk-self"); await page.waitForSelector("#pk-next");
+  await page.click(".rh-ycd >> nth=1"); await page.waitForSelector("#round .rnd-hw");
+  assert.match(await page.innerText("#round .rnd-ti"), /G to Em/, "on to the second");
+  await page.click("#round .rnd-self"); await page.waitForSelector("#pk-next");
   assert.match(await page.innerText(".rd-first-t"), /Soundcheck done: \+20 XP/);
   await page.click("#pk-next"); await page.waitForSelector(".rh-yc");
   assert.match(await page.innerText(".rh-yc"), /Soundcheck done for today/);
@@ -171,18 +171,18 @@ test("4.23.0 Your changes in Rehearse: three rows with why and landed, Drill, an
   assert.match(txt, /Em\s*→\s*Am[\s\S]*In Porch/);
   assert.match(txt, /G to C is solid: landed 41 of 43 this week/);
   assert.match(await page.innerText("#rh-ycall"), /Drill all two/);
-  await page.click("#rh-ycall"); await page.waitForSelector("#pk-self");
-  assert.match(await page.innerText("h1.title"), /C to Dm/);
-  await settled(page); await page.click("#pk-self"); await page.waitForSelector("#pk-next");
+  await page.click("#rh-ycall"); await page.waitForSelector("#round .rnd-hw");
+  assert.match(await page.innerText("#round .rnd-ti"), /C to Dm/);
+  await page.click("#round .rnd-self"); await page.waitForSelector("#pk-next");
   assert.match(await page.innerText("#pk-next"), /Next: Em to Am/);
-  await settled(page); await page.click("#pk-next"); await page.waitForSelector("#pk-self");
-  assert.match(await page.innerText("h1.title"), /Em to Am/);
-  await settled(page); await page.click("#pk-self"); await page.waitForSelector("#pk-next");
+  await settled(page); await page.click("#pk-next"); await page.waitForSelector("#round .rnd-hw");
+  assert.match(await page.innerText("#round .rnd-ti"), /Em to Am/);
+  await page.click("#round .rnd-self"); await page.waitForSelector("#pk-next");
   assert.equal(await page.innerText("#pk-next"), "Back to Rehearse");
   /* one row drills on its own */
   await settled(page); await page.click("#pk-next"); await page.waitForSelector(".rh-yc");
-  await page.click(".rh-ycd >> nth=0"); await page.waitForSelector("#pk-self");
-  assert.match(await page.innerText("h1.title"), /C to Dm/);
+  await page.click(".rh-ycd >> nth=0"); await page.waitForSelector("#round .rnd-hw");
+  assert.match(await page.innerText("#round .rnd-ti"), /C to Dm/);
 });
 
 test("a saved Green Room uses the Rehearse tab, not a button on the Road", { skip: skip() }, async t => {

@@ -266,27 +266,43 @@ test("rounds: the chord lesson comes before the round that needs it, and opens",
   await page.waitForFunction(() => /Bm chord/.test(document.querySelector("h1.title")?.innerText || ""));
 });
 
-test("rounds: a lined-up recording at 100% plays that part of the recording; Louie's band plays at a slower speed", { skip: skip() }, async t => {
+test("rounds (5.16.0): a YouTube recording plays that part at every speed, slowed to 0.5x and 0.75x; Speed steps 0.5x, 0.75x, 1.0x", { skip: skip() }, async t => {
   const STUB = `window.__yt = { calls: [] };
-window.YT = { Player: class { constructor(id, o) { const el = document.getElementById(id), f = document.createElement("iframe"); el.replaceWith(f); this.o = o; this.t = 0; this.state = -1; this.base = 0; window.__yt.player = this; setTimeout(() => o.events.onReady({ target: this }), 30); }
+window.YT = { Player: class { constructor(id, o) { const el = document.getElementById(id), f = document.createElement("iframe"); el.replaceWith(f); this.o = o; this.t = 0; this.state = -1; this.base = 0; this.rate = 1; window.__yt.player = this; setTimeout(() => o.events.onReady({ target: this }), 30); }
   set(s) { this.state = s; this.o.events.onStateChange({ data: s }); }
   cueVideoById(id) { window.__yt.calls.push("cue"); this.set(5); } loadVideoById() { window.__yt.calls.push("load"); this.set(5); }
   playVideo() { window.__yt.calls.push("play"); this.base = performance.now(); this.set(1); } pauseVideo() { window.__yt.calls.push("pause"); this.t = this.getCurrentTime(); this.set(2); }
-  seekTo(s) { window.__yt.calls.push("seek " + Math.round(s)); this.t = s; this.base = performance.now(); } setPlaybackRate() {}
-  getCurrentTime() { return this.state === 1 ? this.t + (performance.now() - this.base) / 1000 : this.t; } destroy() {} } };
+  seekTo(s) { window.__yt.calls.push("seek " + Math.round(s)); this.t = s; this.base = performance.now(); } setPlaybackRate(r) { window.__yt.calls.push("rate " + r); this.rate = r; }
+  getCurrentTime() { return this.state === 1 ? this.t + this.rate * (performance.now() - this.base) / 1000 : this.t; } destroy() {} } };
 window.onYouTubeIframeAPIReady && window.onYouTubeIframeAPIReady();`;
   const song = { yt: { id: "abcdefghijk", title: "Pier Lights", channel: "The Cape Fear - Topic", secs: 14 }, timed: { h: "x", at: [[1, 2], [2, 6], [5, 10], [6, 14]] }, bpm: 100 };
   const d = SEEDED({ done: ["r:open-1"] }, song); d.skills.done["c:Bm"] = { n: 1, best: 0, at: 9 }; d.skills.done["c:F"] = { n: 1, best: 0, at: 9 };
   const { page } = await home(t, d, { key: false, opts: { prepare: pg => pg.route("https://www.youtube.com/iframe_api", r => r.fulfill({ status: 200, contentType: "text/javascript", body: STUB })) } });
   await page.waitForSelector('.rn-stop.cur[data-stop="r:open-2"]');
-  await open(page); /* Round 2 at 60% */
-  await page.waitForTimeout(3000); /* real timer: the count-in is over */
-  assert.equal((await page.evaluate(() => window.__yt?.calls || [])).filter(c => /^play|^seek/.test(c)).length, 0, "at 60% the band plays, not the recording");
-  await page.click("#round .rnd-speed"); await page.click("#round .rnd-speed"); /* restarts at 100% (0.6x, 0.8x, 1.0x) */
+  await open(page);
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 0.5x", "the first time: the slowest YouTube speed");
   await page.waitForFunction(() => (window.__yt?.calls || []).some(c => /^seek/.test(c)), null, { timeout: 15000 });
-  const seek = +(await page.evaluate(() => window.__yt.calls.find(c => /^seek/.test(c)))).split(" ")[1];
-  assert.ok(seek >= 6 && seek <= 10, "the recording starts at the part (10 s in, less a moment of lead): " + seek);
-  assert.ok((await page.evaluate(() => window.__yt.calls)).includes("play"));
+  const calls = await page.evaluate(() => window.__yt.calls);
+  const seek = +calls.find(c => /^seek/.test(c)).split(" ")[1];
+  assert.ok(seek >= 6 && seek <= 10, "the recording starts at the part: " + seek);
+  assert.ok(calls.includes("rate 0.5") && calls.includes("play"), "it plays slowed to 0.5x: " + calls);
+  await page.click("#round .rnd-speed");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 0.75x");
+  await page.waitForFunction(() => window.__yt.calls.includes("rate 0.75"), null, { timeout: 15000 });
+  await page.click("#round .rnd-speed");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 1.0x");
+  await page.click("#round .rnd-speed");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 0.5x", "then back to 0.5x");
+});
+
+test("rounds (5.16.0): with no recording, Louie's band strums each bar's chord, the rests too", { skip: skip() }, async t => {
+  const { page } = await home(t, SEEDED(), { key: false, opts: { prepare: pg => pg.addInitScript(() => { window.__osc = []; const C = window.AudioContext || window.webkitAudioContext; const make = C.prototype.createOscillator; C.prototype.createOscillator = function () { const o = make.call(this); window.__osc.push(o); return o; }; }) } });
+  await page.waitForSelector('.rn-stop.cur[data-stop="r:open-1"]');
+  await open(page);
+  await page.waitForFunction(() => document.querySelector("#round .rnd-now")?.textContent.trim() === "Rest", null, { timeout: 20000 });
+  await page.waitForTimeout(1500);
+  const hz = await page.evaluate(() => [...new Set(window.__osc.map(o => Math.round(o.frequency.value)))]);
+  assert.ok(hz.includes(185) || hz.includes(294) || hz.includes(370), "Bm, a rest bar, sounds too (its F# or D): " + hz.slice(0, 30));
 });
 
 test("rounds: the headline plays the whole song with every chord; when it passes the song is Solid and its chords are known", { skip: skip() }, async t => {
@@ -316,14 +332,14 @@ window.YT = { Player: class { constructor(id, o) { const el = document.getElemen
   getCurrentTime() { return this.state === 1 ? this.t + (performance.now() - this.base) / 1000 : this.t; } destroy() {} } };
 window.onYouTubeIframeAPIReady && window.onYouTubeIframeAPIReady();`;
 
-test("rounds: the mic cancels echo when the recording plays (100% with a recording), and keeps the plain settings for Louie's band", { skip: skip() }, async t => {
+test("rounds (5.16.0): the mic cancels the speaker's echo for the recording and for Louie's band, since both play the chords", { skip: skip() }, async t => {
   const song = { yt: { id: "abcdefghijk", title: "Pier Lights", channel: "The Cape Fear - Topic", secs: 14 }, timed: { h: "x", at: [[1, 2], [2, 6], [5, 10], [6, 14]] } };
   const d = SEEDED({ done: ["r:open-1"] }, song); d.skills.done["c:Bm"] = { n: 1, best: 0, at: 9 };
   const { page } = await home(t, d, { key: false, opts: { prepare: async pg => { await pg.addInitScript(FAKE_MIC); await spyMic(pg); await pg.route("https://www.youtube.com/iframe_api", r => r.fulfill({ status: 200, contentType: "text/javascript", body: YT_STUB })); } } });
   await page.waitForSelector('.rn-stop.cur[data-stop="r:open-2"]');
-  await open(page); /* the first time: 60%, Louie's band */
-  assert.deepEqual(await page.evaluate(() => window.__mic.at(-1)), { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, "the band keeps the plain settings");
-  await page.click("#round .rnd-speed"); await page.click("#round .rnd-speed"); /* 100% with the recording */
+  await open(page); /* the first time: 0.5x, the YouTube recording slowed */
+  assert.deepEqual(await page.evaluate(() => window.__mic.at(-1)), { echoCancellation: true, noiseSuppression: false, autoGainControl: false }, "the slowed recording cancels the echo");
+  await page.click("#round .rnd-speed"); await page.click("#round .rnd-speed"); /* 1.0x with the recording */
   await page.waitForFunction(() => window.__mic.length >= 2);
   assert.deepEqual(await page.evaluate(() => window.__mic.at(-1)), { echoCancellation: true, noiseSuppression: false, autoGainControl: false }, "the recording round cancels the echo");
   /* a replay at 100% opened straight from the tap asks the same way, before anything is awaited */
@@ -431,4 +447,34 @@ test("5.15.0 rounds: Speed, Pause and Restart sit on the screen at every size, c
       assert.ok(c, "the result card's button is on the screen");
     }
   }
+});
+
+/* 5.16.0 drills on the neck (Graham, 2026-11-27) */
+test("5.16.0 a change drill runs on the neck: two bars each, a bar each, every two beats; Speed is the tempo; at the target it's done", { skip: skip() }, async t => {
+  const d = SEEDED(); d.skills.done["s:C-F"] = { n: 1, best: 70, at: 9 };
+  const { page } = await home(t, d, { key: false }); /* no microphone: played through counts (the chord check is the rounds' own, tested above) */
+  await page.evaluate(() => { location.hash = "#/practice/s:C-F"; }); await page.waitForSelector("#pk-start");
+  assert.match(await page.innerText("#pk-start"), /Start on the neck/);
+  await page.click("#pk-start"); await page.waitForSelector("#round .rnd-hw");
+  assert.match(await page.innerText("#round .rnd-ti"), /DRILL · 70 BPM[\s\S]*C to F/);
+  assert.equal(await page.locator("#round .rnd-blk").count(), 8 * 4 + 4 * 2, "40 strums: 8 bars of four, then 4 of two");
+  assert.equal(await page.locator("#round .rnd-rest").count(), 0, "no rests in a drill");
+  assert.deepEqual(await page.$$eval("#round .rnd-nm", e => [...new Set(e.map(x => x.textContent))]), ["C", "F"], "every strum names C or F");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 70 BPM", "the best so far");
+  await page.click("#round .rnd-speed");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 80 BPM", "one step up: the target");
+  await page.waitForSelector("#pk-next", { timeout: 60000 });
+  assert.match(await page.innerText(".rd-first-t"), /Played through at 80 BPM/);
+  const s = await stored(page);
+  assert.equal(s.skills.done["s:C-F"].best, 80, "done at the target tempo, as before");
+});
+
+test("5.16.0 below the target, a passed drill offers the next tempo; I got it still marks it", { skip: skip() }, async t => {
+  const { page } = await home(t, SEEDED(), { key: false });
+  await page.evaluate(() => { location.hash = "#/practice/s:C-F"; }); await page.waitForSelector("#pk-start");
+  await page.click("#pk-start"); await page.waitForSelector("#round .rnd-hw");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 50 BPM");
+  await page.click("#round .rnd-self"); await page.waitForSelector("#pk-next");
+  assert.match(await page.innerText(".rd-first-t"), /Marked as got/);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).skills?.done?.["s:C-F"], null, { timeout: 5000 });
 });

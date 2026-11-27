@@ -182,8 +182,9 @@ export function roundPlan(bars, mine, { bpm = DEFAULT_BPM, beats = 4, rate = 1, 
   const usable = times && bars.length && bars.every(b => Number.isFinite(times[b.n]));
   const t0 = usable ? times[bars[0].n] : 0;
   const out = bars.map((b, i) => {
-    const t = usable ? times[b.n] - t0 : i * beats * spb;
-    const next = i + 1 < bars.length ? (usable ? times[bars[i + 1].n] - t0 : (i + 1) * beats * spb) : t + beats * spb;
+    /* a lined-up recording plays at `rate` too (5.16.0, slowed YouTube), so its times stretch by 1 / rate */
+    const t = usable ? (times[b.n] - t0) / rate : i * beats * spb;
+    const next = i + 1 < bars.length ? (usable ? (times[bars[i + 1].n] - t0) / rate : (i + 1) * beats * spb) : t + beats * spb;
     return { i, chord: b.chord, n: b.n, mine: mine.includes(b.chord), t, dur: Math.max(0.2, next - t) };
   });
   const strums = [];
@@ -318,3 +319,19 @@ export function tourPlayed(data, stop, now = Date.now()) {
   }
   return { id: stop.id, kind: stop.kind, name: stop.name, finished: stop.kind === "headline", title: t.pick?.title || "" };
 }
+
+/* A change drill on the neck (5.16.0): two bars of each chord, then a bar each, then switching every two beats, one strum
+   on each beat. Every bar is yours (no rests). The same shape as roundPlan, with each bar's own beat count. */
+export function drillPlan(a, b, { bpm = 60 } = {}) {
+  const spb = 60 / Math.max(30, bpm || 60), seq = [[a, 4], [a, 4], [b, 4], [b, 4], [a, 4], [b, 4], [a, 4], [b, 4], [a, 2], [b, 2], [a, 2], [b, 2]];
+  const bars = [], strums = [];
+  let t = 0;
+  seq.forEach(([chord, n], i) => {
+    bars.push({ i, chord, n: i, mine: true, t, dur: n * spb, beats: n });
+    for (let k = 0; k < n; k++) strums.push({ id: strums.length, bar: i, k, chord, t: t + k * spb });
+    t += n * spb;
+  });
+  return { spb, beats: 4, bars, strums, secs: t, recorded: false, start: 0 };
+}
+/* The tempos a drill steps through: from 50 BPM to the target, every 10 (the target always last). */
+export const drillTempos = to => { const out = []; for (let v = 50; v < to; v += 10) out.push(v); out.push(Math.max(50, to)); return [...new Set(out)]; };

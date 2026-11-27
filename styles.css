@@ -6368,3 +6368,15 @@ body:has(#gig.done, #gig .on-count) .app.viewer .dock { visibility: hidden; } /*
 @media (max-width: 340px) { .rnd-foot { padding-left: 12px; padding-right: 12px; } .rnd .rnd-speed, .rnd .rnd-again { width: 50px; height: 50px; } }
 @media (prefers-reduced-motion: reduce) { .rnd-nm { transition: none; } }
 @media (orientation: portrait) and (max-height: 720px) { .rnd { gap: 8px; } .rnd-song { display: none; } .rnd-hw { min-height: 140px; } .rnd-shape { min-height: 0; } .rnd-shape svg { height: 76px; width: auto; } .rnd-below, .rnd-nx { padding: 8px 14px; } .rnd-now { font-size: calc(var(--sys-px, 17px) * 2); } .rnd-foot { gap: 8px; } }
+/* 5.16.0 Cover quest steps: numbers in circles joined by a line, the label centred under each (wraps evenly) */
+.tq-steps, :root:is([data-look="neon"], [data-look="festival"]) .tq-steps { position: relative; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 14px 0 0; padding: 0; list-style: none; text-align: center; }
+.tq-steps::before, .tq-steps::after { content: ""; position: absolute; top: 17px; left: 16.67%; height: 2px; background: var(--rr-hairline, #3B3731); }
+.tq-steps::before { right: 16.67%; }
+.tq-steps::after { width: calc(var(--tq-at) * 33.33%); background: var(--rr-amber, #00C8B8); }
+.tq-steps li { position: relative; z-index: 1; min-width: 0; font: 500 var(--type-footnote, 13px) / 1.3 var(--sans); color: var(--rr-text-2, #A59C8C); overflow-wrap: anywhere; }
+.tq-steps li i { display: grid; place-items: center; box-sizing: border-box; width: 36px; height: 36px; margin: 0 auto 8px; border-radius: 18px; border: 2px solid var(--rr-hairline, #3B3731); background: var(--rr-card, #1F1D1A); font: 700 15px / 1 var(--sans); font-style: normal; }
+.tq-steps li.now { color: var(--rr-text, #F4ECDD); font-weight: 700; }
+.tq-steps li.now i { border: 0; background: var(--rr-amber, #00C8B8); color: var(--rr-on-amber, #082422); }
+.tq-steps li.done i { border-color: var(--rr-amber, #00C8B8); color: var(--rr-amber, #00C8B8); }
+.rnd-self { align-self: center; min-height: 44px; font-size: var(--type-footnote, 13px); color: var(--rnd-2); }
+@media (orientation: landscape) and (max-height: 500px) { .rnd-self { display: none; } .rnd:has(.rnd-self) .rnd-bar::after { content: none; } }
