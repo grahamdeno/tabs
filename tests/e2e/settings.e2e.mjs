@@ -157,7 +157,12 @@ test("Cover requests (4.10.0): what you played in Apple Music becomes the reques
   await page.addInitScript(() => { window.mkTrack = { name: "Wagon Wheel", artistName: "Old Crow" }; });
   await page.reload();
   await page.waitForSelector(".tq-cover", { timeout: 8000 });
-  assert.match(await page.innerText(".tq-cover"), /COVER QUEST[\s\S]*Wagon Wheel[\s\S]*3x fans[\s\S]*1 · Get the song/);
+  assert.match(await page.innerText(".tq-cover"), /COVER QUEST[\s\S]*Wagon Wheel[\s\S]*3x fans[\s\S]*Get the song/);
+  /* 5.16.0: the steps are a numbered row; the current one says so to VoiceOver, and the labels sit under even circles */
+  assert.equal(await page.locator(".tq-steps li").count(), 3);
+  assert.match(await page.innerText(".tq-steps li[aria-current=step]"), /Step 1 of 3:\s*Get the song/);
+  const circles = await page.$$eval(".tq-steps li i", e => e.map(x => { const r = x.getBoundingClientRect(); return [Math.round(r.top), Math.round(r.width), Math.round(r.height)]; }));
+  assert.ok(circles.every(c => c[0] === circles[0][0] && c[1] === 36 && c[2] === 36), "three 36 px circles on one line: " + JSON.stringify(circles));
   assert.match(await page.innerText("#tq-cover"), /GET THE SONG/);
   assert.deepEqual(errs, []);
 });
