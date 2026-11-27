@@ -9,7 +9,7 @@ useBrowser();
 
 const libWith = (theme, settings = {}) => ({ ...LIB, settings: { ...LIB.settings, v: 6, theme, ...settings } });
 /* 5.7.0: the Road tab says Tour and the old Tour tab says Map; the keys and links are unchanged */
-const TABS = [["road", "Tour", "#/"], ["songbook", "Songbook", "#/library"], ["rehearse", "Rehearse", "#/practice"], ["tour", "Map", "#/playmap"], ["me", "Me", "#/you"]];
+const TABS = [["road", "Tour", "#/"], ["songbook", "Songbook", "#/library"], ["rehearse", "Rehearse", "#/practice"], ["tour", "Gigs", "#/tour"], ["me", "Me", "#/you"]];
 
 /* WCAG contrast of two "rgb(r, g, b)" strings */
 const lum = c => { const [r, g, b] = c.match(/\d+(\.\d+)?/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
@@ -23,7 +23,7 @@ for (const [look, theme] of [["Road Ready dark", "dark"], ["Road Ready light", "
     assert.deepEqual(nav, { tag: "NAV", name: "Main" }, "the bar is a nav named Main");
     const tabs = await page.$$eval("#tabs a", as => as.map(a => { const r = a.getBoundingClientRect(), c = getComputedStyle(a);
       return { k: a.dataset.tab, name: a.getAttribute("aria-label"), href: a.getAttribute("href"), w: r.width, h: r.height, current: a.getAttribute("aria-current"), tr: c.transitionDuration, anim: c.animationName }; }));
-    assert.deepEqual(tabs.map(x => [x.k, x.name, x.href]), TABS, "Tour, Songbook, Rehearse, Map, Me, in that order");
+    assert.deepEqual(tabs.map(x => [x.k, x.name, x.href]), TABS, "Tour, Songbook, Rehearse, Gigs, Me, in that order (5.17.2: Gigs, the month's challenge, took the Map's place)");
     for (const x of tabs) {
       assert.ok(x.w >= 44 && x.h >= 44, `${x.name} is ${Math.round(x.w)} by ${Math.round(x.h)}`);
       assert.ok(/^0s(, 0s)*$/.test(x.tr) && x.anim === "none", `${x.name}: no motion added`);
@@ -105,7 +105,7 @@ test("Road Ready 04: Charts, Your band, the Merch table, Support and Settings ar
 
 test("Road Ready 04: deep links to the pages that left the bar still open them; Songbook is a tab and Me stays lit under its pages", { skip: skip() }, async t => {
   const page = await phone(t, libWith("dark"));
-  for (const [hash, ready, lit] of [["#/library", "#list", "songbook"], ["#/charts", ".ch-head", "me"], ["#/band", ".bd-head", "me"], ["#/merch", ".mc-head", "me"], ["#/support", "#sp-kofi", "me"]]) {
+  for (const [hash, ready, lit] of [["#/library", "#list", "songbook"], ["#/charts", ".ch-head", "me"], ["#/band", ".bd-head", "me"], ["#/merch", ".mc-head", "me"], ["#/support", "#sp-kofi", "me"], ["#/playmap", ".tm-page", "road"], ["#/tour", ".tq-head", "tour"]]) {
     await page.evaluate(h => { location.hash = h; }, hash); await page.waitForSelector(ready);
     await page.waitForSelector(`#tabs [data-tab=${lit}][aria-current=page]`);
   }

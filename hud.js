@@ -126,8 +126,9 @@ const TABS = [
   ["road", "#/", "Tour"],
   ["songbook", "#/library", "Songbook"],
   ["rehearse", "#/practice", "Rehearse"],
-  /* Graham, 2026-11-19: the Tour tab opens straight onto the Tour Map; the month's tour is a button on it */
-  ["tour", "#/playmap", "Map"],
+  /* 5.17.2 (Graham, 2026-11-27): the fourth tab is Gigs, the month's challenge, Request line and quests (#/tour), which had been
+     a small button on the Map. The Map stays one tap away from the fans count at the top. */
+  ["tour", "#/tour", "Gigs"],
   ["me", "#/you", "Me"]
 ];
 const KNOB_OFF = "art/tabbar/knob-off.webp";
@@ -174,4 +175,4 @@ export function openMore() {
 
 /* which pages show the tab bar, and which tab each one lights. Songbook is a tab; Your band, Charts, the Merch table and Support are reached from Me, so Me stays lit on them. */
 export const TABBED = new Set(["road", "library", "tour", "playmap", "practice", "you", "charts", "band", "merch", "support"]);
-export const tabFor = name => ({ library: "songbook", practice: "rehearse", you: "me", charts: "me", band: "me", merch: "me", support: "me", playmap: "tour" })[name] || name;
+export const tabFor = name => ({ library: "songbook", practice: "rehearse", you: "me", charts: "me", band: "me", merch: "me", support: "me", playmap: "road" })[name] || name;

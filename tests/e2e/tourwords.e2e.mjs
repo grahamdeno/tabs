@@ -44,10 +44,10 @@ for (const theme of ["dark", "light"]) {
     /* Settings > Help, with Tips & gestures */
     await page.click("[data-page='help']"); await page.waitForFunction(() => document.querySelector("h1.title")?.textContent.trim() === "Help"); await settled(page);
     assert.doesNotMatch(await seen(page), OLD, "Help");
-    /* the tab bar: Tour opens the neck, Map opens the fan map */
+    /* the tab bar: Tour opens the neck, Gigs opens the month's challenge (5.17.2) */
     const tabs = await page.$$eval("#tabs a", as => as.map(a => [a.querySelector(".tb-l").textContent.trim(), a.getAttribute("href")]));
-    assert.deepEqual(tabs.map(x => x[0]), ["Tour", "Songbook", "Rehearse", "Map", "Me"]);
-    assert.equal(tabs[0][1], "#/"); assert.equal(tabs[3][1], "#/playmap");
+    assert.deepEqual(tabs.map(x => x[0]), ["Tour", "Songbook", "Rehearse", "Gigs", "Me"]);
+    assert.equal(tabs[0][1], "#/"); assert.equal(tabs[3][1], "#/tour");
     /* the guitar case says Tour */
     await page.evaluate(() => { location.hash = "#/you"; }); await page.waitForSelector(".rr-me"); await settled(page);
     assert.match(await seen(page), /earned on Tour 1/);

@@ -5983,7 +5983,13 @@ body.is-home:has(.rn-now) .rn-board { padding-bottom: calc(var(--tab-h) + var(--
 :root:is([data-look="neon"], [data-look="festival"]) :is(.rn-legbar, .rn-now, .rn-stage, .rd-path.rn) :is(*, *::before, *::after) {
   word-break: normal; overflow-wrap: normal; hyphens: manual;
 }
-.rn-neck .rd-pop { top: 70px; width: min(268px, calc(100vw - 24px)); }
+/* 5.17.2: the card hangs from the stop you tapped: just under its inlay, centred on it, moved sideways only to stay on screen (--dx, set by
+   fitPop in road.js), with its point always on the inlay. Before, it sat in the flow under the stop, 86 px down and pointing from its left edge,
+   so it looked like it belonged to the stop below. */
+.rn-neck .rd-pop { position: absolute; top: calc(100% + 12px); left: 50%; margin: 0; width: min(268px, calc(100vw - 24px)); transform: translateX(calc(-50% + var(--dx, 0px))); animation: rn-pop .22s cubic-bezier(.2, 1.3, .4, 1); }
+.rn-neck .rd-pop::before { left: calc(50% - var(--dx, 0px) - 8px); }
+@keyframes rn-pop { from { opacity: 0; transform: translateX(calc(-50% + var(--dx, 0px))) translateY(-6px) scale(.96); } }
+@media (prefers-reduced-motion: reduce) { .rn-neck .rd-pop { animation: none; } }
 @media (prefers-reduced-motion: reduce) { .rn-stop.now .rr-glow { animation: none; } }
 
 /* 5.x (Graham, 2026-11-23): Settings. Back and title on one row; values quiet, teal only for what needs doing;
