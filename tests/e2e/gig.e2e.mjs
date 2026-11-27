@@ -772,3 +772,13 @@ test("5.10.2 Play and Pause swap bars without the bar moving: the Gig's bar has 
     for (const k of Object.keys(paused)) paused[k].forEach((v, i) => assert.ok(Math.abs(v - playing[k][i]) <= 2, `at ${width} px ${k} stays put (${paused[k]} then ${playing[k]})`));
   }
 });
+
+test("5.13.1 in a Gig, Pause and Play swap the two bars with no motion: nothing shrinks into the corner or grows back out", { skip: skip() }, async t => {
+  const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, theme: "neon", plainPlay: false, keepControls: true } }, "#/song/g");
+  const moving = () => page.evaluate(() => document.getAnimations().filter(a => { const el = a.effect?.target; return el instanceof Element && (el.closest(".dock, .fold-ghost") || el.id === "play" || el.classList.contains("fold-ghost")); }).length + document.querySelectorAll(".fold-ghost").length);
+  await page.click("#play"); await page.waitForSelector("#gig .gg-bar");
+  assert.equal(await moving(), 0, "starting: no ghost of the bar shrinking away");
+  await page.waitForTimeout(800); /* real timer: let it play */
+  await page.click("#gg-pause"); await page.waitForFunction(() => document.body.classList.contains("held"));
+  assert.equal(await moving(), 0, "pausing: the bar doesn't grow back out of the corner");
+});

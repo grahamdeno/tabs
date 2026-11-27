@@ -77,9 +77,13 @@ const barPart = () => {
   const rows = document.body.classList.contains("loop-on");
   return rows ? dock.querySelector(".player") : dock.querySelector(".pw");
 };
+/* 5.13.1: in a Gig the Gig's own bar stands in exactly where this one was (5.10.2), so Play and Pause swap the two with
+   no motion: the shrink into the corner and the grow back out made the bar look like it left and came back. */
+const still = () => document.body.classList.contains("gigging");
 function foldStart(toCorner) {
   const p = document.getElementById("play");
-  const out = { play: p?.getBoundingClientRect() };
+  const out = { play: p?.getBoundingClientRect(), still: still() };
+  if (out.still) return out;
   const part = barPart();
   if (toCorner && part && p) {
     const r = part.getBoundingClientRect();
@@ -99,6 +103,7 @@ function foldStart(toCorner) {
   return out;
 }
 function foldEnd(toCorner, before) {
+  if (before.still || still()) return;
   const p = document.getElementById("play");
   if (p && before.play?.width) {
     const now = p.getBoundingClientRect(), dx = before.play.left - now.left, dy = before.play.top - now.top;
