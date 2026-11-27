@@ -1,22 +1,15 @@
-// Chord timeline (5.11.0): ways to see the chords while you play, picked in Settings, Playing, "Chords while playing".
-// Since 5.12.0 Timeline over each line is how songs show unless you pick another (Graham, 2026-11-26); "Over the
-// words" puts the song page as it was before 5.11.0.
-//   lines: every line of the song page gets a thin bar split by how long each chord lasts, with the chord's
-//          name in each part; the chord letters over the words are hidden (kept for VoiceOver and for timing).
-//   strip: while a song plays, a panel at the top shows the whole song as a thin strip and the chords coming up as
-//          big blocks, each as wide as it lasts, sliding past a playhead; the words stay below without letters.
+// Chord timeline (5.11.0): how songs show since 5.12.0 (Graham, 2026-11-26), and the only way since 5.17.2 (the other
+// two views and the Settings and Tools switcher were removed, Graham 2026-11-27): every line of the song page gets a thin
+// bar split by how long each chord lasts, with the chord's name in each part; the chord letters over the words are
+// hidden (kept for VoiceOver and for timing). While a song plays the bars on the line you're on and the next are lit,
+// lines fade out above and in below.
 // How long a chord lasts is worked out from the sheet: its share of the line's words (a chord over more words lasts
-// longer), with a line taking at least two bars. To take it out of the app: delete this file, its SHELL line in
-// sw.js, the calls marked "timeline" in app.js, stage.js and settings.js, and its CSS block.
+// longer), with a line taking at least two bars.
 import { data } from "./app.js";
 import { esc } from "./core.js";
 
-export const TL_VIEWS = ["lines", "strip"];
-/* what each is called, in Settings and Tools ("" is Over the words, stored as "words") */
-export const TL_NAMES = { lines: "Timeline over each line", strip: "Chord timeline", "": "Over the words" };
-export const tlView = () => { const v = data.settings?.playView; return v === "words" ? "" : TL_VIEWS.includes(v) ? v : "lines"; };
-/* store a pick: Timeline over each line is the default, so it needs nothing stored */
-export function tlPick(v) { if (v === "lines") delete data.settings.playView; else data.settings.playView = v || "words"; }
+/* The tests that read the letters over the words set `plainChords` (tests only, like plainPlay), which leaves the bars off. */
+export const tlView = () => data.settings?.plainChords ? "" : "lines";
 
 /* One colour per chord, by its root: the same chord is the same colour everywhere. Minor chords are a shade deeper.
    Text on each is white or espresso, whichever reads (both pass 4.5:1 on these). */
@@ -67,9 +60,7 @@ export function lineWeights(lineEl) {
 /* lines: a bar over every line that has chords. Called after the sheet is drawn. */
 export function tlDecorate(sheet) {
   document.body.classList.toggle("tl-lines", tlView() === "lines");
-  document.body.classList.toggle("tl-strip", tlView() === "strip");
   sheet?.querySelectorAll(".tlb").forEach(b => b.remove());
-  strip.key = null;
   if (!sheet || tlView() !== "lines") return;
   sheet.querySelectorAll(":scope > .pr, :scope > .crow").forEach(line => {
     const ws = lineWeights(line);
@@ -82,62 +73,21 @@ export function tlDecorate(sheet) {
   });
 }
 
-/* ---- strip: the panel while a song plays ---- */
-const PX_BAR = 76; /* a bar's width in the big blocks */
-const strip = { key: null, spots: [], el: null, at: -1 };
-/* every chord of the page in order: t and w in bars for the whole-song strip, x and px (pixels, never narrower than a
-   name needs) for the big blocks */
-function spotsOf(sheet) {
-  const out = [];
-  let t = 0, x = 0;
-  sheet.querySelectorAll(":scope > .pr, :scope > .crow").forEach(line => {
-    for (const c of lineWeights(line)) {
-      const px = Math.max(58, c.w * PX_BAR);
-      out.push({ el: c.el, name: c.name, t, w: c.w, x, px }); t += c.w; x += px;
-    }
-  });
-  return { spots: out, total: t, width: x };
-}
-function stripBuild(sheet) {
-  const { spots, total, width } = spotsOf(sheet);
-  strip.spots = spots; strip.total = total; strip.at = -1;
-  strip.el?.remove();
-  if (!spots.length) { strip.el = null; return; }
-  const el = document.createElement("div");
-  el.className = "tlp"; el.id = "tlp";
-  el.setAttribute("aria-hidden", "true"); /* the words and chords below say the same for VoiceOver */
-  const mini = spots.map(s => { const c = chordColor(s.name); return `<i style="flex-grow:${s.w.toFixed(3)};background:${c.bg}"></i>`; }).join("");
-  const blocks = spots.map((s, i) => { const c = chordColor(s.name); return `<span class="tlk" data-i="${i}" style="left:${s.x.toFixed(1)}px;width:${(s.px - 4).toFixed(1)}px;--tl-bg:${c.bg};--tl-fg:${c.fg}"><b>${esc(s.name)}</b></span>`; }).join("");
-  el.innerHTML = `<div class="tlp-mini">${mini}<i class="tlp-you"></i></div><div class="tlp-lane"><div class="tlp-track" style="width:${(width + 400).toFixed(0)}px">${blocks}</div><i class="tlp-head"></i></div>`;
-  document.body.appendChild(el);
-  strip.el = el;
-}
+const lit = { lineOn: null };
 
 /* Each frame while a song plays: w is the stage's "where" ({ b, idx, from, ... }) and seq the page's chord labels. */
 export function tlTick(w, seq) {
-  const view = tlView(), sheet = document.getElementById("sheet");
-  if (!view || !w || !sheet) return;
+  const sheet = document.getElementById("sheet");
+  if (!tlView() || !w || !sheet) return;
   const on = seq?.[w.from]?.el;
-  if (view === "lines") {
-    fadeLines(sheet);
-    const line = on?.closest(".pr, .crow");
-    if (line && strip.lineOn !== on) {
-      strip.lineOn = on;
-      sheet.querySelectorAll(".tls.on, .tls.past").forEach(s => s.classList.remove("on", "past"));
-      const k = [...line.querySelectorAll(".c[data-ch]")].indexOf(on);
-      [...line.querySelectorAll(".tls")].forEach((s, i) => { s.classList.toggle("past", i < k); s.classList.toggle("on", i === k); });
-    }
-    return;
+  fadeLines(sheet);
+  const line = on?.closest(".pr, .crow");
+  if (line && lit.lineOn !== on) {
+    lit.lineOn = on;
+    sheet.querySelectorAll(".tls.on, .tls.past").forEach(s => s.classList.remove("on", "past"));
+    const k = [...line.querySelectorAll(".c[data-ch]")].indexOf(on);
+    [...line.querySelectorAll(".tls")].forEach((s, i) => { s.classList.toggle("past", i < k); s.classList.toggle("on", i === k); });
   }
-  if (strip.key !== seq) { strip.key = seq; stripBuild(sheet); }
-  if (!strip.el) return;
-  const i = Math.max(0, strip.spots.findIndex(s => s.el === on));
-  if (i === strip.at) return;
-  strip.at = i;
-  const s = strip.spots[i];
-  strip.el.querySelector(".tlp-track").style.transform = `translateX(${(-s.x).toFixed(1)}px)`;
-  strip.el.querySelector(".tlp-you").style.left = `${(s.t / strip.total * 100).toFixed(2)}%`;
-  strip.el.querySelectorAll(".tlk").forEach((k, n) => { k.classList.toggle("past", n < i); k.classList.toggle("on", n === i); });
 }
 /* 5.12.0: a line fades out as it rises past the one you're on, and the lines further down fade in as they come up,
    fully there by two lines after the one you're on. Set on each line every frame from where it sits on the screen. */
@@ -160,10 +110,9 @@ function fadeLines(sheet) {
     if (o >= 0.995) el.style.removeProperty("opacity"); else el.style.setProperty("opacity", o.toFixed(3), "important");
   }
 }
-/* The song stops or the page goes: the panel goes too. */
+/* The song stops or the page goes: the lines come back to full and nothing stays lit. */
 export function tlStop() {
   document.querySelectorAll("#sheet > [style*='opacity']").forEach(el => el.style.removeProperty("opacity"));
-  strip.el?.remove();
-  Object.assign(strip, { el: null, key: null, at: -1, lineOn: null });
+  lit.lineOn = null;
   document.querySelectorAll("#sheet .tls.on, #sheet .tls.past").forEach(s => s.classList.remove("on", "past"));
 }

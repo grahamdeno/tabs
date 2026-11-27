@@ -781,6 +781,7 @@ function guitarEarned(road) {
 
 /* 4.45.2: a tapped stop's card can open below the visible path (under the tab bar); scroll the path so all of it shows, button included */
 function revealPop(path, pop) {
+  fitPop(pop);
   requestAnimationFrame(() => {
     const p = path.getBoundingClientRect(), r = pop.getBoundingClientRect();
     /* 4.83.0: clear of the Songbook bar too, which floats over the bottom of the path */
@@ -789,6 +790,16 @@ function revealPop(path, pop) {
     const over = r.bottom - floor;
     if (over > 0) path.scrollTo({ top: path.scrollTop + over, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   });
+}
+
+/* 5.17.2: on the neck the card is centred under its stop; near a screen edge it moves sideways just enough to stay 12 px clear, and its point
+   moves the other way so it stays on the inlay (--dx in the .rn-neck .rd-pop rule) */
+function fitPop(pop) {
+  if (!pop?.closest(".rn-neck")) return;
+  pop.style.setProperty("--dx", "0px");
+  const r = pop.getBoundingClientRect(), w = document.documentElement.clientWidth, pad = 12;
+  const dx = r.left < pad ? pad - r.left : r.right > w - pad ? w - pad - r.right : 0;
+  pop.style.setProperty("--dx", `${Math.round(dx)}px`);
 }
 
 /* The scene loads a moment later: when someone is pushing on your edge, Louie says so. */

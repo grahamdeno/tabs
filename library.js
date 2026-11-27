@@ -693,7 +693,7 @@ export function showPasteCard(original) {
   const cur = () => (useCleaned && cleaned) || original;
   layer.innerHTML = `
     <div class="scrim" id="scrim"></div>
-    <div class="panel card kb" role="dialog" aria-label="Save pasted song">
+    <div class="panel card kb pastecard" role="dialog" aria-label="Save pasted song">
       <div class="pc-head">${icon("clip")}<span id="p-what"></span><span style="flex:1"></span>
         <div class="seg mini" id="p-ver" hidden><button data-v="0">Original</button><button data-v="1">Cleaned</button></div>
       </div>

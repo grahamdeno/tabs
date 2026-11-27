@@ -141,7 +141,8 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 | `keepControls` | boolean, off unless true | Keep playing controls on screen (Road Ready 05): the Gig's controls never hide while a song plays. For VoiceOver, Switch Control, or anyone who likes seeing them |
 | `unlockAll` | boolean, off unless true | Unlock all tours (5.17.0, Settings > Playing): every tour and stop on the Tour shows as open and plays whatever it has. While it is on, no lesson, skill, song-tour round or opening step is kept or paid and no merch box opens (songs and Gigs still count as plays), no chord is marked as known by a lesson and nothing is written to `data.curriculum` (`rewardsOn` in `core/curriculum.js` is the one check). Turning it off gives the map back as it was. Kept in a backup. |
 | `capo` | boolean, or missing | Do you have a capo? (5.18.0, Tour 1 asks once and Settings, Playing can change it). `true` or `false` is the answer; missing means not asked yet. A song that needs a capo plays with Louie's band while it is not `true`, and with the recording once it is. In the library and in backups; any other value is dropped on load. |
-| `playView` | "strip", "words" or missing | Chords while playing (`timeline.js`): missing is Timeline over each line (the default since 5.12.0; a stored "lines" from 5.11.x means the same), "strip" Chord timeline, "words" Over the words as before 5.11.0 |
+| `playView` | removed (5.17.2) | Was Chords while playing (5.11.0 to 5.17.1). Timeline over each line is now the only view; a stored value is dropped on load (`migrate`) |
+| `plainChords` | tests only | Leaves the timeline bars off so a test can read the chord letters over the words (like `plainPlay`) |
 
 `plainPlay` is for the tests only and keeps Play plain.
 

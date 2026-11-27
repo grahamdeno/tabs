@@ -1,13 +1,12 @@
-// Chord timeline (5.11.0, a try-out): Settings, Playing, "Chords while playing": Over the words (as before), Timeline
-// over each line, or Chord timeline. The song is invented.
+// Chord timeline (5.11.0): Timeline over each line, the only way songs show since 5.17.2. The song is invented.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { phone, LIB, useBrowser, settled, skip, base } from "./harness.mjs";
 useBrowser();
 const SONG = { id: "g", title: "Porch Light Radio", artist: "The Low Tide", key: "G", format: "chords", duration: 120,
   body: "[Verse]\nG              D\nMorning comes in slow across the yard\nEm          C\nCoffee on the step and the radio on\n\n[Chorus]\nC                 G         D\nPorch light radio, keep the station on" };
-async function open(t, playView) {
-  const settings = { ...LIB.settings, theme: "neon" }; delete settings.playView; if (playView) settings.playView = playView;
+async function open(t, stored) {
+  const settings = { ...LIB.settings, theme: "neon" }; delete settings.plainChords; if (stored) settings.playView = stored;
   const page = await phone(t, { ...LIB, songs: [SONG], settings });
   const errs = []; page.on("pageerror", e => errs.push(e.message)); t.after(() => assert.deepEqual(errs, [], "page errors"));
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
@@ -15,13 +14,16 @@ async function open(t, playView) {
 }
 const stop = page => page.evaluate(() => document.querySelector("#fp #play, #play")?.click());
 
-test("timeline: Over the words (stored as words) looks as before 5.11.0", { skip: skip() }, async t => {
-  const page = await open(t, "words");
-  assert.equal(await page.locator(".tlb").count(), 0);
-  const box = await page.locator(".sheet .c[data-ch]").first().boundingBox();
-  assert.ok(box && box.height > 8, "chord letters over the words");
-  await page.click("#play"); await page.waitForTimeout(800); /* real timer: let it play */
-  assert.equal(await page.locator("#tlp, .tlb").count(), 0, "no panel, no bars");
+for (const old of ["words", "strip"]) test(`5.17.2 a stored "${old}" from before is dropped: the song shows Timeline over each line, and there is no switcher`, { skip: skip() }, async t => {
+  const page = await open(t, old);
+  assert.equal(await page.locator(".sheet .tlb").count(), 3, "the bars are there");
+  await page.waitForFunction(() => !("playView" in JSON.parse(localStorage.getItem("tabs-v1")).settings));
+  await page.click("#more"); await page.waitForSelector(".menu.tools");
+  assert.equal(await page.locator('[data-m="tlview"]').count(), 0, "no Chords while playing in Tools");
+  await page.keyboard.press("Escape");
+  await page.evaluate(() => { location.hash = "#/settings/playing"; }); await page.waitForSelector("#s-unlock");
+  assert.equal(await page.locator("#s-tlview").count(), 0, "and none in Settings");
+  assert.doesNotMatch(await page.innerText("#app"), /Chords while playing/);
 });
 
 test("timeline over each line: a bar per line, split by the words each chord covers, letters kept for VoiceOver; the chord you're on is lit", { skip: skip() }, async t => {
@@ -44,38 +46,6 @@ test("timeline over each line: a bar per line, split by the words each chord cov
   await stop(page);
   await page.waitForFunction(() => !document.body.classList.contains("staged"));
   assert.ok(await page.evaluate(() => [...document.querySelectorAll(".sheet .tlb")].every(b => getComputedStyle(b).visibility === "visible")), "paused, every line shows its quiet bar");
-  await page.evaluate(() => { location.hash = "#/settings/playing"; }); await page.waitForSelector("#s-tlview");
-  await page.selectOption("#s-tlview", "");
-  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
-  assert.equal(await page.locator(".tlb").count(), 0, "Over the words: the bars are gone");
-  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.playView === "words");
-});
-
-test("chord timeline: while a song plays a panel shows the whole song and the chords coming up; it goes when the song stops", { skip: skip() }, async t => {
-  const page = await open(t, "strip");
-  assert.equal(await page.locator("#tlp").count(), 0, "nothing while paused");
-  await page.click("#play");
-  await page.waitForSelector("#tlp .tlk.on", { timeout: 15000 });
-  assert.equal(await page.locator("#tlp .tlp-mini > i:not(.tlp-you)").count(), 7, "every chord of the song in the strip");
-  assert.deepEqual(await page.locator("#tlp .tlk b").allInnerTexts(), ["G", "D", "Em", "C", "C", "G", "D"]);
-  assert.equal(await page.getAttribute("#tlp", "aria-hidden"), "true", "the words and letters below say the same");
-  await stop(page);
-  await page.waitForSelector("#tlp", { state: "detached" });
-});
-
-test("timeline: Tools, Chords while playing, tries the next one in place", { skip: skip() }, async t => {
-  const page = await open(t);
-  await page.click("#more"); await page.waitForSelector(".menu.tools");
-  if (!(await page.locator('[data-m="tlview"]').isVisible())) await page.click('[data-tab="play"]');
-  assert.match(await page.innerText('[data-m="tlview"]'), /Timeline over each line/, "the default");
-  await page.click('[data-m="tlview"]');
-  await page.waitForFunction(() => !document.querySelector(".sheet .tlb"));
-  assert.match(await page.innerText('[data-m="tlview"]'), /Chord timeline/);
-  await page.click('[data-m="tlview"]');
-  assert.match(await page.innerText('[data-m="tlview"]'), /Over the words/);
-  await page.click('[data-m="tlview"]');
-  await page.waitForSelector(".sheet .tlb");
-  assert.match(await page.innerText('[data-m="tlview"]'), /Timeline over each line/);
 });
 
 test("5.12.0 a tap on a part of a line's bar shows that chord's shape, as a tap on the letter did", { skip: skip() }, async t => {
@@ -87,7 +57,7 @@ test("5.12.0 a tap on a part of a line's bar shows that chord's shape, as a tap 
 
 test("5.12.0 while a song plays, lines fade out as they rise past the one you're on and fade in as they come up", { skip: skip() }, async t => {
   const long = { ...SONG, body: "[Verse]\n" + Array.from({ length: 14 }, (_, i) => `G        D\nLine number ${i + 1} of the song`).join("\n"), duration: 200 };
-  const settings = { ...LIB.settings, theme: "neon" }; delete settings.playView;
+  const settings = { ...LIB.settings, theme: "neon" }; delete settings.plainChords;
   const page = await phone(t, { ...LIB, songs: [long], settings });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play");

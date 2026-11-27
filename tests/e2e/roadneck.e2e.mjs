@@ -335,3 +335,24 @@ test("Neck-only Road: with every stop that can be played done, no stop is curren
   assert.equal(m.peek, 0, "no empty frets past the last gold");
   assert.equal(m.cur, 0, "what is left is Coming soon, so nothing is current");
 });
+
+test("5.17.2 Neck-only Road: a stop's card hangs just under its own inlay, its point on that inlay, and stays on screen", { skip: skip() }, async t => {
+  const page = await phone(t, { ...lib("dark", MID), settings: { ...lib("dark", MID).settings, unlockAll: true } }, { home: true });
+  await page.waitForSelector(".rn-neck .rd-node"); await settled(page);
+  for (const sel of ["[data-kind=box]", ".rd-node.rn-stop:not([data-kind=box])"]) {
+    const id = await page.evaluate(s => document.querySelector(s).dataset.stop, sel);
+    await page.evaluate(id => document.querySelector(`[data-stop="${id}"]`).scrollIntoView({ block: "center" }), id);
+    await page.waitForTimeout(250);
+    await page.click(`[data-stop="${id}"]`, { force: true });
+    await page.waitForSelector(".rd-pop"); await page.waitForTimeout(350);
+    const g = await page.evaluate(() => {
+      const p = document.querySelector(".rd-pop"), n = p.parentElement.querySelector("[data-stop]"), pr = p.getBoundingClientRect(), nr = n.getBoundingClientRect();
+      const b = getComputedStyle(p, "::before"), point = pr.left + parseFloat(b.left) + parseFloat(b.width) / 2;
+      return { gap: pr.top - nr.bottom, off: point - (nr.left + nr.width / 2), l: pr.left, r: pr.right, w: document.documentElement.clientWidth };
+    });
+    assert.ok(g.gap >= 0 && g.gap <= 24, `${id}: card ${g.gap}px under its inlay`);
+    assert.ok(Math.abs(g.off) <= 4, `${id}: point ${g.off}px from the inlay's centre`);
+    assert.ok(g.l >= 11 && g.r <= g.w - 11, `${id}: card on screen (${g.l} to ${g.r} of ${g.w})`);
+    await page.mouse.click(5, 300); await page.waitForSelector(".rd-pop", { state: "detached" });
+  }
+});
