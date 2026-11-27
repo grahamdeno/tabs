@@ -1,6 +1,6 @@
 // The Road: core logic, The neck: lessons, listening numbers (HEAR) and scales.
 // Re-exported from core.js, so other files import it from there.
-import { TUNINGS, isObj, nearestNote, noteFreq } from "../core.js";
+import { TUNINGS, isObj, nearestNote, noteFreq, rewardsOn } from "../core.js";
 import { chordShape } from "./chords.js";
 import { sheetChords } from "./game.js";
 import { shapesOf } from "./playing.js";
@@ -115,6 +115,7 @@ export const songsWith = (data, chord) => (data.songs || []).filter(s => s.forma
 const songChordNames = body => sheetChords(body);
 /* A lesson finished (or a clean round): keep the count and the best tempo. */
 export function skillDone(data, id, best = 0, now = Date.now()) {
+  if (!rewardsOn(data)) return; /* Unlock all tours (5.17.0): play it, mark nothing */
   const sk = data.skills || (data.skills = { done: {}, last: 0 }), x = sk.done[id] || (sk.done[id] = { n: 0, best: 0, at: 0 });
   x.n++; x.best = Math.max(x.best, Math.floor(best) || 0); x.at = now; sk.last = now;
 }

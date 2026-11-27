@@ -8,8 +8,11 @@ useBrowser();
 const AT = Date.now();
 const doneOf = ids => ({ done: Object.fromEntries(ids.map((id, i) => [id, { n: 3, best: 90, at: AT - 1000 + i }])), last: AT });
 const OPEN = ["G", "C", "D", "Em", "Am", "E", "A"].map(c => "c:" + c);
-const MID = doneOf(OPEN.slice(0, 4)); /* G, C, D and Em done: Am is the current stop */
-const lib = (theme, skills, extra = {}) => ({ ...LIB, skills, merch: { tconv: 1, lconv: 1, hlseen: 1, ...(extra.merch || {}) }, guitars: { seen: ["open"] }, journal: extra.journal, settings: { ...LIB.settings, v: 6, theme } });
+/* 5.17.0: the Tour is the curriculum map. Tours 1 to 3 done (and their merch boxes opened) make Am, the first stop of Tour 4, the current stop. */
+const T3 = ["c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C", "s:C-D", "s:G-D"];
+const MID = doneOf(T3);
+const BOXES = { opened: ["b:t1", "b:t2", "b:t3", "b:t4"] };
+const lib = (theme, skills, extra = {}) => ({ ...LIB, skills, boxes: BOXES, merch: { tconv: 1, lconv: 1, hlseen: 1, ...(extra.merch || {}) }, guitars: { seen: ["open"] }, journal: extra.journal, settings: { ...LIB.settings, v: 6, theme } });
 /* the path scrolls to the current stop, and again after a card opens or closes (revealPop): wait until the stop has stopped moving */
 const still = page => page.evaluate(() => new Promise(res => { const el = document.querySelector(".rd-node.cur"); let last = -1, n = 0; const f = () => { const y = el.getBoundingClientRect().top; n = y === last ? n + 1 : 0; last = y; n >= 10 ? res() : requestAnimationFrame(f); }; f(); }));
 async function road(t, theme = "dark", skills = MID, extra = {}, opts = {}) {
@@ -75,9 +78,9 @@ test("Painted necks: a tap in the gutter does not open a stop, and a tap on the 
 
 test("Painted necks: a locked stop opens a card with no Start button, and never takes a tap from the current stop's zone", { skip: skip() }, async t => {
   const page = await road(t);
-  await page.click(stopSel("c:A")); await page.waitForSelector(".rd-pop");
+  await page.click(stopSel("k4.3")); await page.waitForSelector(".rd-pop");
   assert.equal(await page.locator(".rd-pop .rd-start").count(), 0, "a locked stop has no Start");
-  assert.match(await page.innerText(".rd-pop"), /opens when you get here|Finish the stops/i);
+  assert.match(await page.innerText(".rd-pop"), /opens when you get here|Finish the stop/i);
   const cur = await rect(page, stopSel("c:Am"));
   await page.mouse.click(5, cur.y);
   assert.equal(await page.locator(".rd-pop.now").count(), 0, "a tap in the gutter is not the current stop");
@@ -104,15 +107,15 @@ test("Painted necks: from the keyboard, Enter opens the card and moves focus to 
 });
 
 test("Painted necks: on Chord switches, with lesson 2 current, a tap on finished lesson 1 opens lesson 1, and a tap on lesson 2 opens lesson 2", { skip: skip() }, async t => {
-  const page = await road(t, "dark", doneOf([...OPEN, "k:open", "s:G-C"]));
-  assert.equal(await page.locator(".rd-node.cur").getAttribute("data-stop"), "s:C-D");
+  const page = await road(t, "dark", doneOf(["c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C"]));
+  assert.equal(await page.locator(".rd-node.cur").getAttribute("data-stop"), "s:G-C");
   const shown = () => page.evaluate(() => document.querySelector(".rd-pop")?.parentElement.querySelector("[data-stop]").dataset.stop);
   /* the stops sit with empty frets between them, so bring each one into view before the tap */
-  await page.locator(stopSel("s:G-C")).click(); await page.waitForSelector(".rd-pop");
-  assert.equal(await shown(), "s:G-C", "lesson 1's card, not lesson 2's");
+  await page.locator(stopSel("c:C")).click(); await page.waitForSelector(".rd-pop");
+  assert.equal(await shown(), "c:C", "lesson 1's card, not lesson 2's");
   await page.keyboard.press("Escape"); await page.waitForSelector(".rd-pop", { state: "detached" }); await still(page);
-  await page.locator(stopSel("s:C-D")).click(); await page.waitForSelector(".rd-pop");
-  assert.equal(await shown(), "s:C-D", "lesson 2's card");
+  await page.locator(stopSel("s:G-C")).click(); await page.waitForSelector(".rd-pop");
+  assert.equal(await shown(), "s:G-C", "lesson 2's card");
 });
 
 test("Painted necks: Escape closes the open card wherever focus is, and puts focus on the stop", { skip: skip() }, async t => {

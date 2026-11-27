@@ -23,6 +23,7 @@
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
 import { roadTour, tourSeed, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { curriculumRoad, curriculumSeed, playNext, rewardsOn } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { holdSheet, micSheet, notesSheet, songFor, stringsSheet } from "./opening.js";
 import { makerSheet } from "./maker.js";
@@ -96,12 +97,29 @@ const dotIcon = s => s.state === "done" ? ICONS.check : ICONS[s.kind] || ICONS.c
 /* the songs a headline show can be played with: only that leg's chords, the last played first */
 const fitsFor = stop => (stop.chords ? data.songs.filter(sg => { const c = chordNames(sg.body || ""); return c.length >= 2 && c.every(n => stop.chords.includes(n)); })
   .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0)) : []);
-const stopTitle = s => s.kind === "headline" ? "Headline show" : s.kind === "round" ? s.name : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
+const stopTitle = s => s.cs && s.kind !== "box" && !s.chord ? s.name : s.kind === "headline" ? "Headline show" : s.kind === "round" ? s.name : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
 const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
-const tagOf = s => s.kind === "headline" ? "Headline show" : s.kind === "box" ? (s.state === "now" ? "Tap to open" : "Merch box") : s.kind === "chord" ? `${s.name} chord` : s.name;
+const tagOf = s => s.cs && s.kind !== "box" && !s.chord && !s.a ? s.name : s.kind === "headline" ? "Headline show" : s.kind === "box" ? (s.state === "now" ? "Tap to open" : "Merch box") : s.kind === "chord" ? `${s.name} chord` : s.name;
 /* A pick's card, opened by a tap (4.35.0, like the old card but only on a tap): the next stop's is in the
    streak colour with Start (or, at a headline, Play and the song that fits); any other pick's is a quiet one */
+/* a stop from the curriculum that is not a plain chord or switch lesson: Coming soon, a locked row, an Opening night step,
+   a stop with two lessons, or a box while Unlock all tours is on */
+const csPass = s => s.pass === "played" ? "Louie can't judge this one. You're the judge." : "Louie listens for it.";
+function csCard(stop) {
+  const title = stopTitle(stop), locked = stop.state === "locked", off = !rewardsOn(data);
+  let body, act = "", cls = stop.state;
+  if (stop.row) body = `${stop.routeOpen ? "Coming soon." : `Opens after Tour ${stop.after}.`} ${stop.skill}.`;
+  else if (stop.kind === "box") body = "Boxes stay shut while Unlock all tours is on, so nothing is paid.";
+  else if (stop.soon) { cls = "soon"; body = `Coming soon. ${stop.skill}. ${csPass(stop)}`; }
+  else if (locked) body = "Finish the stop before it first.";
+  else {
+    body = `${stop.skill}. ${csPass(stop)}${off ? " Unlock all tours is on: nothing is paid or saved." : ""}`;
+    act = `${!off && stop.state !== "done" ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "START"}</button>`;
+  }
+  return `<div class="rd-pop ${cls}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(body)}</p>${act}</div>`;
+}
 function stopCard(stop) {
+  if (stop.cs && (stop.soon || stop.row || stop.play?.opening || stop.play?.lessons?.length > 1 || (stop.kind === "box" && !rewardsOn(data)))) return csCard(stop);
   if (stop.tour && (stop.kind === "round" || stop.kind === "headline") && stop.state !== "locked") return tourCard(stop);
   const title = stopTitle(stop), now = stop.state === "now" || stop.state === "open";
   if (stop.kind === "headline" && stop.state !== "locked") {
@@ -117,13 +135,13 @@ function stopCard(stop) {
     : stop.kind === "box" ? (stop.state === "done" ? `Opened: +${FANS.box} fans.` : `Reach it, then tap it open: +${FANS.box} fans.`) : "";
   /* 4.83.0: a chord's stop is also done by playing it in KNOW_PLAYS songs to the end; the card says how far along you are */
   let alt = "";
-  if (stop.kind === "chord" && stop.state !== "done") {
+  if (stop.kind === "chord" && stop.state !== "done" && rewardsOn(data)) {
     const n = Math.min(chordPlays(data, stop.chord), KNOW_PLAYS - 1), left = KNOW_PLAYS - n, songs = songsWith(data, stop.chord);
     alt = `<p class="rd-alt">${stop.state === "locked" ? "Songs count already: play" : "Or play"} ${esc(stop.chord)} in ${left} more song${left === 1 ? "" : "s"}, start to finish (${n} of ${KNOW_PLAYS}).${songs.length ? "" : ` None of your songs have ${esc(stop.chord)} yet.`}</p>`
       + (songs.length ? `<button class="rd-other" data-song="${esc(songs[0].id)}">Play ${esc(songs[0].title)}${songs.length > 1 ? ` (or ${songs.length - 1} more with ${esc(stop.chord)})` : ""}</button>` : "");
   }
   const act = stop.kind === "box" || stop.state === "locked" ? ""
-    : `${stop.state === "done" ? "" : `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : "START"}</button>`;
+    : `${stop.state === "done" || !rewardsOn(data) ? "" : `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : "START"}</button>`;
   return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? (stop.kind === "chord" ? "Its lesson opens when you get here." : "Finish the stops before this one to open it.") : line)}</p>${act}${alt}</div>`;
 }
 /* Song tours: the card of a round or the headline. A tour with no song yet names the pick and offers Get it and Swap. */
@@ -318,6 +336,8 @@ function pinLeg(path) {
     const top = path.getBoundingClientRect().top + 12;
     let i = 0;
     marks.forEach((m, n) => { if (m.getBoundingClientRect().top <= top) i = n; });
+    /* 5.17.0: at the very end the short locked rows can never reach the top: name the last one in view */
+    if (path.scrollTop + path.clientHeight >= path.scrollHeight - 2) { const bottom = path.getBoundingClientRect().bottom - 60; marks.forEach((m, n) => { if (n > i && m.getBoundingClientRect().top < bottom) i = n; }); }
     paint(i);
   };
   path.addEventListener("scroll", () => { sync(); requestAnimationFrame(sync); }, { passive: true });
@@ -475,7 +495,7 @@ document.addEventListener("keydown", e => {
 export function renderRoad() {
   screenHeight(); window.scrollTo(0, 0);
   clearFit();
-  const ov = openingView(data);
+  const ov = rewardsOn(data) ? openingView(data) : null; /* Unlock all tours skips Opening night's own screen */
   if (ov) { homeHooks.openDrawer = false; return renderOpening(ov); }
   const wantDrawer = homeHooks.openDrawer; homeHooks.openDrawer = false;
   const rr = rrLook();
@@ -484,7 +504,9 @@ export function renderRoad() {
   if (boxesSeed(data)) Tabs.save(data); /* 4.76.0: boxes already reached stay opened */
   const seed = tourSeed(data, { key: !!aiKey() });
   if (seed.changed) Tabs.save(data);
-  const road = roadTour(data, roadPath(data)), cur = road.current, leg = road.leg;
+  if (curriculumSeed(data)) Tabs.save(data); /* 5.17.0: today's progress mapped onto the new stops, kept in data.curriculum */
+  const oldRoad = roadTour(data, roadPath(data));
+  const road = rr ? curriculumRoad(data, oldRoad) : oldRoad, cur = road.current, leg = road.leg;
   for (const id of seed.need) if (!tourErr.has(id) && !tourBusy.has(id)) setTimeout(() => askTourPick(id), 0);
   const finding = road.legs.filter(l => l.song && l.finding && l.tour);
   const song = upNext(), say = louieLine(st, plays);
@@ -504,8 +526,8 @@ export function renderRoad() {
   const numOf = s => { const l = road.legs.find(x => x.stops.includes(s)); return l ? l.stops.indexOf(s) + 1 : 0; };
   /* 5.9.0: a song tour in progress never holds the next skill tour back: it is drawn open beside the song tour */
   let curAt = road.legs.indexOf(leg);
-  if (leg?.song && road.legs[curAt + 1] && !road.legs[curAt + 1].song) curAt++;
-  const nxt = curAt >= 0 ? road.legs[curAt + 1] : null;
+  if (!rr && leg?.song && road.legs[curAt + 1] && !road.legs[curAt + 1].song) curAt++;
+  const nxt = rr ? null : curAt >= 0 ? road.legs[curAt + 1] : null; /* 5.17.0: the Tour draws the whole main line, not only the next leg */
   const ahead = new Set(nxt ? nxt.stops.map(s => s.id) : []);
   const rrLabel = s => {
     if (s.kind === "headline" || s.kind === "box") return esc(`${s.kind === "headline" ? "Headline show" : "Merch box"}, ${ahead.has(s.id) ? "locked" : said(s)}`);
@@ -518,10 +540,13 @@ export function renderRoad() {
   const fresh = rr && lastCur && cur && lastCur !== cur.id ? cur.id : null;
   lastCur = cur?.id || null;
   const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(rr ? rrTag(s, all) : tagOf(s)), songs: opens, rr, num: numOf, fresh, tonight: rr && song ? esc(song.title) : "", tonightAdd: rr && !song };
-  const shown = road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length);
+  const shown = rr ? road.legs : road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length);
   /* The legs already reached, then the next one in full, flagged so it draws gray and locked. Nothing past that. */
-  const legTitle = l => l.song ? { title: "Song tour", sub: l.note, aria: `Song tour, ${l.note}` } : { title: `Tour ${l.n}`, sub: l.name, aria: `Tour ${l.n}, ${l.name}` };
-  const bareLegs = shown.filter(l => l.stops.length).map(l => ({ ...legTitle(l), stops: l.stops }));
+  const legTitle = l => l.song ? { title: "Song tour", sub: l.note, aria: `Song tour, ${l.note}` } : l.row ? { title: l.name, sub: l.note, aria: `${l.name}, ${l.note}, locked` } : { title: `Tour ${l.n}`, sub: l.name, aria: `Tour ${l.n}, ${l.name}` };
+  const bareLegs = shown.filter(l => l.stops.length).map(l => ({ ...legTitle(l), stops: l.stops, ...(l.row ? { row: true } : {}) }));
+  /* the lead and fingerstyle rows are drawn gray and locked until their release */
+  const rowAt = bareLegs.findIndex(l => l.row && l.stops[0]?.state === "locked");
+  if (rowAt > 0) bareLegs[rowAt].upcoming = true;
   if (nxt?.stops.length) bareLegs.push({ ...legTitle(nxt), upcoming: true, stops: nxt.stops });
   const bare = rr ? bareNeckHTML(bareLegs, {
     cur, id: s => esc(s.id), label: labelOf, num: numOf, songs: opens
@@ -576,6 +601,11 @@ export function renderRoad() {
   const start = id => {
     const s = all.find(x => x.id === id);
     if (!s) return;
+    if (s.cs) { /* a stop of the new Tour: its Opening night step or its first lesson not done */
+      const nx = playNext(data, s);
+      if (!nx) return;
+      return nx.lesson ? go("#/practice/" + encodeURIComponent(nx.lesson)) : openingStart(OPENING.findIndex(o => o.id === nx.opening));
+    }
     if (s.tour) return tourStart(s);
     if (s.kind === "headline") {
       const sg = s.song || fitsFor(s)[0]?.id;
@@ -693,8 +723,8 @@ export function renderRoad() {
     path.scrollTop = Math.max(0, to);
   }
   if (plays) fillScene(st);
-  headlinerEarned(road);
-  guitarEarned(road);
+  headlinerEarned(oldRoad);
+  guitarEarned(oldRoad);
   guitaristAsk();
 }
 

@@ -64,6 +64,10 @@ function renderSettings() {
         <button class="toggle ${s.keepControls === true ? "on" : ""}" id="s-keepctl" role="switch" aria-checked="${s.keepControls === true}" aria-label="Keep playing controls on screen"></button>
       </div>
       <div class="set">
+        <span class="tile">${icon("lock")}</span><span class="name">Unlock all tours<small class="sub">Every tour and stop opens and plays what it has. Nothing is paid, saved or marked known while it is on.</small></span>
+        <button class="toggle ${s.unlockAll === true ? "on" : ""}" id="s-unlock" role="switch" aria-checked="${s.unlockAll === true}" aria-label="Unlock all tours"></button>
+      </div>
+      <div class="set">
         <span class="tile">${icon("focus")}</span><span class="name">Focus current line</span><span class="val">${{ always: "Always", playing: "While playing", off: "Off" }[s.focus] || "Always"}</span>${icon("chev", "chev")}
         <select id="s-focus" aria-label="Focus current line">
           ${[["always", "Always"], ["playing", "While playing"], ["off", "Off"]].map(([v, t]) => `<option value="${v}" ${v === (s.focus || "always") ? "selected" : ""}>${t}</option>`).join("")}
@@ -267,6 +271,7 @@ function renderSettings() {
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   /* Road Ready 05: the playing controls stay on screen instead of hiding after 3 s */
   $("s-keepctl").onclick = () => { s.keepControls = s.keepControls !== true; Tabs.save(data); renderSettings(); };
+  $("s-unlock").onclick = () => { s.unlockAll = s.unlockAll !== true; Tabs.save(data); renderSettings(); };
   app.querySelectorAll("#s-beat [data-m]").forEach(b => b.onclick = () => { const m = b.dataset.m; s.metronome = m !== "off"; if (m !== "off") s.metroSound = m === "click" ? "click" : "kick"; Tabs.save(data); renderSettings(); if (m !== "off") metroPreview(); });
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
   $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", Math.round(e.target.value / 1.5) + "%"); Tabs.save(data); });
