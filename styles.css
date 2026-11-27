@@ -6258,13 +6258,17 @@ body.searching #sb-more { display: none; }
    and the reading line, but take no room. strip: a panel at the top while a song plays. To remove: this block. */
 body.tl-lines .sheet :is(.pr, .crow) .c[data-ch], body.tl-strip.staged .sheet :is(.pr, .crow) .c[data-ch] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0; min-height: 0; }
 body.tl-lines .sheet .crow { min-height: 0; }
-.sheet .tlb { display: flex; gap: 2px; width: 100%; height: 22px; margin: 4px 0 6px; border-radius: 4px; overflow: hidden; }
+/* 5.11.1: one height for every bar (taller, 30 px), so nothing moves when the line you're on changes. While a song plays
+   only the line you're on and the next show their bar, in colour; paused, every line shows a quiet grey bar to read by. */
+.sheet .tlb { display: flex; gap: 2px; width: 100%; height: 30px; margin: 4px 0 6px; border-radius: 5px; overflow: hidden; }
 .sheet .crow:has(.tlb) { display: block; }
-.sheet .tls { flex: 1 1 0; min-width: 22px; display: flex; align-items: center; padding: 0 6px; background: var(--tl-bg); color: var(--tl-fg); font: 600 13px / 1 "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+.sheet .tls { flex: 1 1 0; min-width: 26px; display: flex; align-items: center; padding: 0 8px; background: var(--tl-bg); color: var(--tl-fg); font: 700 15px / 1 "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+body.tl-lines:not(.staged) .sheet .tls { background: var(--rr-mesh, #2A2724); color: var(--rr-text, #F6EEE0); }
+body.tl-lines.staged .sheet .tlb { visibility: hidden; }
+body.tl-lines.staged .sheet :is(.st-now, .st-next) .tlb { visibility: visible; }
+body.tl-lines.staged .sheet .st-next .tlb { opacity: .75; }
 body.staged .sheet .tls.past { opacity: .45; }
 body.staged .sheet .tls.on { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .85); }
-body.staged .sheet .st-now .tlb { height: 28px; }
-body.staged .sheet .st-now .tls { font-size: 15px; }
 
 .tlp { position: fixed; z-index: 58; left: 0; right: 0; top: 0; padding: calc(var(--safe-t, 0px) + 10px) 0 8px; pointer-events: none; background: var(--rr-base, var(--bg, #141210)); box-shadow: 0 10px 14px -6px rgba(0, 0, 0, .35); }
 .tlp-mini { position: relative; display: flex; gap: 1px; height: 10px; margin: 0 16px; border-radius: 3px; overflow: visible; }
