@@ -758,3 +758,17 @@ test("a saved Green Room uses the amp bar while a song plays", { skip: skip() },
   assert.ok(await page.locator(".gg-bar").count() >= 1);
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "green");
 });
+
+test("5.10.2 Play and Pause swap bars without the bar moving: the Gig's bar has the paused bar's size, place and control spots", { skip: skip() }, async t => {
+  for (const width of [390, 320]) {
+    const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, theme: "neon", plainPlay: false } }, "#/song/g", { width });
+    if (width !== 390) await page.setViewportSize({ width, height: 844 });
+    await settled(page);
+    const box = sel => page.evaluate(s => { const e = document.querySelector(s); const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(Math.round); }, sel);
+    const paused = { bar: await box(".app.viewer .pw.glass"), speed: await box(".player .gg-speed"), play: await box("#play"), loop: await box("#pw-loop"), tools: await box("#more") };
+    await page.click("#play"); await page.waitForSelector("#gig .gg-bar");
+    await page.waitForFunction(() => { const b = document.querySelector("#gig .gg-bar"); return b && getComputedStyle(b).opacity === "1"; });
+    const playing = { bar: await box("#gig .gg-bar"), speed: await box("#gg-speed"), play: await box("#gg-pause"), loop: await box("#gg-loop"), tools: await box("#gg-tools") };
+    for (const k of Object.keys(paused)) paused[k].forEach((v, i) => assert.ok(Math.abs(v - playing[k][i]) <= 2, `at ${width} px ${k} stays put (${paused[k]} then ${playing[k]})`));
+  }
+});
