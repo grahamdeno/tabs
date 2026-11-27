@@ -465,11 +465,10 @@ test("5.16.0 a change drill runs on the neck: two bars each, a bar each, every t
   assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 70 BPM", "the best so far");
   await page.click("#round .rnd-speed");
   assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 80 BPM", "one step up: the target");
-  await page.waitForSelector("#pk-next", { timeout: 60000 });
+  await page.waitForSelector("#pk-next", { timeout: 120000 }); /* real timer: 40 beats at 80 BPM, slower on a busy machine */
   assert.match(await page.innerText(".rd-first-t"), /Played through at 80 BPM/);
+  /* saves land after the screen changes: wait on the saved value */
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).skills?.done?.["s:C-F"]?.best === 80, null, { timeout: 5000 });
-  const s = await stored(page);
-  assert.equal(s.skills.done["s:C-F"].best, 80, "done at the target tempo, as before");
 });
 
 test("5.16.0 below the target, a passed drill offers the next tempo; I got it still marks it", { skip: skip() }, async t => {
@@ -480,4 +479,22 @@ test("5.16.0 below the target, a passed drill offers the next tempo; I got it st
   await page.click("#round .rnd-self"); await page.waitForSelector("#pk-next");
   assert.match(await page.innerText(".rd-first-t"), /Marked as got/);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).skills?.done?.["s:C-F"], null, { timeout: 5000 });
+});
+
+test("5.16.3 at 1.0x with the recording the highway moves smoothly, though the recording's clock only moves in quarter seconds", { skip: skip() }, async t => {
+  const STEPPY = YT_STUB.replace("getCurrentTime() { return this.state === 1 ? this.t + (performance.now() - this.base) / 1000 : this.t; }", "getCurrentTime() { const raw = this.state === 1 ? this.t + (performance.now() - this.base) / 1000 : this.t; return Math.floor(raw * 4) / 4; }");
+  const song = { yt: { id: "abcdefghijk", title: "Pier Lights", channel: "The Cape Fear - Topic", secs: 14 }, timed: { h: "x", at: [[1, 2], [2, 6], [5, 10], [6, 14]] }, bpm: 100 };
+  const d = SEEDED({ done: ["r:open-1"] }, song); d.skills.done["c:Bm"] = { n: 1, best: 0, at: 9 };
+  const { page } = await home(t, d, { key: false, opts: { prepare: pg => pg.route("https://www.youtube.com/iframe_api", r => r.fulfill({ status: 200, contentType: "text/javascript", body: STEPPY })) } });
+  await page.waitForSelector('.rn-stop.cur[data-stop="r:open-2"]');
+  await open(page);
+  await page.click("#round .rnd-speed"); await page.click("#round .rnd-speed"); /* 1.0x */
+  await page.waitForFunction(() => { const m = /translateX\((-?[\d.]+)px\)/.exec(document.querySelector("#round .rnd-track")?.style.transform || ""); return m && +m[1] < -60; }, null, { timeout: 20000 });
+  const xs = await page.evaluate(() => new Promise(ok => { const out = []; const step = () => { const m = /translateX\((-?[\d.]+)px\)/.exec(document.querySelector("#round .rnd-track").style.transform); out.push(+m[1]); if (out.length < 60) requestAnimationFrame(step); else ok(out); }; requestAnimationFrame(step); }));
+  const steps = xs.slice(1).map((x, i) => xs[i] - x);
+  assert.ok(steps.every(s => s >= -0.5), "it never jumps back: " + steps.map(s => s.toFixed(1)).join(" "));
+  const still = steps.filter(s => Math.abs(s) < 0.05).length;
+  assert.ok(still < steps.length / 3, `it moves on nearly every frame (${still} of ${steps.length} frames stood still)`);
+  const sorted = [...steps].sort((a, b) => a - b), mid = sorted[Math.floor(sorted.length / 2)];
+  assert.ok(Math.max(...steps) < Math.max(mid * 4, 4), `no big jumps: largest ${Math.max(...steps).toFixed(1)} px against a typical ${mid.toFixed(1)} px`);
 });

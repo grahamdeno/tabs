@@ -91,6 +91,9 @@ function headSVG(kind, t, { mini = false } = {}) {
      drawing; acoustic adds a dark veneer along the top, electric a highlight stripe. The colours are CSS
      variables on .tuner2[data-kind], and the electric one follows Louie's finish (body[data-wear]); in Light and Dark it is one
      fixed finish (5.16.1). */
+  /* 5.16.2: a thin rim so the headstock's edge reads on a page of the same tone (the electric in Light and Dark): the
+     silhouette grown by 6 units behind the face, in --tn-rim (the string slots fill with it too, so they read as strings) */
+  s += `<defs><filter id="tn-grow"><feMorphology operator="dilate" radius="6"/></filter></defs><path d="${H.d}" fill-rule="evenodd" fill="var(--tn-rim, transparent)" filter="url(#tn-grow)" class="tn-rim"/>`;
   s += `<defs><clipPath id="tn-clip"><path d="${H.d}" clip-rule="evenodd"/></clipPath></defs><g clip-path="url(#tn-clip)" class="tn-face"><rect x="${-pad}" y="0" width="${H.w + pad * 2}" height="${H.h}" fill="var(--tn-face)"/><rect x="${H.w / 2}" y="0" width="${H.w / 2 + pad}" height="${H.h}" fill="var(--tn-side)"/>`
     + (kind === "acoustic" ? `<rect x="${-pad}" y="0" width="${H.w + pad * 2}" height="150" fill="var(--tn-vein)"/>` : `<rect x="${H.w * 0.3}" y="0" width="70" height="${H.h}" rx="35" fill="var(--lv-hi)" opacity=".45"/>`) + `</g>`;
   const [n0, n1] = NUT[kind];
