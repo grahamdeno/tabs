@@ -31,9 +31,10 @@ for (const [width, height, theme] of [[390, 844, "dark"], [320, 640, "light"], [
     await fits("song");
     await is(() => document.getElementById("sheet").classList.contains("focus"), "focus line at open");
     /* On a short phone the chord can sit behind the song bar: bring it up first. */
-    await page.evaluate(() => { const el = document.querySelector(".sheet .c[data-ch='F#m']"); if (el.getBoundingClientRect().bottom > innerHeight - 160) scrollBy(0, el.getBoundingClientRect().top - innerHeight / 3); });
+    /* 5.12.0: the main path has the timeline over each line; a chord is a part of its line's bar */
+    await page.evaluate(() => { const el = [...document.querySelectorAll(".sheet .tls")].find(x => x.textContent === "F#m"); if (el.getBoundingClientRect().bottom > innerHeight - 160) scrollBy(0, el.getBoundingClientRect().top - innerHeight / 3); });
     await page.evaluate(() => new Promise(ok => requestAnimationFrame(() => requestAnimationFrame(ok))));
-    await page.click(".sheet .c[data-ch='F#m'] .ct", { force: true }); await page.waitForSelector(".shapecard");
+    await page.locator(".sheet .tls", { hasText: /^F#m$/ }).first().click(); await page.waitForSelector(".shapecard");
     await is(() => { const c = document.querySelector(".shapecard"), d = document.querySelector(".dock .pw, .dock"); return !!c && !!c.querySelector("svg") && c.getBoundingClientRect().bottom <= d.getBoundingClientRect().top; }, "tapping a chord shows its shape in a card above Play");
     await is(() => !document.querySelector(".prow, .dpop"), "nothing is drawn over the words");
     await page.evaluate(() => scrollTo(0, 0)); await page.waitForFunction(() => scrollY === 0);

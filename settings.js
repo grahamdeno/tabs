@@ -2,7 +2,7 @@
 import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, shownTheme, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
-import { TL_NAMES, tlView } from "./timeline.js"; /* timeline: the 5.11.0 try-out */
+import { TL_NAMES, tlView, tlPick } from "./timeline.js"; /* timeline */
 import { ago, backupNow, copyDiagnostics, needsBackup, problems, storageKept, where } from "./store.js";
 import { AI, aiError, aiKey, applyTheme, askClaude, busy, data, go, metroPreview, mmss, setData, BPM_STORE, bpmKey } from "./app.js";
 
@@ -30,7 +30,7 @@ function renderSettings() {
         <select id="s-tlview" aria-label="Chords while playing">${Object.entries(TL_NAMES).map(([k, n]) => `<option value="${k}" ${tlView() === k ? "selected" : ""}>${n}</option>`).join("")}</select>
       </div>
     </div>
-    <p class="foot">Try out (5.11.0): see how long each chord lasts, on every line or as a timeline while you play. Over the words is how songs looked before.</p>
+    <p class="foot">Timeline over each line shows how long each chord lasts. Over the words is how songs looked before 5.11.0.</p>
     <div class="set-group glass">
       <div class="set">
         <span class="tile">${icon("gauge")}</span><span class="name">Speed style</span><span class="val">${s.speedMode === "multiplier" ? "1x style" : "Song length"}</span>${icon("chev", "chev")}
@@ -257,7 +257,7 @@ function renderSettings() {
   $("s-speed")?.addEventListener("change", e => { s.startSpeed = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-length")?.addEventListener("change", e => { s.startLength = +e.target.value; Tabs.save(data); renderSettings(); });
   $("s-mode").onchange = e => { s.speedMode = e.target.value; Tabs.save(data); renderSettings(); };
-  if ($("s-tlview")) $("s-tlview").onchange = e => { if (e.target.value) s.playView = e.target.value; else delete s.playView; Tabs.save(data); renderSettings(); }; /* timeline */
+  if ($("s-tlview")) $("s-tlview").onchange = e => { tlPick(e.target.value); Tabs.save(data); renderSettings(); }; /* timeline */
   $("s-count").onclick = () => { s.countIn = s.countIn === false; Tabs.save(data); renderSettings(); };
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   /* Road Ready 05: the playing controls stay on screen instead of hiding after 3 s */

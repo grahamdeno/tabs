@@ -2,7 +2,7 @@
 import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
-import { tlDecorate, tlView, TL_VIEWS, TL_NAMES } from "./timeline.js"; /* timeline: the 5.11.0 try-out */
+import { tlDecorate, tlView, tlPick, TL_NAMES } from "./timeline.js"; /* timeline (5.11.0; the way songs show since 5.12.0) */
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderSet, setCtx, setRun, setSongs, setSetCtx } from "./sets.js";
 import { clearPortraitLeftovers, copyDiagnostics, loadLibrary, noteError } from "./store.js";
@@ -1254,7 +1254,7 @@ function songMenu(song, anchor, redrawSong) {
     const inPlace = { metro: () => toggleMetronome(song, toolsAnchor()),
       capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`, toolsAnchor()); },
       easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); },
-      tlview: () => { const v = ["", ...TL_VIEWS], next = v[(v.indexOf(tlView()) + 1) % v.length]; if (next) data.settings.playView = next; else delete data.settings.playView; Tabs.save(data); redrawSong(); } }; /* timeline */
+      tlview: () => { const v = Object.keys(TL_NAMES); tlPick(v[(v.indexOf(tlView()) + 1) % v.length]); Tabs.save(data); redrawSong(); } }; /* timeline */
     const ip = ev.target.closest("[data-m]");
     if (ip && inPlace[ip.dataset.m] && inPlace[ip.dataset.m]() !== false) {
       if (NEW_IN_MENU[ip.dataset.m]) markUsed(NEW_IN_MENU[ip.dataset.m]);
@@ -1563,7 +1563,10 @@ document.addEventListener("click", e => {
   /* A German word: its card (meaning, gender, why this form). */
   const dw = e.target instanceof Element && e.target.closest(".sheet .de[data-de]");
   if (dw && !scroll.on && viewing) { showChordPop(null); lazy("german.js").then(m => m.wordCard(viewing, dw)); return; }
-  const chord = e.target instanceof Element && e.target.closest(".sheet .c[data-ch]");
+  let chord = e.target instanceof Element && e.target.closest(".sheet .c[data-ch]");
+  /* timeline (5.12.0): a part of a line's bar is its chord, so a tap shows the shape as a tap on the letter did */
+  const seg = !chord && e.target instanceof Element && e.target.closest(".sheet .tls");
+  if (seg) chord = seg.closest(".pr, .crow")?.querySelectorAll(".c[data-ch]")[[...seg.parentElement.children].indexOf(seg)] || null;
   if (chord && !scroll.on) {
     const same = chord.classList.contains("sel");
     showChordPop(same ? null : chord);

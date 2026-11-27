@@ -7,15 +7,16 @@ useBrowser();
 const SONG = { id: "g", title: "Porch Light Radio", artist: "The Low Tide", key: "G", format: "chords", duration: 120,
   body: "[Verse]\nG              D\nMorning comes in slow across the yard\nEm          C\nCoffee on the step and the radio on\n\n[Chorus]\nC                 G         D\nPorch light radio, keep the station on" };
 async function open(t, playView) {
-  const page = await phone(t, { ...LIB, songs: [SONG], settings: { ...LIB.settings, theme: "neon", ...(playView ? { playView } : {}) } });
+  const settings = { ...LIB.settings, theme: "neon" }; delete settings.playView; if (playView) settings.playView = playView;
+  const page = await phone(t, { ...LIB, songs: [SONG], settings });
   const errs = []; page.on("pageerror", e => errs.push(e.message)); t.after(() => assert.deepEqual(errs, [], "page errors"));
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   return page;
 }
 const stop = page => page.evaluate(() => document.querySelector("#fp #play, #play")?.click());
 
-test("timeline: off unless picked; the song page and a play look as before", { skip: skip() }, async t => {
-  const page = await open(t);
+test("timeline: Over the words (stored as words) looks as before 5.11.0", { skip: skip() }, async t => {
+  const page = await open(t, "words");
   assert.equal(await page.locator(".tlb").count(), 0);
   const box = await page.locator(".sheet .c[data-ch]").first().boundingBox();
   assert.ok(box && box.height > 8, "chord letters over the words");
@@ -24,7 +25,7 @@ test("timeline: off unless picked; the song page and a play look as before", { s
 });
 
 test("timeline over each line: a bar per line, split by the words each chord covers, letters kept for VoiceOver; the chord you're on is lit", { skip: skip() }, async t => {
-  const page = await open(t, "lines");
+  const page = await open(t); /* 5.12.0: the default, nothing stored */
   assert.equal(await page.locator(".sheet .tlb").count(), 3, "one bar for each line with chords");
   assert.deepEqual(await page.locator(".sheet .tlb").first().locator(".tls").allInnerTexts(), ["G", "D"]);
   const [g, d] = await page.locator(".sheet .tlb").first().locator(".tls").evaluateAll(els => els.map(e => e.getBoundingClientRect().width));
@@ -44,8 +45,8 @@ test("timeline over each line: a bar per line, split by the words each chord cov
   await page.evaluate(() => { location.hash = "#/settings/playing"; }); await page.waitForSelector("#s-tlview");
   await page.selectOption("#s-tlview", "");
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
-  assert.equal(await page.locator(".tlb").count(), 0, "back to Over the words: the bars are gone");
-  assert.equal((await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings)).playView, undefined, "nothing left stored");
+  assert.equal(await page.locator(".tlb").count(), 0, "Over the words: the bars are gone");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.playView === "words");
 });
 
 test("chord timeline: while a song plays a panel shows the whole song and the chords coming up; it goes when the song stops", { skip: skip() }, async t => {
@@ -64,14 +65,37 @@ test("timeline: Tools, Chords while playing, tries the next one in place", { ski
   const page = await open(t);
   await page.click("#more"); await page.waitForSelector(".menu.tools");
   if (!(await page.locator('[data-m="tlview"]').isVisible())) await page.click('[data-tab="play"]');
-  await page.click('[data-m="tlview"]');
-  await page.waitForSelector(".sheet .tlb");
-  assert.match(await page.innerText('[data-m="tlview"]'), /Timeline over each line/);
+  assert.match(await page.innerText('[data-m="tlview"]'), /Timeline over each line/, "the default");
   await page.click('[data-m="tlview"]');
   await page.waitForFunction(() => !document.querySelector(".sheet .tlb"));
   assert.match(await page.innerText('[data-m="tlview"]'), /Chord timeline/);
   await page.click('[data-m="tlview"]');
   assert.match(await page.innerText('[data-m="tlview"]'), /Over the words/);
+  await page.click('[data-m="tlview"]');
+  await page.waitForSelector(".sheet .tlb");
+  assert.match(await page.innerText('[data-m="tlview"]'), /Timeline over each line/);
+});
+
+test("5.12.0 a tap on a part of a line's bar shows that chord's shape, as a tap on the letter did", { skip: skip() }, async t => {
+  const page = await open(t);
+  await page.locator(".sheet .tls", { hasText: /^D$/ }).first().click();
+  await page.waitForSelector(".shapecard");
+  assert.match(await page.innerText(".shapecard"), /\bD\b/);
+});
+
+test("5.12.0 while a song plays, lines fade out as they rise past the one you're on and fade in as they come up", { skip: skip() }, async t => {
+  const long = { ...SONG, body: "[Verse]\n" + Array.from({ length: 14 }, (_, i) => `G        D\nLine number ${i + 1} of the song`).join("\n"), duration: 200 };
+  const settings = { ...LIB.settings, theme: "neon" }; delete settings.playView;
+  const page = await phone(t, { ...LIB, songs: [long], settings });
+  await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
+  await page.click("#play");
+  await page.waitForFunction(() => { const now = document.querySelector("#sheet > .st-now"); return now && [...document.querySelectorAll("#sheet > .pr")].indexOf(now) >= 2; }, null, { timeout: 30000 });
+  const o = await page.evaluate(() => { const rows = [...document.querySelectorAll("#sheet > .pr")], k = rows.findIndex(r => r.classList.contains("st-now")), op = el => +getComputedStyle(el).opacity;
+    return { before: op(rows[k - 1]), now: op(rows[k]), next2: op(rows[k + 2]), far: op(rows[Math.min(rows.length - 1, k + 4)]) }; });
+  assert.equal(o.now, 1, "the line you're on");
+  assert.equal(o.next2, 1, "fully there two lines after it");
+  assert.ok(o.before < 1, `a passed line is fading (${o.before})`);
+  assert.ok(o.far < 1, `a line far below is still fading in (${o.far})`);
 });
 
 test("timeline: every chord colour reads, white or espresso text at 4.5 to 1 or better", { skip: skip() }, async t => {

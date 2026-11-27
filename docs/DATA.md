@@ -139,7 +139,7 @@ A play counts only when auto-scroll carried the page most of the way (60% of the
 | `streakMoment` | boolean, on unless false | Shows the streak celebration once a day (2.43.0) |
 | `streakShown` | day | The day the streak celebration last showed (2.43.0) |
 | `keepControls` | boolean, off unless true | Keep playing controls on screen (Road Ready 05): the Gig's controls never hide while a song plays. For VoiceOver, Switch Control, or anyone who likes seeing them |
-| `playView` | "lines", "strip" or missing | Chords while playing (5.11.0, a try-out, `timeline.js`): Timeline over each line, Chord timeline, or (missing) Over the words as before |
+| `playView` | "strip", "words" or missing | Chords while playing (`timeline.js`): missing is Timeline over each line (the default since 5.12.0; a stored "lines" from 5.11.x means the same), "strip" Chord timeline, "words" Over the words as before 5.11.0 |
 
 `plainPlay` is for the tests only and keeps Play plain.
 
