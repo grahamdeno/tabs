@@ -1080,7 +1080,7 @@ button:focus-visible, a:focus-visible, select:focus-visible, [tabindex]:focus-vi
 #fp { display: none; }
 body.one #fp { display: block; position: fixed; inset: 0; z-index: 21; pointer-events: none; }
 body.one #fp > * { pointer-events: auto; }
-body.one:not(.fold) #fp > :not(.fp-pull) { display: none; }
+body.one:not(.playing) #fp > :not(.fp-pull) { display: none; } /* 5.14.0: no fold; the set's next song and the beat show while a song plays */
 body.one { overscroll-behavior: none; }
 body.fold .fp #play { position: fixed; z-index: 22; width: 52px; height: 52px; border-radius: var(--r); right: 18px; bottom: calc(18px + var(--safe-b)); display: grid; place-items: center; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
 body.fold .fp #play svg { width: 18px; height: 18px; }
@@ -3837,7 +3837,7 @@ body.staged { --gel: var(--g-verse); background: transparent; }
 body.staged[data-gel="chorus"] { --gel: var(--g-chorus); } body.staged[data-gel="bridge"] { --gel: var(--g-bridge); } body.staged[data-gel="solo"] { --gel: var(--g-solo); }
 body.staged .app.viewer > :not(.sheet):not(.dock):not(.dock-fade):not(.fp), body.staged .chead, body.staged .shapecard { visibility: hidden; }
 /* in a show the Gig's own controls replace the bar and the song map; unscored, the folded Play is the pause (4.52.0) */
-body.gigging.staged .app.viewer > :is(.dock, .dock-fade) { visibility: hidden; }
+body.gigging.staged .app.viewer > .dock-fade { visibility: hidden; } /* 5.14.0: the bar itself stays, over the Gig */
 body.staged .app.viewer { overflow-x: clip; }
 body.staged .sheet { overflow-x: visible; }
 body.staged .sheet > * { position: relative; opacity: 1 !important; transform: none !important; -webkit-text-stroke: 0 !important; transition: color .25s; }
@@ -6214,7 +6214,7 @@ body.searching #sb-more { display: none; }
 .rnd-str { position: absolute; z-index: 2; left: 0; right: 0; height: 2px; background: linear-gradient(to bottom, #8e98a4, #f5f8fc 50%, #8a949e); pointer-events: none; }
 .rnd-str.s0 { height: 3.5px; background: linear-gradient(to bottom, #6a4424, #fff3d4 50%, #5a381c); } .rnd-str.s1 { height: 3px; background: linear-gradient(to bottom, #6a4424, #fff3d4 50%, #5a381c); }
 .rnd-str.s2 { height: 2.5px; background: linear-gradient(to bottom, #6a4424, #fff3d4 50%, #5a381c); } .rnd-str.s3 { height: 2px; } .rnd-str.s4 { height: 1.5px; } .rnd-str.s5 { height: 1px; }
-.rnd-track { position: absolute; z-index: 3; left: 30%; top: 0; bottom: 0; width: var(--w, 4000px); will-change: transform; }
+.rnd-track { position: absolute; z-index: 3; left: 22%; top: 0; bottom: 0; width: var(--w, 4000px); will-change: transform; }
 .rnd-fret { position: absolute; top: 0; left: 0; width: 100cqh; height: 8px; max-width: none; transform-origin: 0 0; transform: translateX(calc(var(--x) * 1px + 4px)) rotate(90deg); pointer-events: none; opacity: .45; filter: saturate(.55); } /* 5.10.1: quieter gold, between the bars */
 .rnd-blk { position: absolute; top: 56px; height: 170px; width: 18px; margin-left: -1px; border-radius: 4px; background: #F6EEE0; box-shadow: 0 1px 3px rgba(0, 0, 0, .5); }
 .rnd-blk.past { opacity: .55; }
@@ -6224,7 +6224,7 @@ body.searching #sb-more { display: none; }
 .rnd-nm { position: absolute; top: 34px; padding: 1px 6px; border-radius: 4px; background: #F6EEE0; color: #1E1914; font: 600 var(--type-footnote, 13px) "IBM Plex Mono", monospace; }
 .rnd-rest { position: absolute; top: 56px; height: 170px; box-sizing: border-box; border: 1.5px dashed #F6EEE0; border-radius: 6px; display: grid; place-items: center; background: rgba(20, 12, 6, .35); color: #F6EEE0; font: 600 var(--type-footnote, 13px) Inter, sans-serif; text-shadow: 0 1px 2px #000; }
 .rnd-rest span { text-align: center; padding: 0 4px; overflow-wrap: anywhere; }
-.rnd-line { position: absolute; z-index: 4; top: 0; bottom: 0; left: calc(30% - 1px); width: 3px; background: var(--rnd-acc); box-shadow: 0 0 12px var(--rnd-acc); pointer-events: none; }
+.rnd-line { position: absolute; z-index: 4; top: 0; bottom: 0; left: calc(22% - 1px); width: 3px; background: var(--rnd-acc); box-shadow: 0 0 12px var(--rnd-acc); pointer-events: none; }
 .rnd-line::before { content: ""; position: absolute; top: 0; left: -6px; border-left: 7.5px solid transparent; border-right: 7.5px solid transparent; border-top: 10px solid var(--rnd-acc); }
 .rnd-ci { position: absolute; z-index: 5; right: 24px; top: 50%; transform: translateY(-50%); font: 700 64px Sora, sans-serif; color: #F6EEE0; text-shadow: 0 2px 8px #000; pointer-events: none; }
 .rnd-below { display: flex; align-items: center; gap: 18px; margin: 4px 20px 0; flex: none; }
@@ -6308,3 +6308,14 @@ body.tl-strip.staged .gig .gg-head { visibility: hidden; }
 .lpk-strip i { flex: 1 1 0; min-width: 3px; display: block; background: var(--rr-mesh, #2A2724); opacity: .55; }
 .lpk-strip i.on { opacity: 1; box-shadow: inset 0 -4px 0 var(--rr-text, #F6EEE0); }
 .lpk-say { margin: 6px 0 0; min-height: 1.2em; font-size: 13px; color: var(--rr-text-2, var(--muted)); }
+
+/* 5.14.0 (Graham, 2026-11-27): one bar. The song page's bar stays put while a song plays, in a Gig or not (no fold into
+   Play's corner, no Gig copy of it). Over a Gig it sits on top, and fades with the Gig's other controls when idle; any
+   tap brings it back (the tap that wakes is swallowed, gig.js bindIdle). */
+body.gigging .app.viewer .dock { z-index: 57; transition: opacity .25s; } /* a fade only: the bar never slides or changes shape */
+body:has(#gig.idle) .app.viewer .dock { opacity: 0; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { body.gigging .app.viewer .dock { transition-duration: .2s !important; } } /* a plain fade, no motion */
+/* 5.14.0: with the bar staying out, the set's next song and the beat sit just above it while a song plays */
+.fp-nav { right: 80px; bottom: calc(142px + var(--safe-b)); } /* above the bar and the Next card */
+.fp-band { right: 18px; bottom: calc(142px + var(--safe-b)); }
+body:has(#gig.done, #gig .on-count) .app.viewer .dock { visibility: hidden; } /* Show complete and the first show's Count me in card have their own buttons */

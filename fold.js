@@ -1,10 +1,9 @@
 // The song bar on a phone held upright (3.19.0).
 //
-// While the song is paused the whole bar is out, so every control is in sight.
-// Play folds it into Play's corner while the song plays: the bar slides away and
-// Play stays alone in the corner, to pause. Pausing unfolds the bar again.
-// Paused at the top of a song, pull the page down to go back.
-// (This replaced the ring controls: hold Play for a ring, the arc and the island.)
+// 5.14.0 (Graham, 2026-11-27): one bar that never moves. It used to fold into Play's corner while a song played;
+// now it stays where it is, playing or paused, in a Gig or not, and only Play's face changes. What's left here:
+// paused at the top of a song, pull the page down to go back.
+// (The fold replaced the ring controls in 3.19.0: hold Play for a ring, the arc and the island.)
 import { oneHandMQ } from "./ui.js";
 
 let st = null; /* { o, el, cleanup } for the song page on screen */
@@ -45,76 +44,24 @@ export function teardownFold() {
   st = null;
 }
 
-// Fold the bar into Play's corner (playing) or bring it back (paused).
-function apply(force) {
+// 5.14.0: no fold. The bar stays out; only the one-hand layout class is kept.
+function apply() {
   if (!st) return;
   const one = foldActive();
   document.body.classList.toggle("one", one);
-  const on = one && st.o.playing();
-  const was = document.body.classList.contains("fold");
-  const motion = !force && on !== was && !matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const before = motion ? foldStart(on) : null;
-  document.body.classList.toggle("fold", on);
-  const p = document.getElementById("play");
-  if (on && p && p.parentElement !== st.el) { st.home = { parent: p.parentElement, next: p.nextSibling }; st.el.appendChild(p); }
-  else if (!on) restore();
-  const nav = st.el.querySelector(".fp-nav"), n = on && st.o.nav?.();
+  document.body.classList.remove("fold");
+  restore();
+  /* while a song plays on a phone (a Gig covers these): the next song in a set (3.20.0) and the beat (4.43.0), above the bar */
+  const live = one && st.o.playing();
+  const nav = st.el.querySelector(".fp-nav"), n = live && st.o.nav?.();
   if (nav) { nav.hidden = !n; if (n) { nav.innerHTML = n.html; nav.setAttribute("aria-label", n.label); } }
   const band = st.el.querySelector(".fp-band");
-  if (band) band.hidden = !on;
-  if (before) foldEnd(on, before);
+  if (band) band.hidden = !live;
 }
 function restore() {
   const p = document.getElementById("play"), h = st?.home;
   if (p && h?.parent.isConnected) h.parent.insertBefore(p, h.next && h.next.parentElement === h.parent ? h.next : null);
   if (st) st.home = null;
-}
-/* The motion: going to the corner, a copy of the bar shrinks into Play; coming back, the bar grows out
-   of Play. Play itself glides between its two places. */
-const barPart = () => {
-  const dock = document.querySelector(".app.viewer .dock");
-  if (!dock) return null;
-  const rows = document.body.classList.contains("loop-on");
-  return rows ? dock.querySelector(".player") : dock.querySelector(".pw");
-};
-/* 5.13.1: in a Gig the Gig's own bar stands in exactly where this one was (5.10.2), so Play and Pause swap the two with
-   no motion: the shrink into the corner and the grow back out made the bar look like it left and came back. */
-const still = () => document.body.classList.contains("gigging");
-function foldStart(toCorner) {
-  const p = document.getElementById("play");
-  const out = { play: p?.getBoundingClientRect(), still: still() };
-  if (out.still) return out;
-  const part = barPart();
-  if (toCorner && part && p) {
-    const r = part.getBoundingClientRect();
-    if (r.width) {
-      const ghost = part.cloneNode(true);
-      ghost.querySelectorAll("[id]").forEach(e => e.removeAttribute("id"));
-      ghost.removeAttribute("id");
-      ghost.classList.add("fold-ghost");
-      ghost.setAttribute("aria-hidden", "true");
-      Object.assign(ghost.style, { position: "fixed", left: r.left + "px", top: r.top + "px", width: r.width + "px", height: r.height + "px", margin: 0, zIndex: 19, pointerEvents: "none",
-        transformOrigin: `${out.play.left + out.play.width / 2 - r.left}px ${out.play.top + out.play.height / 2 - r.top}px` });
-      document.body.appendChild(ghost);
-      const a = ghost.animate([{ scale: "1", opacity: 1 }, { scale: ".12", opacity: 0 }], { duration: 300, easing: "cubic-bezier(.4,0,.2,1)" });
-      a.onfinish = a.oncancel = () => ghost.remove();
-    }
-  }
-  return out;
-}
-function foldEnd(toCorner, before) {
-  if (before.still || still()) return;
-  const p = document.getElementById("play");
-  if (p && before.play?.width) {
-    const now = p.getBoundingClientRect(), dx = before.play.left - now.left, dy = before.play.top - now.top;
-    if (Math.abs(dx) + Math.abs(dy) > 1) p.animate([{ translate: `${dx}px ${dy}px` }, { translate: "0 0" }], { duration: 300, easing: "cubic-bezier(.4,0,.2,1)" });
-  }
-  if (toCorner) return;
-  const part = barPart(), pr = p?.getBoundingClientRect();
-  if (!part || !pr) return;
-  const r = part.getBoundingClientRect();
-  part.style.transformOrigin = `${pr.left + pr.width / 2 - r.left}px ${pr.top + pr.height / 2 - r.top}px`;
-  part.animate([{ scale: ".12", opacity: 0 }, { scale: "1", opacity: 1 }], { duration: 320, easing: "cubic-bezier(.2,0,0,1)" });
 }
 
 // ---- Pull down at the top to go back ----

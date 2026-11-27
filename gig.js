@@ -19,7 +19,7 @@ import { roadPath, venueNow, guitarShown, COMBO_STEPS, KNOW_PLAYS, STAR_NAMES, r
 import { backdropBanner, backdropsOwned, wearBackdrop } from "./merch.js";
 import { esc, icon, onLeave, haptic } from "./ui.js";
 import { guitarSVG, guitarPic } from "./fretboard.js";
-import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed, openTools, openSpeedDial, openLoopPick, refreshSpeed } from "./app.js";
+import { showCallout, data, diag, scroll, viewing, startScroll, stopScroll, loopFactor, gigHooks, go, chordSVG, homeHooks, redraw, markUsed } from "./app.js";
 import { louie } from "./louie.js";
 import { friend, FRIENDS } from "./friends.js";
 import { where, sections, stageStart, stageClear, stageTick } from "./stage.js";
@@ -51,10 +51,8 @@ function shell(song) {
     <div class="gg-head" id="gg-head"><b>${esc(song.title || "")}</b>${song.artist ? `<small>${esc(song.artist)}</small>` : ""}</div>
     <div class="gg-bottom">
       ${["neon", "festival"].includes(document.documentElement.dataset.look)
-        ? /* 4.108.0 (Graham, 2026-11-19): a control bar like an amp's: Speed, a lit Pause, then Loop and Tools as small knobs */
-          `<div class="gg-bar" role="group" aria-label="Song controls"><button class="gg-sb gg-speed" id="gg-speed" aria-label="Speed">${icon("gauge")}<small class="sp-val">Speed</small></button>
-          <div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>
-          <span class="gg-knobs"><button class="gg-sb gg-knob" id="gg-loop" aria-label="Loop a section"><i aria-hidden="true"></i><small>Loop</small></button><button class="gg-sb gg-knob" id="gg-tools" aria-label="Tools"><i aria-hidden="true"></i><small>Tools</small></button></span></div>`
+        ? "" /* 5.14.0 (Graham, 2026-11-27): one bar. The song page's own bar (Speed, Play, Loop, Tools) stays in place for the
+                Gig; the Gig's copy of it (4.108.0) is gone */
         : `<div class="gg-pod" id="gg-pod"><button class="gg-pause" id="gg-pause" aria-label="Pause">${icon("pause")}</button></div>`}
     </div>
     <div class="gg-prog" aria-hidden="true"><i id="gg-prog"></i></div>
@@ -167,7 +165,7 @@ function bindIdle(g) {
   const wake = e => {
     if (e.type === "pointerdown" || e.type === "touchstart") g.pointerAt = performance.now();
     /* focus that no touch or click brought: a screen reader or a switch is moving through the controls */
-    if (e.type === "focusin" && g.el?.contains(e.target) && performance.now() - g.pointerAt > 800) g.keep = true;
+    if (e.type === "focusin" && (g.el?.contains(e.target) || e.target.closest?.(".app.viewer .dock")) && performance.now() - g.pointerAt > 800) g.keep = true;
     if (e.type === "pointerdown" || e.type === "keydown") hintGone(g);
     if (!g.el?.classList.contains("idle")) { g.touch = performance.now(); return; }
     g.touch = performance.now();
@@ -182,7 +180,8 @@ function bindIdle(g) {
     if (gig !== g) return;
     const ok = scroll.on && !g.paused && !g.credited && !g.ended && !g.el.classList.contains("done") && !document.querySelector(".countin, .menu, .st-open");
     if (g.paused || g.ended || g.credited) g.keep = false; /* kept on until the song is paused or ends */
-    const focused = g.el.contains(document.activeElement) && document.activeElement.matches(":focus-visible");
+    const bar = document.querySelector(".app.viewer .dock"); /* 5.14.0: the one bar lives on the page, not in the Gig */
+    const focused = (g.el.contains(document.activeElement) || bar?.contains(document.activeElement)) && document.activeElement.matches(":focus-visible");
     if (!ok || g.keep || focused || data.settings.keepControls === true) g.el.classList.remove("idle");
     else if (performance.now() - g.touch > 3000) { g.el.classList.add("idle"); hintShow(g); }
   }, 400);
@@ -243,11 +242,7 @@ export function openGig(song, opts = {}) {
   gigHooks.stopped = () => { if (gig !== g) return; if (g.credited) showComplete(); else if (!g.leaving) paused(true); };
   gigHooks.resume = () => { if (gig === g) resume(); };
   gigHooks.leave = () => { if (gig === g) leave(); };
-  $("gg-pause").onclick = () => { if (scroll.on) stopScroll(); else resume(); };
-  $("gg-speed")?.addEventListener("click", () => openSpeedDial());
-  if ($("gg-speed")) refreshSpeed(); /* 4.111.0: the Gig's Speed shows the setting too */
-  $("gg-loop")?.addEventListener("click", () => openLoopPick());
-  $("gg-tools")?.addEventListener("click", e => openTools(e.currentTarget));
+  $("gg-pause")?.addEventListener("click", () => { if (scroll.on) stopScroll(); else resume(); }); /* the older looks' round Pause */
   bindDrag(g);
   bindIdle(g);
   firstLine(g);
@@ -269,7 +264,7 @@ function paused(on) {
   g.el.classList.toggle("paused", on);
   document.body.classList.toggle("held", on);
   document.body.classList.toggle("staged", !on);
-  $("gg-pause").setAttribute("aria-label", on ? "Play on" : "Pause");
+  $("gg-pause")?.setAttribute("aria-label", on ? "Play on" : "Pause");
   g.holdSay = on ? gigPaused(g) : "";
   paintHold();
 }
