@@ -3,7 +3,7 @@
 // the key to turn (Guided walks the strings low to high), Chromatic reads any note.
 // A meter shows how far off the string is; its middle is stretched, so the last
 // few cents are easy to see.
-import { Tabs, TUNINGS, TUNE, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, meterPos, detectPitch, journalTune } from "./core.js";
+import { Tabs, TUNINGS, TUNE, VERSION, noteFreq, nearestNote, nearestString, octaveFix, centsOff, tuneAdvice, guidedTarget, heldInTune, meterPos, detectPitch, journalTune } from "./core.js";
 import { HEADS } from "./heads.js";
 import { getMic, haptic, sound } from "./ui.js";
 import { louie } from "./louie.js";
@@ -91,6 +91,14 @@ function headSVG(kind, t, { mini = false } = {}) {
      drawing; acoustic adds a dark veneer along the top, electric a highlight stripe. The colours are CSS
      variables on .tuner2[data-kind], and the electric one follows Louie's finish (body[data-wear]); in Light and Dark it is one
      fixed finish (5.16.1). */
+  /* 5.17.0: in Light and Dark the headstock is Grok's painting (art/tuner/, one image unit = one heads.js unit), with
+     its own wood, posts, keys and nut; the app draws the strings, the lit string, the note labels and the marks on top.
+     Green Room and Headliner keep the flat drawing below. */
+  const painted = ["neon", "festival"].includes(document.documentElement.dataset.look);
+  if (painted) {
+    s += `<image class="tn-paint" href="art/tuner/head-${kind}.webp?v=${VERSION}" x="0" y="0" width="${H.w}" height="${H.h}" aria-hidden="true" preserveAspectRatio="none"/>`;
+    s += `<g class="tn-strings" stroke-linecap="round">${H.strings.map(g => `<line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="rgba(20,17,13,.45)" stroke-width="14"/><line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="#E9DFC8" stroke-width="7"/>`).join("")}</g>`;
+  } else {
   /* 5.16.2: a thin rim so the headstock's edge reads on a page of the same tone (the electric in Light and Dark): the
      silhouette grown by 6 units behind the face, in --tn-rim (the string slots fill with it too, so they read as strings) */
   s += `<defs><filter id="tn-grow"><feMorphology operator="dilate" radius="6"/></filter></defs><path d="${H.d}" fill-rule="evenodd" fill="var(--tn-rim, transparent)" filter="url(#tn-grow)" class="tn-rim"/>`;
@@ -98,15 +106,17 @@ function headSVG(kind, t, { mini = false } = {}) {
     + (kind === "acoustic" ? `<rect x="${-pad}" y="0" width="${H.w + pad * 2}" height="150" fill="var(--tn-vein)"/>` : `<rect x="${H.w * 0.3}" y="0" width="70" height="${H.h}" rx="35" fill="var(--lv-hi)" opacity=".45"/>`) + `</g>`;
   const [n0, n1] = NUT[kind];
   s += `<rect x="${n0}" y="${H.nutY - 24}" width="${n1 - n0}" height="40" rx="12" fill="var(--tn-post)"/>`;
+  }
   H.strings.forEach((g, i) => {
     const [kx, ky, kw, kh] = g.key, on = i === cur, done = !!t.ok[i];
-    s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="var(--tn-post)"/><rect x="${kx}" y="${ky + 14}" width="${kw}" height="${kh}" rx="44" fill="var(--tn-keylip)"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="var(--tn-key)"${done && !on ? ' stroke="var(--good)" stroke-width="12"' : ""}/>`; /* 5.16.1: in tune is a cream key with an outline and a tick, not a fill */
+    if (!painted) s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="var(--tn-post)"/><rect x="${kx}" y="${ky + 14}" width="${kw}" height="${kh}" rx="44" fill="var(--tn-keylip)"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="var(--tn-key)"${done && !on ? ' stroke="var(--good)" stroke-width="12"' : ""}/>`;
+    else if (done && !on) s += `<rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="none" stroke="var(--good)" stroke-width="12"/>`; /* the painted key, outlined in tune */ /* 5.16.1: in tune is a cream key with an outline and a tick, not a fill */
     if (on) {
       /* the string itself wavers while the mic hears it (.ringing on the stage, styles.css) */
       /* 4.29.2: a dark lip under the lit string and its post, so yellow reads on a light finish (Tweed, Gold, the wood) */
-      s += `<g class="tn-lip" fill="none" stroke="rgba(20,17,13,.5)" stroke-linecap="round"><line x1="${g.px + 6}" y1="${g.py + 6}" x2="${g.nx + 6}" y2="${H.nutY}" stroke-width="30"/><line x1="${g.nx + 6}" y1="${H.nutY}" x2="${g.nx + 6}" y2="${H.h - 40}" stroke-width="30"/></g><circle cx="${g.px + 6}" cy="${g.py + 8}" r="${g.r + 8}" fill="rgba(20,17,13,.5)"/>`;
+      s += `<g class="tn-lip" fill="none" stroke="rgba(20,17,13,.5)" stroke-linecap="round"><line x1="${g.px + 6}" y1="${g.py + 6}" x2="${g.nx + 6}" y2="${H.nutY}" stroke-width="30"/>${painted ? "" : `<line x1="${g.nx + 6}" y1="${H.nutY}" x2="${g.nx + 6}" y2="${H.h - 40}" stroke-width="30"/>`}</g><circle cx="${g.px + 6}" cy="${g.py + 8}" r="${g.r + 8}" fill="rgba(20,17,13,.5)"/>`;
       s += `<g class="tn-lit"><line x1="${g.px}" y1="${g.py}" x2="${g.nx}" y2="${H.nutY}" stroke="${col}" stroke-width="18" stroke-linecap="round"/>`;
-      s += `<line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke="${col}" stroke-width="18"/></g>`;
+      s += `${painted ? "" : `<line x1="${g.nx}" y1="${H.nutY}" x2="${g.nx}" y2="${H.h - 40}" stroke="${col}" stroke-width="18"/>`}</g>`; /* the painting has no neck below the nut */
       s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r}" fill="${col}"/><rect x="${kx}" y="${ky}" width="${kw}" height="${kh}" rx="44" fill="${col}"/>`;
     } else if (done) s += `<circle cx="${g.px}" cy="${g.py}" r="${g.r * 0.55}" fill="var(--good)"/>`;
     /* The note is printed on its key, so changing the tuning relabels the

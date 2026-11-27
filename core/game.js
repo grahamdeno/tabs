@@ -1,6 +1,6 @@
 // The Road: core logic, Version 4's game: the Road, Tour quests, Charts, Your band, Rehearse, song duels, the Gig and the Merch table.
 // Re-exported from core.js, so other files import it from there.
-import { DAY, chordModel, dayKey, heardMatch, isObj, norm, playDays, playSongs, playsThisWeek, shapeSteps, songChanges, streakOf } from "../core.js";
+import { DAY, chordModel, curriculumBoxOpen, curriculumBoxesOpened, dayKey, heardMatch, isCurriculumBox, isObj, norm, playDays, playSongs, playsThisWeek, rewardsOn, shapeSteps, songChanges, streakOf } from "../core.js";
 import { chordShape, isChord, parseBlocks, transposeChord } from "./chords.js";
 import { skillState } from "./neck.js";
 import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
@@ -95,7 +95,7 @@ export const openingOn = data => openingView(data) === "leg";
 export const openingStep = data => Math.min(Math.max(0, data.opening?.step || 0), OPENING.length);
 /* Finish a step, only when it's the one you're on. Steps before the show give lesson fans (once). */
 export function openingAdvance(data, id, now = Date.now()) {
-  if (!openingOn(data)) return false;
+  if (!rewardsOn(data) || !openingOn(data)) return false; /* Unlock all tours pays nothing */
   const o = data.opening && typeof data.opening === "object" ? data.opening : (data.opening = { step: 0, v: OPENING_VER, fans: 0, started: now });
   if (OPENING[o.step]?.id !== id) return false;
   o.step++;
@@ -350,6 +350,8 @@ export function boxesSeed(data, now = Date.now()) {
 }
 /* Open a box: only the one that's your next stop. True when it opened (+FANS.box, counted by fansOf). */
 export function openBox(data, id, now = Date.now()) {
+  if (!rewardsOn(data)) return false; /* Unlock all tours pays nothing */
+  if (isCurriculumBox(id)) return curriculumBoxOpen(data, id, now); /* a box on the new Tour (5.17.0) */
   const cur = roadPath(data, now).current;
   if (!cur || cur.kind !== "box" || cur.id !== id) return false;
   data.boxes = { opened: [...(data.boxes?.opened || []), id] };
@@ -370,7 +372,7 @@ export function openingReplay(data, now = Date.now()) { data.opening = { step: 1
 export function fansOf(data, now = Date.now()) {
   const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
   const rounds = Object.values(data.songTour?.legs || {}).reduce((n, t) => n + (t.done || []).filter(x => /^[rh]:/.test(x)).length, 0);
-  const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0);
+  const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0) + curriculumBoxesOpened(data);
   return lifetimePlays(data) * FANS.play + (lessons + rounds) * FANS.lesson + boxes * FANS.box + (data.gig?.fans || 0) + (data.quests?.fans || 0) + (data.charts?.fans || 0) + (data.opening?.fans || 0);
 }
 

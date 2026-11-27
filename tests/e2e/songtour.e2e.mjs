@@ -8,7 +8,9 @@ useBrowser();
 const cors = { "access-control-allow-origin": "*", "access-control-expose-headers": "retry-after" };
 const OPEN = ["G", "C", "D", "Em", "Am", "E", "A"];
 const DONE = Object.fromEntries([...OPEN.map(c => [`c:${c}`, { n: 1, best: 0, at: 5 }]), ["k:open", { n: 1, best: 0, at: 6 }]]);
-const lib = (extra = {}, songs = []) => ({ ...LIB, songs: [...LIB.songs, ...songs], skills: { done: { ...DONE }, last: 6 }, ...extra });
+/* 5.17.0: the Tour has a merch box after each tour's third stop; these are opened so a waiting box is never the current stop */
+const BOXES = { opened: Array.from({ length: 13 }, (_, i) => `b:t${i + 1}`) };
+const lib = (extra = {}, songs = []) => ({ ...LIB, songs: [...LIB.songs, ...songs], skills: { done: { ...DONE }, last: 6 }, boxes: BOXES, ...extra });
 const PIER = { title: "Pier Lights", artist: "The Cape Fear", chords: ["G", "D", "Bm", "F"] };
 const TOOMANY = { title: "Too Many", artist: "X", chords: ["G", "Bm", "F", "Dm", "Gm", "Cm"] };
 const ONE = { title: "Only One", artist: "X", chords: ["G", "D", "Bm"] };
@@ -64,8 +66,8 @@ test("story 1: after a finished skill tour the next neck is the Song tour with t
 test("story 1: an unfinished song tour never holds the next skill tour back", { skip: skip() }, async t => {
   const { page } = await home(t, lib());
   await page.waitForSelector('.rn-stop[data-stop="r:open-1"]');
-  const first = await page.evaluate(() => document.querySelector('.rn-stop[data-stop="s:G-C"]')?.className || "");
-  assert.match(first, /\bopen\b/, "Chord switches' first stop is open to play");
+  const first = await page.evaluate(() => document.querySelector('.rn-stop[data-stop="k2.4"]')?.className || "");
+  assert.match(first, /\bnow\b/, "the main line's next stop (D to A and A to E) is still the one to play");
   assert.doesNotMatch(first, /locked/);
 });
 
@@ -484,6 +486,23 @@ test("5.16.3 at 1.0x with the recording the highway moves smoothly, though the r
   const song = { yt: { id: "abcdefghijk", title: "Pier Lights", channel: "The Cape Fear - Topic", secs: 14 }, timed: { h: "x", at: [[1, 2], [2, 6], [5, 10], [6, 14]] }, bpm: 100 };
   const d = SEEDED({ done: ["r:open-1"] }, song); d.skills.done["c:Bm"] = { n: 1, best: 0, at: 9 };
   const { page } = await home(t, d, { key: false, opts: { prepare: pg => pg.route("https://www.youtube.com/iframe_api", r => r.fulfill({ status: 200, contentType: "text/javascript", body: STEPPY })) } });
+  await page.waitForSelector('.rn-stop.cur[data-stop="r:open-2"]');
+  await open(page);
+  await page.click("#round .rnd-speed"); await page.click("#round .rnd-speed"); /* 1.0x */
+  await page.waitForFunction(() => { const m = /translateX\((-?[\d.]+)px\)/.exec(document.querySelector("#round .rnd-track")?.style.transform || ""); return m && +m[1] < -60; }, null, { timeout: 20000 });
+  const xs = await page.evaluate(() => new Promise(ok => { const out = []; const step = () => { const m = /translateX\((-?[\d.]+)px\)/.exec(document.querySelector("#round .rnd-track").style.transform); out.push(+m[1]); if (out.length < 60) requestAnimationFrame(step); else ok(out); }; requestAnimationFrame(step); }));
+  const steps = xs.slice(1).map((x, i) => xs[i] - x);
+  assert.ok(steps.every(s => s >= -0.5), "it never jumps back: " + steps.map(s => s.toFixed(1)).join(" "));
+  const still = steps.filter(s => Math.abs(s) < 0.05).length;
+  assert.ok(still < steps.length / 3, `it moves on nearly every frame (${still} of ${steps.length} frames stood still)`);
+  const sorted = [...steps].sort((a, b) => a - b), mid = sorted[Math.floor(sorted.length / 2)];
+  assert.ok(Math.max(...steps) < Math.max(mid * 4, 4), `no big jumps: largest ${Math.max(...steps).toFixed(1)} px against a typical ${mid.toFixed(1)} px`);
+});
+test("5.17.0 the highway stays smooth when the recording's clock lags and now and then reads nothing", { skip: skip() }, async t => {
+  const FLAKY = YT_STUB.replace("getCurrentTime() { return this.state === 1 ? this.t + (performance.now() - this.base) / 1000 : this.t; }", "getCurrentTime() { const raw = this.state === 1 ? this.t + (performance.now() - this.base) / 1000 : this.t; this.n = (this.n || 0) + 1; return this.n % 9 === 0 ? NaN : Math.floor((raw - (this.n % 5) * 0.04) * 4) / 4; }");
+  const song = { yt: { id: "abcdefghijk", title: "Pier Lights", channel: "The Cape Fear - Topic", secs: 14 }, timed: { h: "x", at: [[1, 2], [2, 6], [5, 10], [6, 14]] }, bpm: 100 };
+  const d = SEEDED({ done: ["r:open-1"] }, song); d.skills.done["c:Bm"] = { n: 1, best: 0, at: 9 };
+  const { page } = await home(t, d, { key: false, opts: { prepare: pg => pg.route("https://www.youtube.com/iframe_api", r => r.fulfill({ status: 200, contentType: "text/javascript", body: FLAKY })) } });
   await page.waitForSelector('.rn-stop.cur[data-stop="r:open-2"]');
   await open(page);
   await page.click("#round .rnd-speed"); await page.click("#round .rnd-speed"); /* 1.0x */
