@@ -14,6 +14,7 @@ import { esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
 import { drum, tempoFor } from "./audio.js";
 import { musicClock, musicLead, pauseMusic, startMusic } from "./listen.js";
 import { chordSVG, data, mmss, usesMusic } from "./app.js";
+import { chordColor } from "./timeline.js";
 
 /* 5.10.1: the strums spread out (34 px a beat was crowded) */
 const PX_BEAT = 56, SPEEDS = [0.6, 0.8, 1];
@@ -141,6 +142,7 @@ function listen(r) {
   const ctx = r.ctx, now = ctx.currentTime, h = where(r);
   r.fast.getFloatTimeDomainData(r.fb);
   let rms = 0; for (const v of r.fb) rms += v * v; rms = Math.sqrt(rms / r.fb.length);
+  r.level = Math.max(rms, (r.level || 0) * 0.92); /* 5.15.0: the meter in the score pill */
   if (r.hear(rms, now, 0) && h > -r.plan.spb) {
     const id = nearStrum(r.plan.strums, h, r.plan.spb, r.taken);
     if (id >= 0) { r.taken.add(id); r.pending.push({ id, until: now + 0.4, best: 0 }); }
@@ -170,7 +172,8 @@ function frame(r) {
   const ci = ex.querySelector(".rnd-ci");
   if (ci) ci.textContent = h < 0 ? String(Math.min(plan.beats, Math.ceil(-h / plan.spb))) : "";
   const prog = ex.querySelector(".rnd-prog i"); if (prog) prog.style.width = `${Math.max(0, Math.min(100, h / plan.secs * 100)).toFixed(1)}%`;
-  ex.querySelectorAll(".rnd-blk").forEach(b => { const s = plan.strums[+b.dataset.s]; b.classList.toggle("past", h > s.t + 0.15); b.classList.toggle("now", Math.abs(h - s.t) < plan.spb * 0.35); });
+  ex.querySelectorAll(".rnd-blk, .rnd-nm").forEach(b => { const s = plan.strums[+b.dataset.s]; b.classList.toggle("past", h > s.t + 0.15); b.classList.toggle("now", Math.abs(h - s.t) < plan.spb * 0.35); });
+  if (r.mic) { const lv = Math.min(4, Math.round(Math.sqrt((r.level || 0) / 0.08) * 4)); ex.querySelectorAll(".rnd-lv i").forEach((b, i) => b.classList.toggle("on", i < lv)); }
   if (bar && bi !== r.bar && h >= 0) {
     r.bar = bi;
     ex.querySelector(".rnd-say").textContent = roundSay(plan.bars, bi, plan.beats);
@@ -240,31 +243,35 @@ function paint() {
   const wood = `<div class="rnd-wood" aria-hidden="true"></div>`;
   const strings = Array.from({ length: 6 }, (_, i) => `<i class="rnd-str s${i}" style="top:${(18 + i * 13.2).toFixed(1)}%"></i>`).join("");
   const frets = plan.bars.map(b => `<img class="rnd-fret" src="art/road-neck/fret-gold.webp?v=${VERSION}" alt="" draggable="false" style="--x:${(b.t * PX_BEAT / plan.spb - PX_BEAT / 2).toFixed(1)}">`).join("");
-  const rests = plan.bars.filter(b => !b.mine).map(b => `<div class="rnd-rest" style="left:${(b.t * PX_BEAT / plan.spb - PX_BEAT / 2 + 8).toFixed(1)}px;width:${(b.dur * PX_BEAT / plan.spb - 16).toFixed(1)}px"><span>rest · ${esc(b.chord)}</span></div>`).join("");
+  const rests = plan.bars.filter(b => !b.mine).map(b => `<div class="rnd-rest" style="left:${(b.t * PX_BEAT / plan.spb - PX_BEAT / 2 + 8).toFixed(1)}px;width:${(b.dur * PX_BEAT / plan.spb - 16).toFixed(1)}px"><span>Rest, listen<b>${esc(b.chord)}</b></span></div>`).join("");
   const blocks = plan.strums.map(s => `<i class="rnd-blk" data-s="${s.id}" style="left:${(s.t * PX_BEAT / plan.spb - 8).toFixed(1)}px"></i><span class="rnd-arr" aria-hidden="true" style="left:${(s.t * PX_BEAT / plan.spb - 14).toFixed(1)}px">↓</span>`).join("");
-  const names = plan.bars.filter(b => b.mine).map(b => `<span class="rnd-nm" style="left:${(b.t * PX_BEAT / plan.spb - 8).toFixed(1)}px">${esc(b.chord)}</span>`).join("");
+  /* 5.15.0: every strum names its chord, in the chord's colour (timeline.js, contrast-checked) */
+  const names = plan.strums.map(s => { const c = chordColor(s.chord); return `<span class="rnd-nm" data-s="${s.id}" aria-hidden="true" style="left:${(s.t * PX_BEAT / plan.spb + 1).toFixed(1)}px;--nm-bg:${c.bg};--nm-fg:${c.fg}">${esc(s.chord)}</span>`; }).join("");
   const art = /^https:\/\//.test(song.listen?.art || "") ? `<img src="${esc(song.listen.art)}" alt="" width="44" height="44">` : esc((song.title || "?")[0].toUpperCase());
   r.el.innerHTML = `
     <div class="rnd-top">
       <button class="rnd-x" aria-label="Close" data-rnd="close">${icon("x")}</button>
       <div class="rnd-ti"><small>${esc(kicker(stop))}</small><h2>${esc(stop.kind === "headline" ? "The whole song" : stop.sub)}</h2></div>
-      <div class="rnd-heard" role="img" aria-label="Louie heard 0 of ${plan.strums.length} strums" hidden><i aria-hidden="true"></i><b>0/${plan.strums.length}</b></div>
+      <div class="rnd-heard" role="img" aria-label="Louie heard 0 of ${plan.strums.length} strums" hidden>${icon("mic")}<span class="rnd-lv" aria-hidden="true"><i></i><i></i><i></i><i></i></span><b>0/${plan.strums.length}</b></div>
     </div>
     <div class="rnd-song"><span class="rnd-art" aria-hidden="true">${art}</span><div><b>${esc(song.title)}</b><small>${esc(`${part.name}, ${mmss(Math.round(plan.secs))}${rest ? "" : ""}`)}</small></div></div>
     <div class="rnd-prog" aria-hidden="true"><i></i></div>
     <div class="rnd-hw" aria-label="The chords coming at you">${wood}${strings}<div class="rnd-track" style="--w:${(plan.secs * PX_BEAT / plan.spb + 400).toFixed(0)}px">${frets}${rests}${blocks}${names}</div><i class="rnd-line" aria-hidden="true"></i><span class="rnd-ci" aria-hidden="true"></span></div>
-    <div class="rnd-below"><div class="rnd-shape" role="img" aria-label="Chord shape"></div><div class="rnd-info"><small>NOW</small><div class="rnd-now" aria-hidden="true">Count in</div><p class="rnd-next"></p></div></div>
+    <div class="rnd-foot">
+      <div class="rnd-below"><div class="rnd-info"><small>NOW</small><div class="rnd-now" aria-hidden="true">Count in</div></div><div class="rnd-shape" role="img" aria-label="Chord shape"></div></div>
+      <div class="rnd-nx"><small>NEXT</small><p class="rnd-next"></p></div>
+      <div class="rnd-bar">
+        <div class="rnd-ctl"><button class="rnd-speed" data-speed="${r.speed}" aria-label="Speed, ${r.speed.toFixed(1)}x">${r.speed.toFixed(1)}x</button><span aria-hidden="true">Speed</span></div>
+        <div class="rnd-ctl"><button class="rnd-pause" aria-label="Pause" data-rnd="pause">${icon("pause")}</button><span aria-hidden="true" class="rnd-pl">Pause</span></div>
+        <div class="rnd-ctl"><button class="rnd-again" data-rnd="restart" aria-label="Restart">${icon("restart")}</button><span aria-hidden="true">Restart</span></div>
+      </div>
+    </div>
     <div class="sr-only rnd-say" aria-live="polite"></div>
-    <div class="rnd-card" hidden></div>
-    <div class="rnd-bar">
-      <div class="rnd-speed" role="group" aria-label="Speed">${SPEEDS.map(v => `<button aria-pressed="${v === r.speed}" data-speed="${v}">${Math.round(v * 100)}%</button>`).join("")}</div>
-      <button class="rnd-pause" aria-label="Pause" data-rnd="pause">${icon("pause")}</button>
-      <button class="rnd-again" data-rnd="restart">Restart</button>
-    </div>`;
+    <div class="rnd-card" hidden></div>`;
   r.el.onclick = e => {
     const b = e.target.closest("[data-rnd],[data-speed]");
     if (!b || R !== r) return;
-    if (b.dataset.speed) { r.speed = +b.dataset.speed; return begin(); }
+    if (b.dataset.speed) { r.speed = SPEEDS[(SPEEDS.indexOf(r.speed) + 1) % SPEEDS.length] || SPEEDS[0]; return begin(); } /* 5.15.0: one button, 0.6x, 0.8x, 1.0x, then 0.6x again */
     const k = b.dataset.rnd;
     if (k === "close" || k === "back") return closeRound();
     if (k === "restart" || k === "again") return begin();
@@ -282,4 +289,5 @@ function pause(r, btn) {
   else { r.paused = false; r.ctx.resume?.(); if (r.recording && r.musicOn) startMusic(r.song, r.plan.start + Math.max(0, r.at), 1); }
   btn.setAttribute("aria-label", to ? "Play" : "Pause");
   btn.innerHTML = icon(to ? "play" : "pause");
+  const pl = btn.parentElement?.querySelector(".rnd-pl"); if (pl) pl.textContent = to ? "Play" : "Pause";
 }

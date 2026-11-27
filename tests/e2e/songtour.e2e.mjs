@@ -185,7 +185,9 @@ test("rounds: Round 1 opens a highway with a count-in, your chord's strums, a re
   assert.equal(await page.locator("#round .rnd-str").count(), 6, "six strings");
   assert.ok(await page.locator("#round .rnd-line").count(), "the teal line");
   assert.match(await page.innerText("#round .rnd-ti"), /Round 1.*Just G|Just G/s);
-  assert.equal(await page.getAttribute('#round [data-speed="0.6"]', "aria-pressed"), "true", "the first time starts at 60%");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 0.6x", "the first time starts at 0.6x");
+  assert.equal(await page.locator("#round .rnd-nm").count(), await page.locator("#round .rnd-blk").count(), "5.15.0: every strum names its chord");
+  assert.match(await page.innerText("#round .rnd-rest >> nth=0"), /Rest, listen\s*Bm/, "5.15.0: a rest says listen and names the chord");
   await page.waitForFunction(() => /Rest for Bm|Next/.test(document.querySelector("#round .rnd-next")?.textContent || ""), null, { timeout: 15000 });
   assert.match(await page.innerText("#round .rnd-next"), /Rest for Bm, back on G in \d|Next: G/);
   await page.waitForFunction(() => document.querySelector("#round .rnd-say")?.textContent.trim(), null, { timeout: 15000 });
@@ -240,14 +242,18 @@ test("rounds: Round 2 adds the next chord; a finished round plays at 100% the ne
   await page.waitForSelector('.rn-stop.cur[data-stop="r:open-2"]');
   await open(page);
   assert.equal(await page.locator("#round .rnd-rest").count(), 1, "G and Bm are played, F rests");
-  assert.equal(await page.getAttribute('#round [data-speed="0.6"]', "aria-pressed"), "true");
-  await page.click('#round [data-speed="1"]');
-  assert.equal(await page.getAttribute('#round [data-speed="1"]', "aria-pressed"), "true");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 0.6x");
+  await page.click("#round .rnd-speed");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 0.8x", "5.15.0: one tap, one step");
+  await page.click("#round .rnd-speed");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 1.0x");
   await page.click('#round [data-rnd="close"]');
   await page.click('.rn-stop[data-stop="r:open-1"]'); await page.waitForSelector(".rd-pop .rd-start");
   assert.match(await page.innerText(".rd-pop .rd-start"), /PLAY IT AGAIN/i);
   await page.click(".rd-pop .rd-start"); await page.waitForSelector("#round .rnd-hw");
-  assert.equal(await page.getAttribute('#round [data-speed="1"]', "aria-pressed"), "true", "played through once: 100%");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 1.0x", "played through once: 100%");
+  await page.click("#round .rnd-speed");
+  assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 0.6x", "after 1.0x it goes back to 0.6x");
 });
 
 test("rounds: the chord lesson comes before the round that needs it, and opens", { skip: skip() }, async t => {
@@ -276,7 +282,7 @@ window.onYouTubeIframeAPIReady && window.onYouTubeIframeAPIReady();`;
   await open(page); /* Round 2 at 60% */
   await page.waitForTimeout(3000); /* real timer: the count-in is over */
   assert.equal((await page.evaluate(() => window.__yt?.calls || [])).filter(c => /^play|^seek/.test(c)).length, 0, "at 60% the band plays, not the recording");
-  await page.click('#round [data-speed="1"]'); /* restarts at 100% */
+  await page.click("#round .rnd-speed"); await page.click("#round .rnd-speed"); /* restarts at 100% (0.6x, 0.8x, 1.0x) */
   await page.waitForFunction(() => (window.__yt?.calls || []).some(c => /^seek/.test(c)), null, { timeout: 15000 });
   const seek = +(await page.evaluate(() => window.__yt.calls.find(c => /^seek/.test(c)))).split(" ")[1];
   assert.ok(seek >= 6 && seek <= 10, "the recording starts at the part (10 s in, less a moment of lead): " + seek);
@@ -317,7 +323,7 @@ test("rounds: the mic cancels echo when the recording plays (100% with a recordi
   await page.waitForSelector('.rn-stop.cur[data-stop="r:open-2"]');
   await open(page); /* the first time: 60%, Louie's band */
   assert.deepEqual(await page.evaluate(() => window.__mic.at(-1)), { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, "the band keeps the plain settings");
-  await page.click('#round [data-speed="1"]'); /* 100% with the recording */
+  await page.click("#round .rnd-speed"); await page.click("#round .rnd-speed"); /* 100% with the recording */
   await page.waitForFunction(() => window.__mic.length >= 2);
   assert.deepEqual(await page.evaluate(() => window.__mic.at(-1)), { echoCancellation: true, noiseSuppression: false, autoGainControl: false }, "the recording round cancels the echo");
   /* a replay at 100% opened straight from the tap asks the same way, before anything is awaited */
@@ -400,4 +406,29 @@ test("5.10.1 rounds: on its side Pause is on top and answers; the line sits near
   assert.ok(at > 0.19 && at < 0.25, `5.14.0: the line is near 22% across, over the chord shape side (${at})`);
   const gap = await page.evaluate(() => { const b = [...document.querySelectorAll("#round .rnd-blk")].map(x => x.getBoundingClientRect().left); return b[1] - b[0]; });
   assert.ok(gap >= 50, `strums are spread out (${gap} px)`);
+});
+
+/* 5.15.0 the round screen (Graham, 2026-11-27): a chord name on every strum, Now and Next, and Speed, Pause and Restart
+   on screen at every size, upright and on its side */
+test("5.15.0 rounds: Speed, Pause and Restart sit on the screen at every size, chord names read at 4.5:1, and the result card shows", { skip: skip() }, async t => {
+  const lum = c => { const [r, g, b] = c.match(/[\d.]+/g).slice(0, 3).map(Number).map(v => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }); return .2126 * r + .7152 * g + .0722 * b; };
+  for (const [width, height] of [[667, 375], [932, 430], [320, 568], [430, 932]]) {
+    const { page } = await home(t, SEEDED(), { key: false, opts: { viewport: { width, height } } });
+    await page.waitForSelector('.rn-stop.cur[data-stop="r:open-1"]');
+    await open(page);
+    const r = await page.evaluate(() => ["rnd-speed", "rnd-pause", "rnd-again"].map(c => { const b = document.querySelector("#round ." + c).getBoundingClientRect(); const hit = document.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)?.closest("button"); return { c, in: b.top >= 0 && b.bottom <= innerHeight && b.left >= 0 && b.right <= innerWidth, w: b.width, h: b.height, hit: hit?.classList.contains(c) }; }));
+    for (const x of r) { assert.ok(x.in, `${width}×${height}: ${x.c} is on the screen`); assert.ok(x.hit, `${width}×${height}: nothing covers ${x.c}`); assert.ok(x.w >= 44 && x.h >= 44, `${x.c} is a 44 px target`); }
+    const nm = await page.evaluate(() => { const e = document.querySelector("#round .rnd-nm"), c = getComputedStyle(e); return [c.color, c.backgroundColor]; });
+    const [a, b] = nm.map(lum).sort((p, q) => q - p);
+    assert.ok((a + .05) / (b + .05) >= 4.5, `chord names read at ${((a + .05) / (b + .05)).toFixed(1)}:1`);
+    assert.match(await page.innerText("#round .rnd-pause + span"), /Pause/, "Pause says its name under it");
+    await page.click("#round .rnd-pause");
+    assert.match(await page.innerText("#round .rnd-pause + span"), /Play/);
+    if (width === 667) { /* the round played through: the result card is on the screen with its buttons */
+      await page.click("#round .rnd-pause");
+      await page.waitForSelector("#round .rnd-card:not([hidden])", { timeout: 60000 });
+      const c = await page.evaluate(() => { const b = document.querySelector("#round .rnd-card .btn").getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight; });
+      assert.ok(c, "the result card's button is on the screen");
+    }
+  }
 });
