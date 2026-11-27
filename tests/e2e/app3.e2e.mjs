@@ -338,8 +338,10 @@ test("A run that stops early is not a play", { skip: skip() }, async t => {
 });
 
 test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", { skip: skip() }, async t => {
-  const skills = { done: { "c:G": { n: 3, best: 90, at: Date.now() }, "c:C": { n: 3, best: 90, at: Date.now() }, "c:D": { n: 3, best: 90, at: Date.now() } } };
-  const page = await phone(t, { ...LIB, skills, boxes: { opened: [] } }, { home: true });
+  /* 5.17.0: Tour 1's first three stops (Opening night's two and the Em lesson) done: its merch box waits */
+  const skills = { done: { "c:Em": { n: 3, best: 90, at: Date.now() } } };
+  /* a map written before the player reached the box: the box is ahead, so it pays (a box already behind at the first write is settled and pays nothing) */
+  const page = await phone(t, { ...LIB, skills, boxes: { opened: [] }, curriculum: { v: 1, done: {} } }, { home: true });
   await page.waitForSelector(".rd-node.box.now");
   assert.match(await page.innerText(".rn-now-tx"), /Merch box/, "the shut box is the next stop");
   const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");
@@ -370,7 +372,7 @@ test("The Road on a new library: the first song is ready to play on the current 
   await page.waitForSelector(".rd-path");
   assert.equal(await page.locator("#rd-bubble").count(), 0, "no message on the Road (one-row header, Grok 2026-11-19)");
   assert.equal(await page.locator("#rd-tonight").count(), 0, "no Tonight bar on the Road");
-  assert.match(await page.innerText(".rn-now-tx"), /^G$/, "the current stop's name sits on the plate");
+  assert.match(await page.innerText(".rn-now-tx"), /^Em$/, "the current stop's name sits on the plate");
 });
 
 test("Tour Map (4.18.0): the sheet gives one goal in minutes of playing, pulls up for the scene, and Play starts the song", { skip: skip() }, async t => {
@@ -478,21 +480,15 @@ test("4.14.0 the Merch table: fans open it, buy and wear a finish, a Rain check 
   assert.deepEqual([saved.merch.own.take || 0, saved.merch.own.rain || 0, saved.merch.backdrop], [0, 0, "brick"], "both used, and the backdrop is on");
 });
 
-test("4.35.0 the Road's headline: a tap opens its card, which names a song that fits; Other songs lists the rest", { skip: skip() }, async t => {
-  const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map((c, i) => [`c:${c}`, { n: 1, at: Date.now() - 1000 + i }]));
-  const songs = [{ ...LIB.songs[0], id: "h1", title: "Low Tide", body: "[V]\n[G]a [C]b [D]c [G]d", playLog: { total: 1, last: Date.now() - 2 * 864e5, days: {} } },
-    { ...LIB.songs[1], id: "h2", title: "Porch Light", body: "[V]\n[Em]a [C]b [G]c [D]d", playLog: { total: 1, last: Date.now() - 5 * 864e5, days: {} } }];
-  const page = await phone(t, { ...LIB, songs, skills: { done, last: Date.now() } }, { home: true });
-  await page.waitForSelector(".rd-node.now.headline");
-  const w = await page.evaluate(() => document.querySelector(".rd-node.now .rn-pearl").getBoundingClientRect().width);
-  assert.ok(w >= 60, `4.34.1: the headline keeps its size (Road Ready: two 24 px pearls, ${w})`);
-  await page.click(".rd-node.now"); await page.waitForSelector(".rd-pop.now");
-  assert.match(await page.innerText(".rd-pop.now"), /Headline show[\s\S]*Low Tide[\s\S]*PLAY LOW TIDE/, "the last played song that fits");
-  assert.match(await page.innerText("#rd-other"), /Other songs that fit \(1\)/);
-  await page.click("#rd-other"); await page.waitForSelector(".rd-others [data-play]");
-  assert.deepEqual(await page.$$eval(".rd-others [data-play]", b => b.map(x => x.dataset.play)), ["h1", "h2"]);
-  await page.click("#ro-x"); await page.waitForSelector(".rd-others", { state: "detached" });
-  await page.click(".rd-pop.now .rd-start"); await page.waitForSelector("#gig");
+/* 5.17.0: a tour's headline is Coming soon until the song-fitting release; the old level-check headline card (a song that fits) is not on the Tour. */
+test("The Tour's headline stops: Tour 1's show plays, the others say Coming soon and play nothing", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, boxes: { opened: ["b:t1"] } }, { home: true });
+  await page.waitForSelector(".rn-neck"); await settled(page);
+  assert.ok(await page.locator(".rd-node.headline").count() >= 13, "every tour ends on a headline stop");
+  await page.$eval('[data-stop="k2.6"]', b => { b.scrollIntoView({ block: "center" }); b.click(); }); await page.waitForSelector(".rd-pop.soon");
+  const soon = await page.innerText(".rd-pop.soon");
+  assert.match(soon, /Headline show[\s\S]*Coming soon/);
+  assert.equal(await page.locator(".rd-pop .rd-start").count(), 0, "a Coming soon headline plays nothing");
 });
 
 test("4.48.0 One search: a labelled bar on the Songbook, two buttons on the Road; before typing only what helps; typing shows your songs, then rows that say what they do", { skip: skip() }, async t => {
@@ -592,7 +588,7 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1, hlseen: 1 } }, { home: true });
   await page.waitForSelector(".rn-neck");
   assert.equal(await page.locator(".rn-neck").count(), 1, "one rosewood neck for the legs you can see");
-  assert.match(await page.innerText(".rn-legbar"), /Tour 1/);
+  assert.match(await page.innerText(".rn-legbar"), /Tour \d/);
   assert.equal(await page.locator(".rn-bubble").count(), 0, "no name bubble in the gutter");
   assert.equal(await page.locator(".rn-now").count(), 1, "one now plate, for the current stop");
   assert.equal(await page.locator(".rd-node.headline .rn-pearl").count() >= 1, true, "the headline is an inlay");
@@ -728,16 +724,12 @@ test("Road Ready 9a fix: for each of the 23 new pictures, lit and shade match th
   for (const o of out) { assert.ok(o.l <= 70 && o.r <= 70, `${o.slug}: lit is ${o.l} and shade ${o.r} away from the picture's own fretboard`); }
 });
 
-test("5.9.1 Other songs on a finished headline, while the current stop is a switch, lists that headline's songs (it threw)", { skip: skip() }, async t => {
-  const done = Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map((c, i) => [`c:${c}`, { n: 1, at: Date.now() - 2000 + i }]));
-  done["k:open"] = { n: 1, at: Date.now() - 500 };
-  const songs = [{ ...LIB.songs[0], id: "h1", title: "Low Tide", body: "[V]\n[G]a [C]b [D]c [G]d" },
-    { ...LIB.songs[1], id: "h2", title: "Porch Light", body: "[V]\n[Em]a [C]b [G]c [D]d" }];
-  const page = await phone(t, { ...LIB, songs, skills: { done, last: Date.now() } }, { home: true });
+test("5.9.1 a finished headline on the Tour opens its card without an error (Tour 1's first show)", { skip: skip() }, async t => {
+  const page = await phone(t, { ...LIB, boxes: { opened: ["b:t1"] } }, { home: true });
   const errs = []; page.on("pageerror", e => errs.push(e.message));
-  await page.waitForSelector(".rd-node.headline.done");
-  await page.$eval(".rd-node.headline.done", b => { b.scrollIntoView({ block: "center" }); b.click(); }); await page.waitForSelector(".rd-pop #rd-other");
-  await page.$eval("#rd-other", b => b.click()); await page.waitForSelector(".rd-others [data-play]");
-  assert.equal(await page.locator(".rd-others [data-play]").count(), 2);
+  await page.waitForSelector('.rd-node.headline.done[data-stop="k1.6"]');
+  await page.$eval('[data-stop="k1.6"]', b => { b.scrollIntoView({ block: "center" }); b.click(); }); await page.waitForSelector(".rd-pop");
+  assert.match(await page.innerText(".rd-pop"), /Your first show/);
+  assert.equal(await page.locator(".rd-pop .rd-start").count(), 1, "a played show can be played again");
   assert.deepEqual(errs, []);
 });

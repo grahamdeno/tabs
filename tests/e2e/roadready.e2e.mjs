@@ -310,10 +310,13 @@ const AT = Date.now();
 const doneOf = ids => ({ done: Object.fromEntries(ids.map((id, i) => [id, { n: 3, best: 90, at: AT - 1000 + i }])), last: AT });
 const OPEN = ["G", "C", "D", "Em", "Am", "E", "A"].map(c => "c:" + c);
 /* part of the first leg done: G, C, D (a merch box after them, opened on arrival) and Em; Am is the current stop */
-const MID = doneOf(OPEN.slice(0, 4));
+/* 5.17.0: the Tour is the curriculum map: Tours 1 to 3 done (and their merch boxes opened) make Am, the first stop of Tour 4, the current stop */
+const T3 = ["c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C", "s:C-D", "s:G-D"];
+const MID = doneOf(T3);
+const BOXES = { opened: Array.from({ length: 13 }, (_, i) => `b:t${i + 1}`) };
 /* the whole first leg done, its headline show too: the second leg starts fresh */
 const LEG1 = doneOf([...OPEN, "k:open"]);
-const roadLib = (theme, skills, extra = {}) => ({ ...LIB, ...(skills ? { skills } : {}), ...extra, settings: { ...LIB.settings, v: 6, theme } });
+const roadLib = (theme, skills, extra = {}) => ({ ...LIB, ...(skills ? { skills } : {}), boxes: BOXES, ...extra, settings: { ...LIB.settings, v: 6, theme } });
 async function road(t, theme, skills, opts = {}, extra) {
   const page = await phone(t, roadLib(theme, skills, extra), { home: true, ...opts });
   await page.waitForSelector(".rr-head .rr-stats"); await settled(page);
@@ -375,9 +378,9 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     });
     assert.ok(neck.frac >= 0.55 && neck.frac <= 0.6, `the neck is ${neck.frac} of the screen`);
     assert.equal(neck.strings, 6);
-    assert.equal(neck.live, 10, "one inlay per stop on the leg you are on");
-    assert.ok(neck.dim > 0, "the next leg is drawn in full, grayed out");
-    assert.equal(neck.num, "6");
+    assert.equal(neck.live, 73, "one inlay per stop on the main line: 61 stops and 12 merch boxes (5.17.0)");
+    assert.ok(neck.dim > 0, "the lead and fingerstyle rows are drawn, grayed out");
+    assert.equal(neck.num, "1");
     assert.equal(neck.pearl, 64);
     assert.equal(neck.glow, true);
     assert.ok(neck.check >= 4, "done stops carry a check");
@@ -395,15 +398,15 @@ for (const [label, theme] of [["dark", "dark"], ["light", "light"]]) {
     assert.ok(neck.gutter.length >= 1, "the stop numbers are in the gutter");
     assert.equal(neck.side, 0, "no side bubble and no gutter title");
     assert.ok(neck.gold >= 12, "the leg change is a thick gold fret");
-    assert.match(neck.label, /Tour 1 · Open chords/);
-    assert.equal(await page.getAttribute(".rd-node.cur", "aria-label"), "Show 6 of 10, The Am chord, current. Double tap to open.");
+    assert.match(neck.label, /Tour \d+ · \w/, "the leg row names the tour at the top of the view");
+    assert.equal(await page.getAttribute(".rd-node.cur", "aria-label"), "Show 1 of 7, The Am chord, current. Double tap to open.");
     assert.equal(await page.locator("#app svg.louie, #app .louie").count(), 0, "no Louie on the Road");
     if (process.env.SHOT) await page.screenshot({ path: `${process.env.SHOT}/rr02-${label}.png` });
   });
 }
 
-test("Road Ready 02: a finished leg ends on a gold fret, and the next leg is grayed out in full", { skip: skip() }, async t => {
-  const page = await road(t, "dark", LEG1, {}, { merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] } });
+test("Road Ready 02: a finished tour ends on a gold fret, and the lead and fingerstyle rows are grayed out", { skip: skip() }, async t => {
+  const page = await road(t, "dark", MID, {}, { merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] } });
   const m = await page.evaluate(() => ({
     gold: document.querySelectorAll(".rn-gold").length,
     cur: document.querySelector(".rd-node.cur")?.getAttribute("aria-label") || "",
@@ -415,10 +418,10 @@ test("Road Ready 02: a finished leg ends on a gold fret, and the next leg is gra
     veil: document.querySelectorAll(".rn-upcoming").length
   }));
   assert.ok(m.gold >= 1, "the leg change is a gold fret");
-  assert.match(m.cur, /^Show 1 of 11,/);
-  assert.match(m.next, /Tour 3/);
+  assert.match(m.cur, /^Show 1 of 7,/);
+  assert.match(m.next, /Lead route/);
   assert.equal(m.peek, 0, "no empty fret stub under the gold");
-  assert.ok(m.dim >= 5, "the next leg's stops are on the neck");
+  assert.equal(m.dim, 2, "the two locked rows are on the neck");
   assert.equal(m.dimGlow, 0, "a grayed stop does not glow");
   assert.equal(m.veil, 1, "one gray band over the next leg");
   assert.ok(m.stops > 10, "the finished leg stays on the neck with the one you are on");
@@ -471,7 +474,7 @@ test("Road Ready 02: a screen reader meets the three stats, then the leg and its
   });
   assert.deepEqual(order.slice(0, 3), ["h-streak", "h-fans", "h-tips"]);
   assert.ok(order.includes("stop"), "the stops are buttons");
-  assert.match(await page.innerText(".rd-legmark >> nth=0"), /Tour 1/);
+  assert.match(await page.innerText(".rd-legmark >> nth=0"), /Tour \d+/);
   assert.match(await page.innerText(".rn-now-tx"), /Am/);
   assert.equal(await page.getAttribute("#rn-now-open", "aria-label"), "Am, open this stop");
   assert.equal(await page.getAttribute("#rn-now-start", "aria-label"), "Start Am");
@@ -493,9 +496,9 @@ test("Road Ready 02: large text keeps the header to one row, with nothing cut of
 });
 
 test("Road Ready 02: the current stop breathes and a new step of the line draws itself on; with Reduce Motion nothing moves", { skip: skip() }, async t => {
-  const BOX = doneOf(OPEN.slice(0, 3));
+  const BOX = doneOf(["c:Em"]); /* Tour 1's first three stops are done: its merch box waits */
   for (const reduce of [false, true]) {
-    const page = await road(t, "dark", BOX, { reducedMotion: reduce ? "reduce" : "no-preference" }, { boxes: { opened: [] } });
+    const page = await road(t, "dark", BOX, { reducedMotion: reduce ? "reduce" : "no-preference" }, { boxes: { opened: [] }, curriculum: { v: 1, done: {} } });
     await page.waitForSelector(".rd-node.box.now");
     await page.click(".rd-node.box.now");
     await page.waitForSelector(".rd-node.cur:not(.box) .rr-glow", { timeout: 6000 }); /* the Road is drawn again with the next stop current */

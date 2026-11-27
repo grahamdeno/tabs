@@ -1,6 +1,6 @@
 // The Road: core logic, Your playing (the profile numbers) and the streak moment.
 // Re-exported from core.js, so other files import it from there.
-import { DAY, chordsUsed, dayKey, playCount, playDays, pruneDays, shapeSteps, songChanges, streakOf } from "../core.js";
+import { DAY, chordsUsed, dayKey, playCount, playDays, pruneDays, rewardsOn, shapeSteps, songChanges, streakOf } from "../core.js";
 import { guessKey, transposeChord, transposeKey } from "./chords.js";
 
 // ---------- Your playing: the journal behind the profile page ----------
@@ -108,6 +108,7 @@ export function journalPractice(data, secs, now = Date.now()) {
 }
 /* A song tour round or headline passed (5.10.0): its time counts as practice, and the month's challenge counts it as a show. */
 export function journalRound(data, secs, now = Date.now(), first = true) {
+  if (!rewardsOn(data)) return; /* Unlock all tours (5.17.0) */
   journalPractice(data, secs, now);
   if (first) { const m = journalOf(data, now).months[monthKey(now)]; if (m) m.rounds = (m.rounds || 0) + 1; }
 }

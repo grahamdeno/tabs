@@ -599,7 +599,7 @@ export function bareNeckHTML(legs, o = {}) {
   const w = (board.width * 100).toFixed(2);
   /* Low E to high E. Each width is one constant, the whole length of the string. */
   const thick = [3.5, 2.7, 2.2, 1.7, 1.2, 0.95];
-  const dimLeg = li => up >= 0 && li === up;
+  const dimLeg = li => up >= 0 && li >= up; /* 5.17.0: everything from the first upcoming leg on is gray (the lead and fingerstyle rows) */
   const wires = board.frets.map(f => {
     const dim = dimLeg(f.leg) ? " rn-dim" : "";
     return f.gold
@@ -632,7 +632,7 @@ export function bareNeckHTML(legs, o = {}) {
   const labels = real.map((leg, li) => {
     const first = board.stops.find(sp => sp.li === li);
     if (!first) return "";
-    return legMark(leg, li === 0 ? 0 : first.y0, dimLeg(li) ? " rn-next" : "");
+    return legMark(leg, li === 0 ? 0 : first.y0, up >= 0 && li === up ? " rn-next" : "");
   }).join("");
   /* The gray band starts just under the gold fret that opens the upcoming leg, and runs to the end of its wood. */
   const upStop = up > 0 ? board.stops.find(sp => sp.li === up) : null;
