@@ -2,7 +2,7 @@
 import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, handMove, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
-import { tlDecorate, tlView, tlPick, TL_NAMES, chordColor, lineWeights } from "./timeline.js"; /* timeline (5.11.0; the way songs show since 5.12.0) */
+import { tlDecorate, chordColor, lineWeights } from "./timeline.js"; /* timeline (5.11.0; the way songs show since 5.12.0) */
 import { $, app, esc, icon, layer, leaveHooks, oneHandMQ, onLeave, onScroll, toast, sound } from "./ui.js";
 import { addToSet, coverCache, coverDel, coverLoadAll, nextLine, nextUp, renderSet, setCtx, setRun, setSongs, setSetCtx } from "./sets.js";
 import { clearPortraitLeftovers, copyDiagnostics, loadLibrary, noteError } from "./store.js";
@@ -1182,8 +1182,7 @@ function songMenu(song, anchor, redrawSong) {
     { id: "play", label: "Play", head: "HOW IT PLAYS", rows: [
       { id: "speed", icon: "gauge", label: byLength() ? "Song length" : "Speed", sub: byLength() ? "How long one play takes" : "How fast the page moves", step: true },
       { id: "beat", icon: "metro", label: "Beat", sub: beatMode() === "off" ? "Off" : `${beatName()} · ${song.bpm || 90} BPM`, beat: true },
-      { id: "size", icon: "type", label: "Text size", size: true },
-      chords && { id: "tlview", icon: "list", label: "Chords while playing", sub: TL_NAMES[tlView()] + " · tap to try the next" } /* timeline */
+      { id: "size", icon: "type", label: "Text size", size: true }
     ] },
     { id: "practice", label: "Practice", head: "LEARNING IT", rows: [
       { id: "prac", icon: "loop", label: "Practice mode", sub: practicing(song) ? "Loop a section, slow it down" : "Off: plays straight through", on: practicing(song), prac: true },
@@ -1277,8 +1276,7 @@ function songMenu(song, anchor, redrawSong) {
     }
     const inPlace = { metro: () => toggleMetronome(song, toolsAnchor()),
       capo: () => { song.capoOff = !song.capoOff; if (!song.capoOff) delete song.capoOff; Tabs.save(data); redrawSong(); toast(song.capoOff ? "Capo off: the chords are in the key the song sounds in" : `Capo ${bodyCapo(song.body)} is back`, toolsAnchor()); },
-      easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); },
-      tlview: () => { const v = Object.keys(TL_NAMES); tlPick(v[(v.indexOf(tlView()) + 1) % v.length]); Tabs.save(data); redrawSong(); } }; /* timeline */
+      easy: () => { if (aiKey()) return false; ez.on = !ez.on; Tabs.save(data); redrawSong(); } };
     const ip = ev.target.closest("[data-m]");
     if (ip && inPlace[ip.dataset.m] && inPlace[ip.dataset.m]() !== false) {
       if (NEW_IN_MENU[ip.dataset.m]) markUsed(NEW_IN_MENU[ip.dataset.m]);

@@ -15,7 +15,7 @@ import { BOOTH_MAX, BOOTH_PLACES, BOOTH_RATE, BOOTH_RIVALS, boothCall, boothChor
 import { ytId, cleanYt, ytAt, ytSong, ytMatches } from "./core/youtube.js";
 
 // Release version: MAJOR.MINOR.PATCH. Must match the service worker cache name.
-export const VERSION = "5.17.1";
+export const VERSION = "5.17.2";
 
 const STORAGE_KEY = "tabs-v1";
 export const DAY = 86400000;
@@ -50,6 +50,7 @@ function blank() {
 export function migrate(data) {
   if (!data || !Array.isArray(data.songs)) return blank();
   const settings = { ...DEFAULT_SETTINGS, ...(data.settings || {}) };
+  delete settings.playView; /* 5.17.2: Timeline over each line is the only view; a stored "strip" or "words" is dropped */
   const v = data.settings?.v || 1;
   // v2: Now and Next starts off. Older saves had it on only because it was the default.
   if (v < 2) settings.diagrams = false;
