@@ -1,5 +1,5 @@
 // The Road: the band: metronome and drums. Split from app.js (4.15.1); app.js re-exports what other files use.
-import { DRUM_SWING, Tabs, barHits, beatsLate, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf } from "./core.js";
+import { DRUM_SWING, Tabs, barHits, chordTargets, beatsLate, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf } from "./core.js";
 import { $, sound, toast } from "./ui.js";
 import { aiKey } from "./aihelp.js";
 import { READ_AT, byLength, data, findAI, loopFactor, paintLoop, pxPerSecond, scroll, songLength, usesMusic, viewing } from "./app.js";
@@ -253,4 +253,22 @@ export function drum(kind, t, vel = 1) {
       burst("highpass", 7500, 0.8, 0.14, 0.045);
     }
   } catch {}
+}
+
+/* Louie's band strums a chord (5.16.0, song tour rounds and drills): the chord's strings low to high, 12 ms apart, a soft
+   plucked tone through a low-pass, so you hear what the bar is even when you rest. */
+export function strumAt(name, t, vel = 1, len = 1.1) {
+  const audio = sound(), strings = chordTargets(name);
+  if (!audio || !strings) return;
+  try {
+    const out = audio.createGain(), lp = audio.createBiquadFilter();
+    out.gain.value = metroVol() * 0.5; lp.type = "lowpass"; lp.frequency.value = 2400;
+    lp.connect(out); out.connect(bandOut(audio));
+    strings.filter(x => x.hz > 0).forEach((x, j) => {
+      const when = t + j * 0.012, o = audio.createOscillator(), g = audio.createGain();
+      o.type = "triangle"; o.frequency.value = x.hz;
+      g.gain.setValueAtTime(0.0001, when); g.gain.exponentialRampToValueAtTime(0.22 * vel, when + 0.006); g.gain.exponentialRampToValueAtTime(0.0001, when + len);
+      o.connect(g); g.connect(lp); o.start(when); o.stop(when + len + 0.05);
+    });
+  } catch { /* the sound is closed */ }
 }

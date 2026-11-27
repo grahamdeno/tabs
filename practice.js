@@ -21,6 +21,7 @@ import { beatTrack, chordSVG, data, go, loopHooks, openAtSection, openLessonSong
 import { bindStatBar, pageStats } from "./hud.js";
 import { louie } from "./louie.js";
 import { callout } from "./callout.js";
+import { openDrill } from "./rounds.js";
 
 const $ = id => document.getElementById(id);
 const strName = (i, tuning) => { const n = (TUNINGS[tuning] || TUNINGS.standard).notes[i].replace(/\d/, ""); return i === 0 ? `low ${n}` : i === 5 ? `high ${n}` : n; };
@@ -29,6 +30,8 @@ const lessonName = st => st.kind === "chord" ? `${st.chord} chord` : st.kind ===
 
 let live = null; /* the lesson running now: stopped when you leave */
 let drillQueue = []; /* 4.23.0: "Drill all three" in Rehearse: the switch lessons still to do, in order */
+/* 5.16.0: a drill opened from Rehearse leaves the address as it was, so going "back" to it has to redraw the page */
+const goTo = h => { if (location.hash === h) window.dispatchEvent(new Event("hashchange")); else go(h); };
 let backTo = "#/practice"; /* where a lesson's Back goes: Rehearse, or All lessons when it was opened there */
 function stopLive() {
   if (!live) return;
@@ -189,9 +192,10 @@ export function renderRehearse() {
   app.querySelectorAll(".ls-step").forEach(b => b.onclick = () => startPart(l, +b.dataset.part));
   $("ls-all").onclick = () => go("#/practice/skills");
   $("rh-missed")?.addEventListener("click", () => { $("rh-pairs").hidden = !$("rh-pairs").hidden; });
-  app.querySelectorAll(".rh-pair").forEach(b => b.onclick = () => { drillQueue = []; go("#/practice/" + encodeURIComponent(b.dataset.id)); });
-  app.querySelectorAll(".rh-ycd").forEach(b => b.onclick = () => { drillQueue = []; go("#/practice/" + encodeURIComponent(b.dataset.drill)); });
-  $("rh-ycall")?.addEventListener("click", () => { const todo = rows.filter(r => !r.done); const list = (todo.length ? todo : rows).map(c => c.id); drillQueue = list.slice(1); go("#/practice/" + encodeURIComponent(list[0])); });
+  /* 5.16.0: a drill opens on the neck straight from the tap (so the phone lets the microphone and the sound start) */
+  app.querySelectorAll(".rh-pair").forEach(b => b.onclick = () => { drillQueue = []; drillNow(b.dataset.id); });
+  app.querySelectorAll(".rh-ycd").forEach(b => b.onclick = () => { drillQueue = []; drillNow(b.dataset.drill); });
+  $("rh-ycall")?.addEventListener("click", () => { const todo = rows.filter(r => !r.done); const list = (todo.length ? todo : rows).map(c => c.id); drillQueue = list.slice(1); drillNow(list[0]); });
   $("rh-band").onclick = () => learn ? openAtSection(learn.id) : toast("Add a song with chords to sit in with the band.");
   $("rh-tuner").onclick = () => openTuner();
   $("rh-hear").onclick = () => go("#/practice/hear");
@@ -218,6 +222,33 @@ function learningCard() {
 }
 
 /* ---------- one lesson ---------- */
+/* the switch step for an id ("s:G-C"): on the neck, or a change you dropped in a gig (target 80 BPM) */
+function switchStep(id) {
+  const hit = find(id);
+  if (hit?.st.kind === "switch") return hit.st;
+  const m = /^s:([^-]+)-(.+)$/.exec(id || "");
+  return m && chordSVG(m[1]) && chordSVG(m[2]) ? { id, kind: "switch", a: m[1], b: m[2], to: 80, state: "now" } : null;
+}
+/* 5.16.0: a change drill runs on the song tour neck (rounds.js); at the target tempo it's done, as before */
+function drillNow(id) {
+  const st = typeof id === "string" ? switchStep(id) : id;
+  if (!st) return go("#/practice/" + encodeURIComponent(id));
+  const t0 = Date.now();
+  openDrill(st, { onDone: (bpm, line) => finishSwitch(st, bpm, line, t0) });
+}
+function finishSwitch(st, at, line, t0) {
+  stopLive();
+  const part = lessonPartOf(data, st.id); /* 4.21.0: part of today's lesson? (before it counts as learned) */
+  if (part >= 0) lessonKeep(data);
+  skillDone(data, st.id, at);
+  const sc = soundcheckDone(data, st.id); /* Rehearse (4.8.0): part of today's soundcheck? */
+  const ls = part >= 0 ? lessonDone(data, part) : null;
+  if (ls?.finished) callout(data, { kind: "lesson", word: "LESSON DONE", big: `+${ls.xp} XP` }); /* 4.44.0 */
+  const secs = (Date.now() - t0) / 1000; Tabs.save(data);
+  const more = ls?.finished ? ` Lesson of the day done: +${ls.xp} XP.` : ls ? ` Part ${part + 1} of today's lesson done.` : "";
+  done(st, { secs, line: (sc?.done ? `${line} Soundcheck done: +${sc.xp} XP.` : sc ? `${line} One more change for today's soundcheck.` : line) + more, bpm: at, sc: sc || ls });
+}
+
 export function renderSession(id) {
   stopLive();
   if (id === "hear") return whatIHear();
@@ -350,7 +381,7 @@ function chordLesson(st) {
       <div class="rd-say pk-say">${louie("listen", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Finger the chord. I'll ask for one string at a time; pluck it and let it ring.</p></div>
     </section>
     <div class="s-dock"><button class="btn primary" id="pk-start">${icon("fork")}Start listening</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
-  $("back").onclick = () => go(backTo); bindTune();
+  $("back").onclick = () => goTo(backTo); bindTune();
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const finish = (heard = true) => {
     stopLive();
@@ -418,7 +449,7 @@ function scaleLesson(st) {
       <div class="rd-say pk-say">${louie("happy", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">${esc(sc.tip)} Tap Hear it, then play it up and back down, one note at a time.</p></div>
     </section>
     <div class="s-dock"><button class="btn primary" id="pk-start">${icon("fork")}Start listening</button><button class="tb" id="pk-play">${icon("play")}Hear it</button><button class="tb" id="pk-self">I got it</button></div>`;
-  $("back").onclick = () => go(backTo); bindTune();
+  $("back").onclick = () => goTo(backTo); bindTune();
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const paint = () => {
     const b = $("pk-board"); if (b) b.innerHTML = scaleSVG(targets, k, lit);
@@ -487,108 +518,19 @@ function scaleLesson(st) {
 }
 
 /* switch lesson: two chords take turns on the beat */
+/* 5.16.0: the switch lesson opens on the neck (rounds.js openDrill). This page is where it starts from a link, the lesson
+   of the day or All lessons: the pair, its shapes, and Start on the neck (a tap, so the microphone and sound can start). */
 function switchLesson(st) {
   const best = data.skills?.done?.[st.id]?.best || 0;
-  let bpm = Math.max(50, Math.min(st.to - 10, best ? best : 50)), round = 0;
-  const t0 = Date.now();
-  const bars = 8;
-  const shell = () => {
-    app.innerHTML = `${head(`${st.a} to ${st.b}`, `Switch on the first beat. Round ${round + 1} at ${bpm} BPM.`)}
-      <section class="pf-card pk-lesson">
-        <div class="pk-pair"><div class="pk-now" id="pk-now"><b id="pk-name">${esc(st.a)}</b><small id="pk-then">then ${esc(st.b)}</small></div><div class="pk-diag" id="pk-diag">${chordSVG(st.b, 1.4)}</div></div>
-        <div class="pk-beats" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-        <div class="rd-say pk-say">${louie("listen", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say" aria-live="polite">Hold the phone near the guitar. The first bar is a count-in: stay quiet so I can hear the beat.</p></div>
-      </section>
-      <div class="s-dock"><button class="btn primary" id="pk-start">${icon("play")}Start round</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
-    $("back").onclick = () => go(backTo); bindTune();
-    $("pk-self").onclick = () => finish(bpm, "Marked as got.");
-    $("pk-start").onclick = start;
-  };
-  const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
-  const finish = (at, line) => {
-    stopLive();
-    const part = lessonPartOf(data, st.id); /* 4.21.0: part of today's lesson? (before it counts as learned) */
-    if (part >= 0) lessonKeep(data);
-    skillDone(data, st.id, at);
-    const sc = soundcheckDone(data, st.id); /* Rehearse (4.8.0): part of today's soundcheck? */
-    const ls = part >= 0 ? lessonDone(data, part) : null;
-    if (ls?.finished) callout(data, { kind: "lesson", word: "LESSON DONE", big: `+${ls.xp} XP` }); /* 4.44.0 */
-    const secs = (Date.now() - t0) / 1000; Tabs.save(data);
-    const more = ls?.finished ? ` Lesson of the day done: +${ls.xp} XP.` : ls ? ` Part ${part + 1} of today's lesson done.` : "";
-    done(st, { secs, line: (sc?.done ? `${line} Soundcheck done: +${sc.xp} XP.` : sc ? `${line} One more change for today's soundcheck.` : line) + more, bpm: at, sc: sc || ls });
-  };
-  const show = k => { /* chord for bar k (k < 0: the count-in shows the first) */
-    const cur = k % 2 === 1 ? st.b : st.a, nxt = cur === st.a ? st.b : st.a;
-    if ($("pk-name")) { $("pk-name").textContent = cur; $("pk-then").textContent = k < 0 ? `Count in, then ${st.a}` : `then ${nxt}`; $("pk-diag").innerHTML = chordSVG(nxt, 1.4); }
-  };
-  const start = async () => {
-    $("pk-start").disabled = true;
-    let stream = null;
-    try { stream = await mic(); } catch { say("I can't use the microphone, so I'll play the beat and you tell me how it went."); }
-    const audio = sound();
-    live = { at: Date.now(), stream, timeouts: [] };
-    const beatAt = [];
-    const track = beatTrack(bpm, (i, t) => {
-      beatAt.push(t);
-      live?.timeouts.push(setTimeout(() => {
-        const beat = i % 4, bar = Math.floor(i / 4) - 1;
-        document.querySelectorAll(".pk-beats i").forEach((e, n) => e.classList.toggle("on", n === beat));
-        if (beat === 0) show(bar);
-        if (i === 0) say("Count in. Stay quiet for one bar.");
-        if (i === 4) say(`Go: ${st.a} on the 1.`);
-      }, Math.max(0, (t - audio.currentTime) * 1000)));
-    }, { hats: true });
-    if (!track) { stopLive(); say("The phone won't play sound here."); $("pk-start").disabled = false; return; }
-    live.track = track;
-    const onsets = [], strum = strumDetector(), bleed = bleedProfile();
-    /* the last beat before now: how long ago, and whether it was a 1 */
-    const lastBeat = now => { for (let k = beatAt.length - 1; k >= 0; k--) if (beatAt[k] <= now) return { since: now - beatAt[k], one: k % 4 === 0 }; return null; };
-    if (stream) {
-      const an = audio.createAnalyser(); an.fftSize = 1024;
-      live.src = audio.createMediaStreamSource(stream); guitarBand(audio, live.src).connect(an);
-      const buf = new Float32Array(an.fftSize);
-      live.timer = setInterval(() => {
-        an.getFloatTimeDomainData(buf);
-        let rms = 0; for (const x of buf) rms += x * x; rms = Math.sqrt(rms / buf.length);
-        const now = audio.currentTime;
-        const lb = lastBeat(now);
-        if (now < track.t0 + 4 * track.spb) { if (lb) bleed.add(lb.since, lb.one, rms); strum(rms, now, 1); } /* the count-in: only the beat */
-        else if (strum(rms, now, lb ? bleed.at(lb.since, lb.one) : 0)) onsets.push(now);
-      }, 10);
-    }
-    const spb = track.spb, dues = Array.from({ length: bars }, (_, k) => track.t0 + (4 + 4 * k) * spb + track.lag);
-    live.timeouts.push(setTimeout(() => {
-      const grade = stream ? gradeSwitches(dues, onsets, spb) : null;
-      stopLive();
-      result(grade);
-    }, (track.t0 + (4 + 4 * bars) * spb + 0.5 - audio.currentTime) * 1000));
-  };
-  const result = grade => {
-    const b = $("pk-start");
-    if (!b) return;
-    b.disabled = false;
-    if (!grade) { /* no microphone: ask */
-      say("How did the switches go?");
-      b.textContent = "I landed them";
-      b.onclick = () => bpm >= st.to ? finish(bpm, "Landed on the beat at your target tempo.") : (bpm += 10, round++, shell());
-      return;
-    }
-    $("pk-name").textContent = `${grade.on} of ${bars}`;
-    $("pk-then").textContent = "on the beat";
-    $("pk-diag").innerHTML = "";
-    const parts = [grade.late ? `${grade.late} late` : "", grade.early ? `${grade.early} early` : "", grade.miss ? `${grade.miss} not heard` : ""].filter(Boolean).join(", ");
-    if (grade.clean && bpm >= st.to) return finish(bpm, `${grade.on} of ${bars} on the beat at ${bpm} BPM.`);
-    if (grade.clean) { say(`Clean round${parts ? ` (${parts})` : ""}. Next round is ${bpm + 10} BPM.`); bpm += 10; }
-    else if (grade.miss >= bars / 2) {
-      say("I heard very little. Hold the phone closer to the guitar and strum firmly on the 1. Or tap \"I can't hear it, I got it\".");
-      if (!$("pk-check")) { b.parentElement.insertAdjacentHTML("beforeend", '<button class="tb" id="pk-check">Check the microphone</button>'); $("pk-check").onclick = () => go("#/practice/hear"); }
-    }
-    else say(`${parts || "Close"}. Stay at ${bpm} BPM and get your fingers there a beat early.`);
-    round++;
-    b.textContent = "Next round";
-    b.onclick = shell;
-  };
-  shell();
+  app.innerHTML = `${head(`${st.a} to ${st.b}`, `Change on the first beat, on the neck. Target ${st.to} BPM${best ? `, best ${best}` : ""}.`)}
+    <section class="pf-card pk-lesson">
+      <div class="pk-pair"><div class="pk-diag">${chordSVG(st.a, 1.4)}</div><div class="pk-diag">${chordSVG(st.b, 1.4)}</div></div>
+      <div class="rd-say pk-say">${louie("listen", { pose: "point", size: 84 })}<p class="rd-bubble" id="pk-say">Two bars of each, then a bar each, then every two beats. I listen for the chord on each strum.</p></div>
+    </section>
+    <div class="s-dock"><button class="btn primary" id="pk-start">${icon("play")}Start on the neck</button><button class="tb" id="pk-self">I can't hear it, I got it</button></div>`;
+  $("back").onclick = () => goTo(backTo); bindTune();
+  $("pk-start").onclick = () => drillNow(st);
+  $("pk-self").onclick = () => finishSwitch(st, Math.max(50, Math.min(st.to - 10, best || 50)), "Marked as got.", Date.now());
 }
 
 /* lesson done */
@@ -608,9 +550,9 @@ function done(st, { secs, line, bpm = 0, sc = null }) {
       ${total ? `<div class="pf-read"><b>${have}/${total}</b><span>${esc(lv.name.toLowerCase())}</span></div>` : ""}
     </div>
     <div class="s-dock">${sg ? `<button class="btn primary" id="pk-song">${icon("play")}Play ${esc(sg.title)}</button>` : ""}<button class="${sg && !qm ? "tb" : "btn primary"}" id="pk-next">${qm ? `Next: ${esc(qm[1])} to ${esc(qm[2])}` : nxt && nxt.kind !== "check" && !sc && backTo !== "#/practice" ? "Next: " + esc(lessonName(nxt)) : backTo === "#/practice" ? "Back to Rehearse" : "Back to All lessons"}</button></div>`;
-  $("back").onclick = () => go(backTo); bindTune();
+  $("back").onclick = () => goTo(backTo); bindTune();
   $("pk-song")?.addEventListener("click", () => playSong(sg.id));
-  $("pk-next").onclick = () => { if (qm) { drillQueue.shift(); return go("#/practice/" + encodeURIComponent(queued)); } nxt && nxt.kind !== "check" && !sc && backTo !== "#/practice" ? go("#/practice/" + encodeURIComponent(nxt.id)) : go(backTo); };
+  $("pk-next").onclick = () => { if (qm) { drillQueue.shift(); return drillNow(queued); } nxt && nxt.kind !== "check" && !sc && backTo !== "#/practice" ? go("#/practice/" + encodeURIComponent(nxt.id)) : goTo(backTo); };
 }
 
 /* ---------- What I hear ----------
@@ -645,7 +587,7 @@ function whatIHear() {
       <p class="rd-bubble ph-say" id="pk-say" aria-live="polite">Tap Start, then pluck single strings, strum a chord, and stay quiet for a moment.</p>
     </section>
     <div class="s-dock"><button class="btn primary" id="ph-go">${icon("fork")}Start listening</button><div class="ph-row"><button class="tb" id="ph-drums" disabled>Strum with the beat</button><button class="tb" id="ph-copy" disabled>Copy readings</button></div></div>`;
-  $("back").onclick = () => go(backTo); bindTune();
+  $("back").onclick = () => goTo(backTo); bindTune();
   $("ph-booth").onclick = () => go("#/practice/booth");
   const say = t => { const e = $("pk-say"); if (e) e.textContent = t; };
   const strings = () => {
