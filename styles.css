@@ -296,6 +296,10 @@ button.mrow:active { background: var(--card-2); }
 /* Practice a section */
 .loopbanner { position: fixed; left: 50%; transform: translateX(-50%); top: calc(12px + var(--safe-t)); z-index: 40; width: min(480px, calc(100% - 24px)); border-radius: 14px; padding: 10px 8px 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px; animation: fade .2s; }
 .loopbanner span { flex: 1; }
+/* 5.10.2: the loop prompt was see-through over the song's header; it is solid and on top */
+.loopbanner { z-index: 60; -webkit-backdrop-filter: none; backdrop-filter: none; }
+:root:is([data-look="neon"], [data-look="festival"]) .loopbanner.loopbanner { background: var(--rr-card, #1C1A18); color: var(--rr-text, #F6EEE0); border: 1px solid var(--rr-hairline, #2E2A26); box-shadow: 0 8px 20px rgba(0, 0, 0, .45); }
+.menu.tools.msheet { overscroll-behavior: contain; }
 .sheet > .inloop { position: relative; padding-left: 12px; }
 .sheet > .inloop::before { content: ""; position: absolute; left: 0; top: 0; bottom: -0.55em; width: 2px; background: var(--accent); opacity: .55; }
 .sheet > .loopfirst::before { top: 4px; border-radius: 2px 2px 0 0; }
