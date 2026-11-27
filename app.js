@@ -209,7 +209,6 @@ function renderViewer(id) {
           <div class="cs" id="csub"></div>
         </button>
         <button class="ib glass fav ${song.favorite ? "on" : ""}" aria-label="Favorite" aria-pressed="${!!song.favorite}" tabindex="-1">${icon("heart")}</button>
-        <button class="ib glass more" aria-label="More for this song" aria-haspopup="menu" tabindex="-1">${icon("dots")}</button>
       </div>
     </header>
     <div class="sheet" id="sheet"></div>
@@ -1209,9 +1208,11 @@ function songMenu(song, anchor, redrawSong) {
   };
   paint();
   document.body.appendChild(m);
-  const close = () => { m.remove(); document.removeEventListener("click", outside, true); window.removeEventListener("scroll", close); };
+  /* 5.10.2: it closes on a tap outside, a swipe down or Escape, not on a page scroll: on iPhone a tap on the sheet
+     could nudge the page behind it (or the song kept moving), and that closed the sheet under the finger */
+  const close = () => { m.remove(); document.removeEventListener("click", outside, true); };
   const outside = ev => { if (!m.contains(ev.target)) close(); };
-  setTimeout(() => { document.addEventListener("click", outside, true); window.addEventListener("scroll", close, { passive: true }); });
+  setTimeout(() => { document.addEventListener("click", outside, true); });
   /* Swipe the sheet down to close it. */
   if (sheet) {
     let y0 = null;
