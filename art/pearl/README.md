@@ -1,6 +1,6 @@
 # Pearl icons
 
-White mother-of-pearl pieces painted to match the neck inlays in art/road-neck/inlays/ (light from the top left, soft rounded bevel, no tint, transparent background). The app adds the teal itself.
+White mother-of-pearl pieces painted to match the polished pearl pick inlay, art/road-neck/inlays/pick.webp: smooth and glossy, soft milky clouds, light from the top left, a gentle soft edge, no tint, transparent background. The app adds the teal itself.
 
 - heart.webp: 360 x 360 px, a full rounded heart, for Favorites and the Ko-fi button.
 - coin.webp: 360 x 360 px, a round coin with a raised rim and a dollar sign cut through, for Merch.
