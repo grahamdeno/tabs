@@ -4212,7 +4212,7 @@ test("curriculum: 19 tours in order, every stop present, Tour 1 is Opening Night
   assert.ok(C.STOPS.every(s => ["heard", "played"].includes(s.pass) && s.skill && s.title && Array.isArray(s.chords)), "each stop has a pass type, a skill and its chords");
   assert.ok(C.STOPS.every(s => typeof s.strum === "string" && s.maxNew >= 1 && typeof s.headline === "boolean"), "and its song rules");
   assert.equal(C.STOPS.filter(s => s.headline).length, 18, "every tour but the held one ends with a headline");
-  assert.deepEqual(C.allowedChords("c:A").sort(), ["A", "Asus2", "Em"].sort(), "Tour 2's A stop allows the chords before it and itself");
+  assert.deepEqual(C.allowedChords("c:A").sort(), ["A", "Em"].sort(), "Tour 2's A stop allows the chords before it and itself");
   assert.ok(C.allowedChords("c:Em").includes("D6/9") && C.allowedChords("c:Em").includes("Asus2"), "Tour 1 uses the easy set");
   assert.ok(C.allowedChords("k14.1").includes("G") && !C.allowedChords("k14.1").includes("Am"), "the lead route knows the chords up to Tour 3");
 });
@@ -4240,12 +4240,12 @@ test("curriculum: routes and their gates", () => {
 test("curriculum: the first stop to play, and a Coming soon stop never holds a player back", () => {
   const fresh = cur();
   assert.equal(C.nextStop(fresh, "main").id, "k1.1", "a new player starts at the Soundcheck");
-  const after = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 } });
-  assert.equal(C.nextStop(after, "main").id, "c:Em", "after Opening night comes the Em lesson");
-  assert.equal(stopState(after, "k1.4"), "locked", "Coming soon stops after the stop you are on are locked");
+  const after = cur({ opening: { step: 6, v: 3 } });
+  assert.equal(C.nextStop(after, "main").id, "c:Em", "after the first strum comes the Em lesson");
+  assert.equal(stopState(after, "k1.4"), "locked", "stops after the stop you are on are locked");
+  const past = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 } });
+  assert.equal(C.nextStop(past, "main").id, "c:A", "a player past Opening night has Tour 1 done");
   const em = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone("c:Em") });
-  assert.equal(stopState(em, "k1.4"), "open", "and open once what is before them is done");
-  assert.equal(C.nextStop(em, "main").id, "c:A", "a Coming soon stop is skipped, not waited on");
   assert.equal(C.nextStop(em, "lead"), null, "a shut route has no next stop");
   const all5 = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, skills: skillsDone(...T123, "c:Am", "s:Em-Am", "s:Am-C") });
   assert.equal(C.nextStop(all5, "main"), null, "when only Coming soon stops are left there is nothing to play");
@@ -4263,7 +4263,7 @@ test("curriculum mapping: Opening night steps mark Tour 1's stops done", () => {
   assert.deepEqual(done(4), ["k1.1"], "who, hold, strings and mic make the Soundcheck");
   assert.deepEqual(done(6), ["k1.1", "k1.2"], "notes and a chord shape are the first notes");
   assert.deepEqual(done(8), ["k1.1", "k1.2", "k1.5"], "verse and pause are the first changes");
-  assert.deepEqual(done(9), ["k1.1", "k1.2", "k1.5", "k1.6"], "the show is the headline");
+  assert.deepEqual(done(9), ["k1.1", "k1.2", "k1.4", "k1.5", "k1.6"], "the show is the headline, and the second shape is carried with it");
   assert.deepEqual(C.mappedDone(cur({ opening: { step: 3, v: 3, skipped: 5 } })).has("k1.6"), true, "a skipped Opening night counts as done");
   assert.equal(C.mappedDone(cur({ skills: skillsDone("c:G") })).has("k1.1"), true, "a player who had played before it started never saw it");
 });
@@ -4320,7 +4320,7 @@ test("curriculum mapping: a backup from before this release restores and maps th
 });
 
 test("curriculum: boxes on the new Tour open when reached, pay once and are counted by fansOf", () => {
-  const d = cur({ opening: { step: 9, v: 3, done: 1, seen: 1 } });
+  const d = cur({ opening: { step: 6, v: 3 } });
   d.boxes = { opened: [] };
   assert.equal(C.curriculumBoxOpen(d, "b:t1"), false, "Tour 1's box waits for the stops before it");
   d.skills = skillsDone("c:Em");
@@ -4462,4 +4462,51 @@ test("B5 chord shapes: D6/9, slash chords with their bass, open A7sus4, small F,
     assert.ok(s && s.frets.filter(f => f >= 0).length >= 2, r + "5 is drawn");
   }
   assert.equal(fr("D5"), "-1,-1,0,2,3,-1", "D5 is open");
+});
+
+test("B1 Tour 1 is Opening Night: six stops, what Opening night teaches carried over, and players past it have it done", () => {
+  const ones = C.stopsOf("t1");
+  assert.deepEqual(ones.map(s => s.title), ["Soundcheck", "First strum", "Em", "Second shape", "The change", "Your first show"]);
+  assert.equal(ones.at(-1).headline, true, "the headline is your first Gig");
+  assert.deepEqual(C.stopById("k1.1").play.opening, ["who", "hold", "strings", "mic"], "the mic and the strings happen inside Soundcheck");
+  assert.deepEqual(C.stopById("k1.5").play.opening, ["verse", "pause"], "the Gig hooks happen inside the change");
+  assert.ok(ones.every(s => C.playable(s)), "every Tour 1 stop plays something");
+  /* carried: a half-done Opening night marks only what was done; Em is its own lesson */
+  const half = cur({ opening: { step: 6, v: 3 } });
+  assert.deepEqual(ones.filter(s => C.mappedDone(half).has(s.id)).map(s => s.id), ["k1.1", "k1.2"]);
+  /* past it: finished, skipped, replaying, or had played before it, Tour 1 is done and nothing is paid */
+  for (const d of [cur({ opening: { step: 9, v: 3, done: 1, seen: 1 } }), cur({ opening: { step: 2, v: 3, skipped: 5 } }), cur({ skills: skillsDone("c:G") })]) {
+    assert.deepEqual(ones.filter(s => C.mappedDone(d).has(s.id)).length, 6, "Tour 1 is done");
+    assert.equal(tourState(d, "t1"), "done");
+    const fans = C.fansOf(d);
+    C.curriculumSeed(d, 5);
+    assert.equal(C.fansOf(d), fans, "and the carry pays no fans");
+  }
+});
+
+test("B1 the capo answer: kept in the settings, dropped when it is not a yes or no, and restored from a backup", () => {
+  assert.equal(C.capoAnswer(cur()), null, "not asked yet");
+  assert.equal(C.capoAnswer(cur({ settings: { capo: true } })), true);
+  assert.equal(C.capoAnswer(cur({ settings: { capo: false } })), false);
+  for (const v of [true, false]) {
+    const lib = cur({ settings: { capo: v } });
+    const back = C.cleanImport(JSON.parse(C.Tabs.export(lib))).data;
+    assert.equal(back.settings.capo, v, `${v} comes back from a backup`);
+  }
+  assert.equal(C.cleanImport(JSON.parse(C.Tabs.export(cur()))).data.settings.capo, undefined, "no answer stays no answer");
+  assert.equal(C.cleanImport(JSON.parse(C.Tabs.export(cur({ settings: { capo: "yes" } })))).data.settings.capo, undefined, "a value of the wrong kind is dropped");
+});
+
+test("B1 Tour 1's song: a Songbook song with easy-set chords, else the hand-checked list", () => {
+  const list = C.tour1Song(cur());
+  assert.equal(list.from, "list");
+  assert.equal(list.title, "Eleanor Rigby");
+  assert.ok(list.chords.every(c => C.EASY.includes(c)), "the list is fitted to the easy set");
+  assert.equal(C.tour1Song(cur(), ["eleanor rigby|the beatles"]).title, "Tom Dooley", "a skipped song is not offered again");
+  assert.equal(C.tour1Song(cur(), ["eleanor rigby|the beatles", "tom dooley|traditional"]), null, "an empty list says so");
+  const mine = { id: "s1", title: "Mine", artist: "Me", body: "[Em]la [Asus2]la [Em]la" };
+  const pick = C.tour1Song(cur({ songs: [mine] }));
+  assert.equal(pick.from, "songbook");
+  assert.equal(pick.song.id, "s1");
+  assert.equal(C.tour1Song(cur({ songs: [{ ...mine, body: "[G]la [C]la [D]la" }] })).from, "list", "a song with harder chords is not Tour 1's");
 });

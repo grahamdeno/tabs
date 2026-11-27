@@ -7,7 +7,7 @@
 // and are mapped onto these stops. data.curriculum = { v, done: { stopId: time } } only remembers what was mapped.
 // Re-exported from core.js. Topic files must not read other files' values while loading (only inside functions).
 import { isObj } from "../core.js";
-import { OPENING, openingView, openingStep } from "./game.js";
+import { OPENING, openingView, openingStep, sheetChords } from "./game.js";
 import { KNOW_PLAYS } from "./neck.js";
 
 export const CURRICULUM_V = 1;
@@ -31,8 +31,27 @@ export const TOURS = [
 const TOUR_BY = Object.fromEntries(TOURS.map(t => [t.id, t]));
 export const routeOf = tourId => TOUR_BY[tourId]?.route || null;
 
+/* 5.18.0 (B1): the capo answer. data.settings.capo is true, false, or missing (not asked yet). */
+export const capoAnswer = data => data?.settings?.capo === true ? true : data?.settings?.capo === false ? false : null;
+/* The songs Tour 1 can start with, hand-checked for the easy set (audit 4, decision 12). They are only names and chords: the words
+   come from the Songbook or Get the song, never from here. `note` says what to play differently from the recording. */
+export const TOUR1_SONGS = [
+  { title: "Eleanor Rigby", artist: "The Beatles", chords: ["Em", "Cmaj7"], note: "Play the C as Cmaj7: one finger less." },
+  { title: "Tom Dooley", artist: "Traditional", chords: ["Em", "A7"], note: "Two chords. This one is in the public domain." }
+];
+/* The song for Tour 1: a Songbook song with only easy-set chords (at least two, no tab), else the first hand-checked song not skipped. */
+export function tour1Song(data, skipped = []) {
+  const skip = new Set(skipped);
+  for (const sg of data.songs || []) {
+    if (sg.format === "tab" || skip.has(`${sg.title}|${sg.artist || ""}`.toLowerCase())) continue;
+    const ch = [...new Set(sheetChords(sg.body || ""))];
+    if (ch.length >= 2 && ch.length <= 3 && ch.includes("Em") && ch.every(c => EASY.includes(c))) return { from: "songbook", song: sg, chords: ch };
+  }
+  const pick = TOUR1_SONGS.find(x => !skip.has(`${x.title}|${x.artist}`.toLowerCase()));
+  return pick ? { from: "list", ...pick } : null;
+}
 /* The easy set Tour 1's songs are fitted to (audit 4: a small hand-checked pool, two easy shapes). */
-const EASY = ["Em", "Em7", "Asus2", "A7", "Cmaj7", "D6/9"];
+export const EASY = ["Em", "Em7", "Asus2", "A7", "Cmaj7", "D6/9"];
 
 /* One stop: tour number, place in the tour, short title, the skill, the chords it adds, the pass type ("heard": Louie
    listens for the chord or note; "played": Louie can't judge it, so it counts when played through), what plays today
@@ -40,21 +59,23 @@ const EASY = ["Em", "Em7", "Asus2", "A7", "Cmaj7", "D6/9"];
    play: { opening: [ids] } | { lessons: [ids] } | null (Coming soon). A stop with one lesson keeps that lesson's id, so the
    Road's taps and the old tests find it; any other stop is "k<tour>.<n>". */
 const L = (...lessons) => ({ lessons });
+/* 5.18.0: a stop played as a piece of the tour's song (a round of the song with the chords learned so far; B2). */
+const P = (...lessons) => ({ piece: true, ...(lessons.length ? { lessons } : {}) });
 const O = (...opening) => ({ opening });
 const S = (t, n, title, skill, chords, pass, play, o = {}) => {
   const lesson = play?.lessons?.length === 1 ? play.lessons[0] : "";
   const kind = o.kind || (lesson.startsWith("s:") ? "switch" : "chord");
-  return { id: lesson || `k${t}.${n}`, tour: `t${t}`, n, title, skill, chords, pass, play, kind, strum: o.strum || "down", maxNew: o.maxNew ?? Math.max(1, chords.length), allow: o.allow || null, headline: !!o.headline, held: !!o.held };
+  return { id: lesson || `k${t}.${n}`, tour: `t${t}`, n, title, skill, chords, pass, play, kind, strum: o.strum || "down", maxNew: o.maxNew ?? Math.max(1, chords.length), allow: o.allow || null, headline: !!o.headline, held: !!o.held, carry: o.carry || "" };
 };
 const H = (t, n, title, skill, pass = "heard", o = {}) => S(t, n, title, skill, [], pass, null, { ...o, kind: "headline", headline: true });
 export const STOPS = [
-  // Tour 1: Opening Night
+  // Tour 1: Opening Night (5.18.0, B1): tune up, the first strum, Em, the second easy shape, the change, your first show
   S(1, 1, "Soundcheck", "Tune up and mic check", [], "heard", O("who", "hold", "strings", "mic"), { allow: EASY }),
-  S(1, 2, "First notes", "Two open strings, then a chord's shape", [], "played", O("notes", "chord"), { allow: EASY }),
+  S(1, 2, "First strum", "Open strings on the beat, with the song's intro", [], "played", O("notes", "chord"), { allow: EASY }),
   S(1, 3, "Em", "The Em chord", ["Em"], "heard", L("c:Em"), { allow: EASY }),
-  S(1, 4, "Second shape", "One easy shape beside Em", ["Asus2"], "heard", null, { allow: EASY }),
-  S(1, 5, "First changes", "Strum on the changes", [], "played", O("verse", "pause"), { allow: EASY }),
-  { ...H(1, 6, "Your first show", "A whole two-shape song"), play: { opening: ["show"] }, allow: EASY },
+  S(1, 4, "Second shape", "The easy shape the song uses beside Em", [], "heard", P(), { allow: EASY, carry: "show" }),
+  S(1, 5, "The change", "Em to the second shape, strummed in time", [], "played", O("verse", "pause"), { allow: EASY }),
+  { ...H(1, 6, "Your first show", "A whole two-shape song, your first Gig"), play: { opening: ["show"] }, allow: EASY },
   // Tour 2: Open Mic (A, D, E, down-ups)
   S(2, 1, "A", "The A chord", ["A"], "heard", L("c:A")),
   S(2, 2, "D", "The D chord", ["D"], "heard", L("c:D")),
@@ -158,7 +179,7 @@ const STOP_BY = Object.fromEntries(STOPS.map(s => [s.id, s]));
 export const stopById = id => STOP_BY[id] || null;
 export const stopsOf = tourId => STOPS.filter(s => s.tour === tourId);
 /* Does the stop have something to play today? Anything else is Coming soon. */
-export const playable = s => !!(s.play && (s.play.opening?.length || s.play.lessons?.length));
+export const playable = s => !!(s.play && (s.play.opening?.length || s.play.lessons?.length || s.play.piece));
 
 /* The chords a stop's songs may use: the chords every stop up to and including it adds on its route (for the lead route the
    main line up to Tour 3 too, for fingerstyle up to Tour 4), or the easy set in Tour 1. */
@@ -192,14 +213,22 @@ function openingDone(data) {
   const step = openingStep(data), ids = OPENING.map(o => o.id);
   return id => ids.indexOf(id) >= 0 && ids.indexOf(id) < step;
 }
+/* 5.18.0 (B1): a player past Opening night (finished, skipped, replaying it, or had played before it) has Tour 1 done. */
+const pastOpening = data => openingView(data) !== "leg" || !!data.opening?.replay;
 /* A lesson is done by its own finish, or (a chord) by playing it in KNOW_PLAYS songs to the end. */
 const lessonDone = (data, id) => !!data.skills?.done?.[id] || (id.startsWith("c:") && (data.journal?.chords?.[id.slice(2)]?.n || 0) >= KNOW_PLAYS);
 /* The stops done by what is already kept (read only). */
 export function mappedDone(data) {
   const op = openingDone(data), out = new Set();
+  const past = pastOpening(data);
   for (const s of STOPS) {
     if (s.held || !playable(s)) continue;
-    const ok = s.play.opening ? s.play.opening.every(op) : s.play.lessons.every(id => lessonDone(data, id));
+    if (s.tour === "t1" && past) { out.add(s.id); continue; } /* Opening night is behind you: Tour 1 is done, with no pay */
+    let ok;
+    if (s.play.opening) ok = s.play.opening.every(op);
+    else if (s.play.lessons) ok = s.play.lessons.every(id => lessonDone(data, id));
+    else ok = false; /* a piece-only stop is done when its round passes (data.curriculum.done), or by what it carries */
+    if (!ok && s.carry && op(s.carry)) ok = true; /* Tour 1's second shape: the show is played, so it is done */
     if (ok) out.add(s.id);
   }
   return out;
