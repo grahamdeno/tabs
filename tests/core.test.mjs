@@ -4438,3 +4438,28 @@ test("curriculum: the chords the tours name, and which the app draws", () => {
   const drawn = chords.filter(c => C.chordShape(c));
   assert.deepEqual(chords.filter(c => !drawn.includes(c)), [], "chordShape returns a shape for every chord the tours add");
 });
+
+// ---------- 5.18.0 Curriculum Release B ----------
+const fr = (n, o) => C.chordShape(n, o)?.frets.join(",");
+test("B5 chord shapes: D6/9, slash chords with their bass, open A7sus4, small F, barre shapes up the neck, 5 chords and Bm7", () => {
+  assert.equal(fr("D6/9"), "-1,-1,0,2,0,0", "D6/9 is its own shape, not D6");
+  assert.notEqual(fr("D6/9"), fr("D6"));
+  assert.equal(fr("D/F#"), "2,-1,0,2,3,2", "D/F# has F# in the bass");
+  assert.equal(fr("G/B"), "-1,2,0,0,0,3", "G/B has B in the bass");
+  assert.equal(fr("C/G"), "3,3,2,0,1,0", "C/G has G in the bass");
+  assert.equal(C.chordShape("D/F#").bass, 0);
+  assert.equal(fr("D/F#").length > 0 && fr("D"), "-1,-1,0,2,3,2", "the plain chord is unchanged");
+  assert.equal(fr("A7sus4"), "-1,0,2,0,3,0", "A7sus4 is the open x02030");
+  assert.equal(fr("F", { small: true }), "-1,-1,3,2,1,1", "the small four-string F");
+  assert.equal(C.chordShape("F", { small: true }).barre, undefined, "with no full barre");
+  assert.equal(fr("F"), "1,3,3,2,1,1", "F without the option is still the full barre");
+  assert.equal(fr("G", { up: "E" }), "3,5,5,4,3,3", "G moved up as the E shape, at fret 3");
+  assert.equal(C.chordShape("G", { up: "E" }).barre.fret, 3);
+  assert.equal(fr("A", { up: "E" }), "5,7,7,6,5,5", "A as the E shape, at fret 5");
+  assert.equal(fr("Bm7"), "-1,2,0,2,0,2", "Bm7 is drawn");
+  for (const r of ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"]) {
+    const s = C.chordShape(r + "5");
+    assert.ok(s && s.frets.filter(f => f >= 0).length >= 2, r + "5 is drawn");
+  }
+  assert.equal(fr("D5"), "-1,-1,0,2,3,-1", "D5 is open");
+});
