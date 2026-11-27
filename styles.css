@@ -6252,3 +6252,30 @@ body.searching #sb-more { display: none; }
 /* 5.10.1: phone on its side, the highway and the bar fit the height */
 @media (orientation: landscape) and (max-height: 500px) { .rnd { gap: 6px; padding-left: var(--safe-l, 0px); padding-right: var(--safe-r, 0px); } .rnd-song, .rnd-prog, .rnd-shape { display: none; } .rnd-ti h2 { font-size: var(--type-headline, 17px); } .rnd-hw { height: max(140px, calc(100svh - 236px)); } .rnd-blk, .rnd-rest { top: 22%; height: 70%; } .rnd-arr { top: 4%; } .rnd-nm { top: 13%; } .rnd-below { margin: 0 20px; } .rnd-info { display: flex; align-items: baseline; gap: 12px; } .rnd-now { font-size: calc(var(--sys-px, 17px) * 1.6); } .rnd-next { margin: 0; } .rnd-bar { padding-top: 4px; padding-bottom: max(8px, env(safe-area-inset-bottom)); } }
 @media (prefers-reduced-motion: reduce) { .rnd-line, .rnd-blk.now { box-shadow: none; } .rnd-blk, .rnd-prog i { transition: none; } }
+
+/* ---------- Chord timeline (5.11.0, a try-out; timeline.js) ----------
+   lines: a bar over every line, split by how long each chord lasts; the letters over the words are kept for VoiceOver
+   and the reading line, but take no room. strip: a panel at the top while a song plays. To remove: this block. */
+body.tl-lines .sheet :is(.pr, .crow) .c[data-ch], body.tl-strip.staged .sheet :is(.pr, .crow) .c[data-ch] { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; padding: 0; min-height: 0; }
+body.tl-lines .sheet .crow { min-height: 0; }
+.sheet .tlb { display: flex; gap: 2px; width: 100%; height: 22px; margin: 4px 0 6px; border-radius: 4px; overflow: hidden; }
+.sheet .crow:has(.tlb) { display: block; }
+.sheet .tls { flex: 1 1 0; min-width: 22px; display: flex; align-items: center; padding: 0 6px; background: var(--tl-bg); color: var(--tl-fg); font: 600 13px / 1 "IBM Plex Mono", ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: clip; }
+body.staged .sheet .tls.past { opacity: .45; }
+body.staged .sheet .tls.on { box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .85); }
+body.staged .sheet .st-now .tlb { height: 28px; }
+body.staged .sheet .st-now .tls { font-size: 15px; }
+
+.tlp { position: fixed; z-index: 58; left: 0; right: 0; top: 0; padding: calc(var(--safe-t, 0px) + 10px) 0 8px; pointer-events: none; background: var(--rr-base, var(--bg, #141210)); box-shadow: 0 10px 14px -6px rgba(0, 0, 0, .35); }
+.tlp-mini { position: relative; display: flex; gap: 1px; height: 10px; margin: 0 16px; border-radius: 3px; overflow: visible; }
+.tlp-mini i { flex: 1 1 0; display: block; min-width: 1px; }
+.tlp-mini .tlp-you { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1px; border-radius: 2px; background: var(--rr-text, #F6EEE0); flex: none; transition: left .3s; }
+.tlp-lane { position: relative; height: 84px; margin-top: 10px; overflow: hidden; }
+.tlp-track { position: absolute; top: 0; bottom: 0; left: 30%; transition: transform .35s cubic-bezier(.3, .7, .3, 1); }
+.tlp-head { position: absolute; top: 0; bottom: 0; left: 30%; width: 3px; margin-left: -2px; background: var(--rr-text, #F6EEE0); box-shadow: 0 0 10px rgba(246, 238, 224, .55); }
+.tlk { position: absolute; top: 6px; bottom: 6px; box-sizing: border-box; border-radius: 8px; padding: 0 10px; display: flex; align-items: center; background: var(--tl-bg); color: var(--tl-fg); overflow: hidden; }
+.tlk b { font: 700 26px / 1 Sora, sans-serif; white-space: nowrap; }
+.tlk.past { opacity: .4; }
+.tlk.on { box-shadow: 0 0 0 2px rgba(255, 255, 255, .9); }
+body.tl-strip.staged .gig .gg-head { visibility: hidden; }
+@media (prefers-reduced-motion: reduce) { .tlp-track, .tlp-mini .tlp-you { transition: none; } }
