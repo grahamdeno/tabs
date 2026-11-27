@@ -247,7 +247,9 @@ export function cleanCurriculum(raw) {
   const settled = [...new Set((Array.isArray(raw.settled) ? raw.settled : []).filter(isCurriculumBox))];
   const won = {};
   for (const [id, at] of Object.entries(isObj(raw.won) ? raw.won : {})) if (/^t\d{1,2}$/.test(id) && TOUR_BY[id] && +at > 0) won[id] = Math.floor(+at);
-  return { v: CURRICULUM_V, done, ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}) };
+  const waiting = {};
+  for (const [id, n] of Object.entries(isObj(raw.waiting) ? raw.waiting : {}).slice(0, 20)) if (/^[\w.-]{1,64}$/.test(id) && Number.isInteger(n) && n >= 1 && n <= 4) waiting[id] = n;
+  return { v: CURRICULUM_V, done, ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}), ...(Object.keys(waiting).length ? { waiting } : {}) };
 }
 /* Unlock mode writes nothing. Otherwise the stops done by the old fields are remembered (once each). True when something was added. */
 export function curriculumSeed(data, now = Date.now()) {
@@ -258,7 +260,7 @@ export function curriculumSeed(data, now = Date.now()) {
   if (!cur && !add.length && !data.skills && !data.opening && !data.songTour) { data.curriculum = { v: CURRICULUM_V, done: {} }; return true; }
   /* The first time only: a new box behind where the player stands shows as opened and pays nothing (`settled`); boxes ahead pay. */
   const settled = cur ? cur.settled : curriculumState(data).tours.filter(t => t.route === "main" && t.stops.length > BOX_AFTER && boxState(data, t, new Set()) === "now").map(t => boxId(t.number));
-  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
+  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), ...(cur?.waiting ? { waiting: cur.waiting } : {}), v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
   return true;
 }
 const doneSet = data => new Set([...mappedDone(data), ...Object.keys(data.curriculum?.done || {}).filter(id => STOP_BY[id])]);
@@ -382,7 +384,8 @@ export const pieceChords = (stopId, songChords) => { const ok = new Set(allowedC
 /* A piece round passed. Returns { id, headline, solid, tour, guitar } or null when it counts for nothing (Unlock all tours, a stop
    that is not the one you are on, a headline played below 0.8x). The headline at 1.0x marks the song Solid. Writes only
    data.curriculum.done and .won (add-only) and the song's own status. */
-export const HEADLINE_RATE = 0.8;
+/* 0.8x (0.75x, the nearest speed, when a YouTube recording slows the song) */
+export const HEADLINE_RATE = 0.75;
 export function piecePlayed(data, stopId, { rate = 1, now = Date.now() } = {}) {
   if (!rewardsOn(data)) return null;
   const s = STOP_BY[stopId];

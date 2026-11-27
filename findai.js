@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { Tabs, TUNINGS, meOf, tourAttach, tourFit, tourPicked, tourSwap, pickKey, chartOfSheet, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
+import { fitRuns, tourAllowed, tourKnown, tourNewMax, Tabs, TUNINGS, meOf, tourAttach, tourFit, tourPicked, tourSwap, pickKey, chartOfSheet, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { coverHead, searchApple, attachRecording } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
@@ -416,7 +416,7 @@ export function getSong(q, preset = {}) {
       const r = tourAttach(data, preset.tour, s);
       if (!r.ok) tourSwap(data, preset.tour);
       Tabs.save(data); go("#/");
-      return toast(r.ok ? `Added ${c.title}. Your song tour starts with playing it now` : `${c.title} has ${r.new.length} new chords, so Louie is picking another song for the tour`);
+      return toast(r.ok ? `Added ${c.title}. Your tour starts with playing it now` : /^t\d/.test(preset.tour) ? (r.opens ? `Not yet: ${c.title} opens at Tour ${r.opens}. It's in your Songbook` : `${c.title} has chords this tour doesn't allow, so Louie is picking another song`) : `${c.title} has ${r.new.length} new chords, so Louie is picking another song for the tour`);
     }
     /* 4.28.0: from Play next's Learn, on to the new chord's lesson, but only when the fetched sheet really
        has that chord (the AI's chord list can be wrong: Hotel California came back with a C# it doesn't have) */
@@ -848,6 +848,38 @@ export async function tourPick(legId) {
     if (!fit.ok) continue;
     if (data.songTour.legs[legId] !== t || t.pick) return; /* swapped or picked while this was loading */
     tourPicked(data, legId, { ...x, new: fit.new });
+    Tabs.save(data);
+    return;
+  }
+  throw new Error("No song that fits came back. Try again.");
+}
+/* 5.18.0 (B2): the pick for a tour's own song (t1 to t4). The AI is told the chords the tour allows and the capo limit, and returns
+   titles, artists and chords only, never lyrics. The first reply that fits the fit rule is taken; the song is fetched with Get it. */
+const CURRICULUM_RULES = `- Every chord in the song must be one of the allowed chords, or the same chord with an extension (D7 for D, G/B for G), or the whole song must become allowed when a capo is put on at fret 5 or lower. "chords" lists every chord of the song as written, plain names only.
+- No more than a quarter of the chords may need that kind of simpler swap.
+- Not songs they have and not songs listed as already tried.
+- Aim at their genre, their favourite songs and the artists in their Songbook.`;
+export async function curriculumPick(tourId) {
+  const n = +String(tourId).replace(/^t/, ""), allowed = tourAllowed(n);
+  const t = data.songTour?.legs?.[tourId];
+  if (!allowed.length || t?.pick) return;
+  const skipped = t?.skipped || [];
+  const mine = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 60).join("; ");
+  const artists = [...new Set(data.songs.map(s => s.artist).filter(Boolean))].slice(0, 15).join("; ");
+  const content = `Allowed chords: ${allowed.join(" ")}\nMy genre: ${meOf(data).genre}\nSongs I have: ${mine}${artists ? `\nArtists in my Songbook: ${artists}` : ""}${skipped.length ? `\nAlready tried: ${skipped.join("; ")}` : ""}`;
+  let text;
+  try { text = await askClaude({ stream: true, system: `${NEXT_SYSTEM}\n${CURRICULUM_RULES}`, maxTokens: 8000, content }); }
+  catch (e) { throw Object.assign(new Error(e.status === 0 || e.status === undefined ? "Picking a song needs a connection." : aiError(e)), { status: e.status }); }
+  let j;
+  try { j = parseJSON(text); } catch { throw new Error("The reply came back in a form Louie couldn't read."); }
+  const ok = c => typeof c === "string" && /^[A-G]/.test(c) && c.length <= 8;
+  const have2 = new Set(data.songs.map(s => `${s.title}`.trim().toLowerCase()));
+  for (const x of (j.songs || []).filter(x => x && x.title)) {
+    const pick = { title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 14) };
+    if (skipped.includes(pickKey(pick)) || have2.has(pick.title.trim().toLowerCase())) continue;
+    const fit = fitRuns(pick.chords, pick.chords, tourAllowed(n), { known: tourKnown(n), maxNew: tourNewMax(n) });
+    if (!fit.ok) continue;
+    tourPicked(data, tourId, { ...pick, new: fit.new });
     Tabs.save(data);
     return;
   }

@@ -1428,6 +1428,7 @@ function getSong(...args) { findAI().then(m => m.getSong(...args)); }
 export function nextSongs() { findAI().then(m => m.nextSongs()); }
 export const tourPick = id => findAI().then(m => m.tourPick(id)); /* 5.9.0 song tours */
 export const tourGet = id => findAI().then(m => m.tourGet(id));
+export const curriculumPick = id => findAI().then(m => m.curriculumPick(id)); /* 5.18.0: a tour's own song */
 
 // ---------- Tuner ----------
 // Listens through the microphone and shows how far each string is from its note.

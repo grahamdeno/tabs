@@ -8,6 +8,7 @@
 import { isObj, rewardsOn } from "../core.js";
 import { chordShape, parseBlocks } from "./chords.js";
 import { knownChords, roadPath, sheetChords } from "./game.js";
+import { tourSetSong } from "./fit.js";
 
 export const TOUR_NEW = [2, 4];
 const CH = /^[A-G][#b]?[A-Za-z0-9#+()-]{0,7}(\/[A-G][#b]?)?$/;
@@ -304,6 +305,7 @@ export function tourSwap(data, legId) {
 export function tourAttach(data, legId, song, now = Date.now()) {
   const t = entry(data, legId);
   if (!t?.pick || !song) return { ok: false };
+  if (/^t\d{1,2}$/.test(legId)) { const r = tourSetSong(data, legId, song); return { ok: r.ok, new: [], opens: r.opens ?? null }; } /* 5.18.0: a tour's own song, fitted */
   const fit = tourFit(sheetChords(song.body), knownChords(data, now));
   if (!fit.ok) return { ok: false, new: fit.new };
   t.song = song.id; t.pick = { ...t.pick, chords: sheetChords(song.body).slice(0, 14), new: fit.new };

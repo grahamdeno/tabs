@@ -22,12 +22,12 @@
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
-import { roadTour, tourSeed, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { roadTour, TOUR_LEG, allowedChords, capoAnswer, songbookFor, tour1Song, tourPicked, tourSetSong, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { curriculumRoad, curriculumSeed, playNext, rewardsOn } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { holdSheet, micSheet, notesSheet, songFor, stringsSheet } from "./opening.js";
 import { makerSheet } from "./maker.js";
-import { chordNames, data, go, homeHooks, nextSongs, openSearch, playGig, route, showCallout, tourGet, tourPick } from "./app.js";
+import { chordNames, data, go, homeHooks, openSearch, playGig, route, showCallout, tourGet, curriculumPick } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
 import { openRound } from "./rounds.js";
@@ -94,9 +94,6 @@ const ICONS = {
 const PICK = "M0 42 C-14 42 -46 14 -46 -12 C-46 -36 -26 -46 0 -46 C26 -46 46 -36 46 -12 C46 14 14 42 0 42 Z";
 const pickSVG = now => `<svg class="rd-pk" viewBox="-60 -60 120 120" aria-hidden="true">${now ? `<path class="rd-halo" d="${PICK}" transform="scale(1.3)"/>` : ""}<path class="rd-lip" d="${PICK}" transform="translate(0 7)"/><path class="rd-body" d="${PICK}"/><path class="rd-shine" d="M-30 -30 C-20 -38 -4 -40 10 -40"/></svg>`;
 const dotIcon = s => s.state === "done" ? ICONS.check : ICONS[s.kind] || ICONS.chord;
-/* the songs a headline show can be played with: only that leg's chords, the last played first */
-const fitsFor = stop => (stop.chords ? data.songs.filter(sg => { const c = chordNames(sg.body || ""); return c.length >= 2 && c.every(n => stop.chords.includes(n)); })
-  .sort((a, b) => (b.playLog?.last || 0) - (a.playLog?.last || 0)) : []);
 const stopTitle = s => s.cs && s.kind !== "box" && !s.chord ? s.name : s.kind === "headline" ? "Headline show" : s.kind === "round" ? s.name : s.kind === "box" ? "Merch box" : s.kind === "chord" ? `The ${s.name} chord` : s.name;
 const ZIG = [0, 46, 72, 46, 0, -46, -72, -46];
 const tagOf = s => s.cs && s.kind !== "box" && !s.chord && !s.a ? s.name : s.kind === "headline" ? "Headline show" : s.kind === "box" ? (s.state === "now" ? "Tap to open" : "Merch box") : s.kind === "chord" ? `${s.name} chord` : s.name;
@@ -120,15 +117,8 @@ function csCard(stop) {
 }
 function stopCard(stop) {
   if (stop.cs && (stop.soon || stop.row || stop.play?.opening || stop.play?.lessons?.length > 1 || (stop.kind === "box" && !rewardsOn(data)))) return csCard(stop);
-  if (stop.tour && (stop.kind === "round" || stop.kind === "headline") && stop.state !== "locked") return tourCard(stop);
+  if (stop.piece && stop.state !== "locked") return pieceCard(stop);
   const title = stopTitle(stop), now = stop.state === "now" || stop.state === "open";
-  if (stop.kind === "headline" && stop.state !== "locked") {
-    const fits = fitsFor(stop), song = data.songs.find(x => x.id === stop.song) || fits[0];
-    const line = song ? `Play ${song.title} start to finish. It uses only this tour's chords.` : `Play a song that uses only ${stop.chords.join(", ")}, start to finish.`;
-    return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>
-      ${song ? `<div class="rd-earn"><span>+${FANS.play} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${song ? (stop.state === "done" ? "PLAY AGAIN" : `PLAY ${esc(song.title.toUpperCase())}`) : "FIND A SONG THAT FITS"}</button>
-      ${fits.length > 1 ? `<button class="rd-other" id="rd-other" data-other="${esc(stop.id)}">Other songs that fit (${fits.length - 1})</button>` : ""}</div>`;
-  }
   const line = stop.kind === "chord" ? "Ring every string clean, one at a time."
     : stop.kind === "switch" ? "Land the change on the beat."
     : stop.kind === "scale" ? "Up and back down, one note at a time."
@@ -144,43 +134,67 @@ function stopCard(stop) {
     : `${stop.state === "done" || !rewardsOn(data) ? "" : `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : "START"}</button>`;
   return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? (stop.kind === "chord" ? "Its lesson opens when you get here." : "Finish the stops before this one to open it.") : line)}</p>${act}${alt}</div>`;
 }
-/* Song tours: the card of a round or the headline. A tour with no song yet names the pick and offers Get it and Swap. */
-function tourCard(stop) {
-  const t = data.songTour?.legs?.[stop.tour], pick = t?.pick, title = stopTitle(stop), have = !!t?.song;
-  const what = pick ? `${pick.title}${pick.artist ? `, ${pick.artist}` : ""}` : "your song";
-  const line = !have ? `Louie picked ${what}. Get it to play along with it, one chord at a time.`
-    : stop.kind === "headline" ? `Play along with ${what} from start to finish, every chord.`
-    : stop.n === 1 ? `Play along with a part of ${what}. Strum ${stop.chords[0]} on each beat. The other bars are rests.`
-    : `Play along again. ${stop.chords[stop.chords.length - 1]} joins in.`;
-  const label = have ? (stop.state === "done" ? "PLAY IT AGAIN" : "PLAY") : "GET IT";
-  const swap = stop.n === 1 && stop.state === "now" && !have ? `<button class="rd-other" data-tourswap="${esc(stop.tour)}">Swap for another song</button>` : "";
-  const earn = have && stop.state !== "done" ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : "";
-  return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>${earn}
-    <button class="btn primary rd-start" data-go="${esc(stop.id)}">${label}</button>${swap}</div>`;
-}
-/* the quiet pick: asked once while the tour has none; a failure says so and waits for Try again */
+/* ---- A piece of the tour's song (5.18.0, B2): the card, the song choice, the capo question ---- */
 const tourBusy = new Set(), tourErr = new Map();
-function askTourPick(id) {
+const tourNo = stop => +String(stop.tourId).replace(/^t/, "");
+const songOfTour = stop => { const t = data.songTour?.legs?.[stop.tourId], sg = t?.song && data.songs.find(x => x.id === t.song); return sg ? { t, sg } : null; };
+function pieceCard(stop) {
+  const title = stop.headline ? "Headline show" : stop.name, off = !rewardsOn(data), id = esc(stop.tourId);
+  const own = songOfTour(stop), t = data.songTour?.legs?.[stop.tourId], sb = own ? null : songbookFor(data, stop.tourId);
+  const wait = !own && Object.entries(data.curriculum?.waiting || {}).find(([sid, n]) => n === tourNo(stop) && data.songs.some(x => x.id === sid));
+  let line, acts = "";
+  if (own) {
+    const { sg } = own, capo = own.t.capo || 0, band = capo > 0 && capoAnswer(data) !== true;
+    line = `${stop.headline ? `Play the whole of ${sg.title} at 0.8x or faster. 1.0x makes the song Solid.` : `Play a piece of ${sg.title}. Louie marks the strums with your chords; the rest are rests.`}`
+      + `${own.t.simplified ? " This is the simplified version." : ""}${capo > 0 ? (band ? ` It needs a capo at fret ${capo}, so Louie's band plays it.` : ` Capo at fret ${capo}.`) : ""} ${csPass(stop)}${off ? " Unlock all tours is on: nothing is paid or saved." : ""}`;
+    acts = `${!off && stop.state !== "done" ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "PLAY"}</button>`
+      + (own.t.simplified || capo > 0 ? `<button class="rd-other" data-chart="${esc(sg.id)}">See the real chart</button>` : "")
+      + `<button class="rd-other" data-tswap="${id}">Use another song</button>`;
+  } else if (sb) {
+    line = `Every stop in this tour is a piece of one song. ${sb.song.title} fits${sb.fit.simplified ? ", simplified" : ""}${sb.fit.capo ? `, with a capo at fret ${sb.fit.capo}` : ""}.`;
+    acts = `<button class="btn primary rd-start" data-tsong="${id}">USE ${esc(sb.song.title.toUpperCase())}</button>`;
+  } else if (wait) {
+    const sg = data.songs.find(x => x.id === wait[0]);
+    line = `${sg.title} was waiting for this tour. Use it now.`;
+    acts = `<button class="btn primary rd-start" data-twait="${id}" data-song-id="${esc(sg.id)}">USE ${esc(sg.title.toUpperCase())}</button>`;
+  } else if (t?.pick) {
+    line = `Louie picked ${t.pick.title}${t.pick.artist ? `, ${t.pick.artist}` : ""}. Get it, then play it a piece at a time.`;
+    acts = `<button class="btn primary rd-start" data-tget="${id}">GET IT</button>${tourErr.has(stop.tourId) ? `<p class="rd-alt">${esc(tourErr.get(stop.tourId))}</p>` : ""}`;
+  } else {
+    const l1 = stop.tourId === "t1" ? tour1Song(data, []) : null;
+    line = "Every stop in this tour is a piece of one song. Pick the song for the tour.";
+    acts = (l1 && l1.from === "list" ? `<button class="btn primary rd-start" data-tfirst="${id}">USE ${esc(l1.title.toUpperCase())}</button>` : "")
+      + (aiKey() ? `<button class="btn${l1 ? "" : " primary"} rd-start" data-tpick="${id}">${tourBusy.has(stop.tourId) ? "Picking a song" : "LOUIE PICKS A SONG"}</button>` : "")
+      + `<button class="rd-other" data-tchoose="${id}">Choose my own song</button>`;
+    if (tourErr.has(stop.tourId)) acts += `<p class="rd-alt">${esc(tourErr.get(stop.tourId))}</p>`;
+  }
+  /* asked once, on Tour 1: a song that needs a capo plays with Louie's band when there is none */
+  const ask = stop.tourId === "t1" && capoAnswer(data) === null ? `<p class="rd-alt">Do you have a capo?</p><div class="rd-pair"><button class="btn" data-capo="1">Yes</button><button class="btn" data-capo="0">No</button></div>` : "";
+  return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>${acts}${ask}</div>`;
+}
+/* the player's own song: a sheet of the Songbook; a song that does not fit says when it opens, and waits there */
+function chooseSong(tourId) {
+  const n = +tourId.slice(1), songs = (data.songs || []).filter(x => x.format !== "tab");
+  layer.innerHTML = `<div class="scrim" id="ro-scrim"></div><div class="panel de-sheet rd-others" role="dialog" aria-label="Choose a song for Tour ${n}"><div class="grab"></div>
+    <div class="ph"><button class="tb" id="ro-x">Close</button><h2>Your song</h2><span style="width:56px"></span></div>
+    <div class="pbody"><p class="easy-note">A song with a few harder chords is simplified, and the real chart stays one tap away.</p>
+    <div class="list glass">${songs.length ? songs.map(sg => `<button class="row" data-pick="${esc(sg.id)}"><div class="txt"><div class="t">${esc(sg.title)}</div><div class="a">${esc(sg.artist || "")}</div></div></button>`).join("") : `<p class="easy-note">Your Songbook is empty. Add a song first.</p>`}</div></div></div>`;
+  const close = () => { layer.innerHTML = ""; };
+  document.getElementById("ro-scrim").onclick = close; document.getElementById("ro-x").onclick = close;
+  layer.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+    const sg = data.songs.find(x => x.id === b.dataset.pick), r = tourSetSong(data, tourId, sg);
+    close();
+    if (r.ok) { Tabs.save(data); toast(`${sg.title} is this tour's song${r.simplified ? ", simplified" : ""}`); return renderRoad(); }
+    if (r.opens) { data.curriculum = { v: 1, done: {}, ...(data.curriculum || {}) }; data.curriculum.waiting = { ...(data.curriculum.waiting || {}), [sg.id]: r.opens }; Tabs.save(data); }
+    toast(r.opens ? `Not yet: this opens at Tour ${r.opens}. It waits there` : "This song needs chords the early tours don't teach");
+  });
+}
+const askPick = id => {
   if (tourBusy.has(id)) return;
   tourBusy.add(id); tourErr.delete(id);
   const done = () => { tourBusy.delete(id); if (document.getElementById("rd-path")) renderRoad(); };
-  tourPick(id).then(done, e => { tourErr.set(id, e?.message || "Picking a song needs a connection."); done(); });
-}
-const tourFindCard = l => `<div class="rd-tourfind" role="status" aria-live="polite"><b>Song tour</b>${tourErr.has(l.tour)
-  ? `<p>${esc(tourErr.get(l.tour))}</p><button class="btn rd-retry" data-tourretry="${esc(l.tour)}">Try again</button>`
-  : `<p>Louie is picking a song for your next tour.</p>`}</div>`;
-/* Other songs for a headline show: a short list, any of them starts the gig */
-function otherSongs(stop) {
-  const fits = fitsFor(stop);
-  if (!fits.length) return;
-  layer.innerHTML = `<div class="scrim" id="ro-scrim"></div><div class="panel de-sheet rd-others" role="dialog" aria-label="Songs for the headline show"><div class="grab"></div>
-    <div class="ph"><button class="tb" id="ro-x">Close</button><h2>Headline show</h2><span style="width:56px"></span></div>
-    <div class="pbody"><p class="easy-note">These use only ${esc(stop.chords.join(", "))}. Play one start to finish.</p>
-    <div class="list glass">${fits.map(sg => `<button class="row" data-play="${esc(sg.id)}"><div class="txt"><div class="t">${esc(sg.title)}</div><div class="a">${esc(sg.artist || "")}</div></div></button>`).join("")}</div></div></div>`;
-  const close = () => { layer.innerHTML = ""; };
-  document.getElementById("ro-scrim").onclick = close; document.getElementById("ro-x").onclick = close;
-  layer.querySelectorAll("[data-play]").forEach(b => b.onclick = () => { close(); playGig(b.dataset.play, { from: "road" }); });
-}
+  curriculumPick(id).then(done, e => { tourErr.set(id, e?.message || "Picking a song needs a connection."); done(); });
+};
 
 /* ---- Opening night (4.40.0): the first leg teaches the app by doing it ---- */
 const OIC = {
@@ -502,13 +516,9 @@ export function renderRoad() {
   if (rr) settleStats(); /* Rain checks and fading fans first, so the streak and fans shown are the settled ones */
   const plays = lifetimePlays(data), st = streakOf(playSongs(data)), v = venueNow(data);
   if (boxesSeed(data)) Tabs.save(data); /* 4.76.0: boxes already reached stay opened */
-  const seed = tourSeed(data, { key: !!aiKey() });
-  if (seed.changed) Tabs.save(data);
   if (curriculumSeed(data)) Tabs.save(data); /* 5.17.0: today's progress mapped onto the new stops, kept in data.curriculum */
   const oldRoad = roadTour(data, roadPath(data));
-  const road = rr ? curriculumRoad(data, oldRoad) : oldRoad, cur = road.current, leg = road.leg;
-  for (const id of seed.need) if (!tourErr.has(id) && !tourBusy.has(id)) setTimeout(() => askTourPick(id), 0);
-  const finding = road.legs.filter(l => l.song && l.finding && l.tour);
+  const road = rr ? curriculumRoad(data) : oldRoad, cur = road.current, leg = road.leg;
   const song = upNext(), say = louieLine(st, plays);
   const trip = song && plays && !st.today ? tripFor(song) : null;
   if (trip && say.mood !== "sleepy") say.text = `${trip.a} to ${trip.b} is the switch to warm up for ${song.title}.`;
@@ -572,7 +582,7 @@ export function renderRoad() {
     ${rrRow()}
     ${headLeg ? legBar({ title: `Tour ${headLeg.n}`, sub: headLeg.name, aria: `Tour ${headLeg.n}, ${headLeg.name}` }) : ""}
     <div class="rr-stage rn-stage">
-      <div class="rd-path rr rn" id="rd-path">${finding.map(tourFindCard).join("")}${bare}${!nxt && coming ? coming : ""}</div>
+      <div class="rd-path rr rn" id="rd-path">${bare}${!nxt && coming ? coming : ""}</div>
     </div>
     ${nowPlate(nowName)}`;
   } else app.innerHTML = `
@@ -601,31 +611,32 @@ export function renderRoad() {
   const start = id => {
     const s = all.find(x => x.id === id);
     if (!s) return;
+    if (s.piece) return pieceStart(s);
     if (s.cs) { /* a stop of the new Tour: its Opening night step or its first lesson not done */
       const nx = playNext(data, s);
       if (!nx) return;
       return nx.lesson ? go("#/practice/" + encodeURIComponent(nx.lesson)) : openingStart(OPENING.findIndex(o => o.id === nx.opening));
     }
-    if (s.tour) return tourStart(s);
-    if (s.kind === "headline") {
-      const sg = s.song || fitsFor(s)[0]?.id;
-      if (sg) return playGig(sg, { from: "road" });
-      if (aiKey()) return nextSongs(); /* songs from the chords you play */
-      toast(`Add a song that uses only ${s.chords.join(", ")}, then play it through`); return go("#/library");
-    }
     go("#/practice/" + encodeURIComponent(s.id));
   };
-  /* a song tour stop: rounds and the headline open the highway; lessons are the usual ones. The tap itself opens the round, so the phone lets the microphone start. */
-  const tourStart = s => {
-    const t = data.songTour?.legs?.[s.tour];
-    if (s.kind !== "round" && s.kind !== "headline") return go("#/practice/" + encodeURIComponent(s.id));
-    if (!t?.song) return aiKey() ? tourGet(s.tour) : toast("Add your own key in Settings to get this song, or skip the song tour");
-    openRound(s, { onClose: () => { if (document.getElementById("rd-path")) renderRoad(); } });
+  /* a piece of the tour's song: the round opens from the tap itself, so the phone lets the microphone start */
+  const pieceStart = s => {
+    if (!songOfTour(s)) return toast("Pick this tour's song first");
+    openRound({ id: s.id, tour: s.tourId, kind: s.headline ? "headline" : "round", name: s.name, sub: s.name, piece: true, chords: allowedChords(s.id), state: s.state }, { onClose: () => { if (document.getElementById("rd-path")) renderRoad(); } });
   };
   path.addEventListener("click", e => {
-    const sw = e.target.closest("[data-tourswap]"), rt = e.target.closest("[data-tourretry]");
-    if (sw) { tourSwap(data, sw.dataset.tourswap); Tabs.save(data); tourErr.delete(sw.dataset.tourswap); renderRoad(); }
-    if (rt) { tourErr.delete(rt.dataset.tourretry); askTourPick(rt.dataset.tourretry); renderRoad(); }
+    const q = sel => e.target.closest(sel);
+    const take = (tid, sg) => { const r = tourSetSong(data, tid, sg); Tabs.save(data); return r; };
+    let b;
+    if ((b = q("[data-tsong]"))) { const tid = b.dataset.tsong, sb = songbookFor(data, tid); if (sb) { take(tid, sb.song); renderRoad(); } return; }
+    if ((b = q("[data-twait]"))) { const tid = b.dataset.twait, sg = data.songs.find(x => x.id === b.dataset.songId); if (sg) { take(tid, sg); delete data.curriculum.waiting?.[sg.id]; Tabs.save(data); renderRoad(); } return; }
+    if ((b = q("[data-tfirst]"))) { const tid = b.dataset.tfirst, l1 = tour1Song(data, []); if (l1?.from === "list") { tourPicked(data, tid, { title: l1.title, artist: l1.artist, chords: l1.chords, new: [] }); Tabs.save(data); if (aiKey()) tourGet(tid); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); renderRoad(); } return; }
+    if ((b = q("[data-tget]"))) { if (aiKey()) tourGet(b.dataset.tget); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); return; }
+    if ((b = q("[data-tpick]"))) { askPick(b.dataset.tpick); renderRoad(); return; }
+    if ((b = q("[data-tchoose]"))) return chooseSong(b.dataset.tchoose);
+    if ((b = q("[data-tswap]"))) { tourSwap(data, b.dataset.tswap); Tabs.save(data); tourErr.delete(b.dataset.tswap); return renderRoad(); }
+    if ((b = q("[data-capo]"))) { data.settings = { ...data.settings, capo: b.dataset.capo === "1" }; Tabs.save(data); return renderRoad(); }
+    if ((b = q("[data-chart]"))) return go("#/song/" + encodeURIComponent(b.dataset.chart));
   });
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
   const openStopCard = (node, s, fromKey) => {
@@ -642,9 +653,6 @@ export function renderRoad() {
     if (e.target.closest("[data-tonight]")) return; /* Tonight, on the current stop: #rd-tonight has its own handler above */
     const goBtn = e.target.closest("[data-go]");
     if (goBtn) return start(goBtn.dataset.go);
-    const other = e.target.closest("#rd-other");
-    /* 5.9.1: the songs for the headline whose card is open, not the current stop (a chord stop has no chords: it threw) */
-    if (other) { const hs = all.find(x => x.id === other.dataset.other); return hs?.chords ? otherSongs(hs) : undefined; }
     const songBtn = e.target.closest("[data-song]");
     if (songBtn) return playGig(songBtn.dataset.song, { from: "road" });
     let node = e.target.closest("[data-stop]");
@@ -745,7 +753,7 @@ function guitarEarned(road) {
   const gn = guitarNew(data);
   if (!gn) return;
   data.guitars = { seen: gn.done }; Tabs.save(data);
-  const lg = road.legs.find(l => l.id === gn.next), was = road.legs.find(l => l.id === gn.leg);
+  const was = road.legs.find(l => l.id === gn.leg) || road.legs.find(l => TOUR_LEG[l.id] === gn.leg), lg = road.legs.find(l => l.id === gn.next) || (was ? road.legs[road.legs.indexOf(was) + 1] : null);
   /* Road Ready: the new guitar in the stand, neighbours peeking, Louie and the name under it, then Rock on */
   if (rrLook()) {
     const owned = collectionOf(data, gn.next), at = standIndex(owned, gn.next);
