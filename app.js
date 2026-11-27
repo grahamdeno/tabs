@@ -1,5 +1,5 @@
 // Tabs app: screens and interaction. core.js holds the logic that has unit tests.
-import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
+import { STAR_NAMES, starsOf, achSettle, profileOf, MAX_LENGTH, openingOn, spotTimes, liningDue, practicing, practiceRate, keyGap, journalPractice, addSync, handMove, mergeSyncs, syncSeconds, syncWhere, playCredited, playSongs, soundOffset, germanBlocks, sungText, deSource, DE_LEVELS, Tabs, SPEEDS, playsThisWeek, playCount, sortSongs, TUNINGS, detectTuning, parseBlocks, wrapTab, guessKey, transposeKey, prefersFlats, detectPaste, parseSheet, sheetChords, chordShape, appleTrackId, VERSION, restyle, firstLyric, bodyCapo, journalTime, journalGot, streakMoment, knownChords, questsSettle, bandMeet, merchWorn, LANGS, langOf, langChosen, deLangOk, looksOwned, shownTheme, axOf } from "./core.js";
 import { openDial } from "./dial.js";
 import { setupFold, teardownFold } from "./fold.js";
 import { tlDecorate, tlView, tlPick, TL_NAMES } from "./timeline.js"; /* timeline (5.11.0; the way songs show since 5.12.0) */
@@ -1601,7 +1601,10 @@ function releaseSoon(ms) {
        jump: the recording goes to that place. */
     if (hold.active && scroll.on && viewing && usesMusic(viewing) && musicClock(viewing) !== null) {
       const song = viewing, clock = musicClock(song), len = recSecs(song), range = Math.max(1, sheetRange());
-      if (Math.abs(scrollY - musicY(song, clock)) < innerHeight * 0.6) {
+      /* 5.12.3: a tap (the page didn't move) is not a correction: it used to save a sync mark where the page was */
+      const move = handMove({ y0: hold.y0, y1: scrollY, musicY: musicY(song, clock), screen: innerHeight, wheel: hold.wheel });
+      if (move === "none") { hold.active = false; hold.wheel = false; return; }
+      if (move === "mark") {
         const before = (song.syncs || []).length;
         song.syncs = addSync(song.syncs, scrollY / range, clock, len);
         if (!song.syncs.length) delete song.syncs;
@@ -1613,16 +1616,17 @@ function releaseSoon(ms) {
         seekMusic(song, sec);
       }
     }
-    hold.active = false;
+    hold.active = false; hold.wheel = false;
   }, ms);
 }
 window.addEventListener("touchstart", e => {
   if (e.target instanceof Element && e.target.closest(".dock")) return;
+  if (!hold.touching && !hold.active) hold.y0 = scrollY; /* where the page was when the hand came */
   hold.touching = true; hold.active = true; clearTimeout(hold.timer);
 }, { passive: true });
 window.addEventListener("touchend", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
 window.addEventListener("touchcancel", () => { hold.touching = false; releaseSoon(180); }, { passive: true });
-window.addEventListener("wheel", () => { hold.active = true; releaseSoon(250); }, { passive: true });
+window.addEventListener("wheel", () => { hold.active = true; hold.wheel = true; releaseSoon(250); }, { passive: true });
 
 // Compact header fade: scrolling up reveals it (Back and the title) within a short pull, scrolling down hides it.
 // Near the top the full header is in view, so the compact one hands back to it.
