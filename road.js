@@ -23,7 +23,7 @@
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
 import { piecePays, roadTour, TOUR_LEG, allowedChords, capoAnswer, songbookFor, tour1Song, tourPicked, tourSetSong, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
-import { curriculumRoad, curriculumSeed, playNext, rewardsOn } from "./core.js";
+import { curriculumRoad, curriculumSeed, playNext, rewardsOn, tourData } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { holdSheet, micSheet, notesSheet, songFor, stringsSheet } from "./opening.js";
 import { makerSheet } from "./maker.js";
@@ -137,11 +137,11 @@ function stopCard(stop) {
 /* ---- A piece of the tour's song (5.18.0, B2): the card, the song choice, the capo question ---- */
 const tourBusy = new Set(), tourErr = new Map();
 const tourNo = stop => +String(stop.tourId).replace(/^t/, "");
-const songOfTour = stop => { const t = data.songTour?.legs?.[stop.tourId], sg = t?.song && data.songs.find(x => x.id === t.song); return sg ? { t, sg } : null; };
+const songOfTour = stop => { const t = tourData(data).songTour?.legs?.[stop.tourId], sg = t?.song && data.songs.find(x => x.id === t.song); return sg ? { t, sg } : null; };
 function pieceCard(stop) {
   const title = stop.headline ? "Headline show" : stop.name, off = !rewardsOn(data), id = esc(stop.tourId);
-  const own = songOfTour(stop), t = data.songTour?.legs?.[stop.tourId], sb = own ? null : songbookFor(data, stop.tourId);
-  const wait = !own && Object.entries(data.curriculum?.waiting || {}).find(([sid, n]) => n === tourNo(stop) && data.songs.some(x => x.id === sid));
+  const tv = tourData(data), own = songOfTour(stop), t = tv.songTour?.legs?.[stop.tourId], sb = own ? null : songbookFor(tv, stop.tourId);
+  const wait = !own && Object.entries(tv.curriculum?.waiting || {}).find(([sid, n]) => n === tourNo(stop) && data.songs.some(x => x.id === sid));
   let line, acts = "";
   if (own) {
     const { sg } = own, capo = own.t.capo || 0, band = capo > 0 && capoAnswer(data) !== true;
@@ -182,10 +182,10 @@ function chooseSong(tourId) {
   const close = () => { layer.innerHTML = ""; };
   document.getElementById("ro-scrim").onclick = close; document.getElementById("ro-x").onclick = close;
   layer.querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
-    const sg = data.songs.find(x => x.id === b.dataset.pick), r = tourSetSong(data, tourId, sg);
+    const sg = data.songs.find(x => x.id === b.dataset.pick), tv = tourData(data), r = tourSetSong(tv, tourId, sg);
     close();
     if (r.ok) { Tabs.save(data); toast(`${sg.title} is this tour's song${r.simplified ? ", simplified" : ""}`); return renderRoad(); }
-    if (r.opens) { data.curriculum = { v: 1, done: {}, ...(data.curriculum || {}) }; data.curriculum.waiting = { ...(data.curriculum.waiting || {}), [sg.id]: r.opens }; Tabs.save(data); }
+    if (r.opens) { tv.curriculum = { v: 1, done: {}, ...(tv.curriculum || {}) }; tv.curriculum.waiting = { ...(tv.curriculum.waiting || {}), [sg.id]: r.opens }; Tabs.save(data); }
     toast(r.opens ? `Not yet: this opens at Tour ${r.opens}. It waits there` : "This song needs chords the early tours don't teach");
   });
 }
@@ -626,15 +626,15 @@ export function renderRoad() {
   };
   path.addEventListener("click", e => {
     const q = sel => e.target.closest(sel);
-    const take = (tid, sg) => { const r = tourSetSong(data, tid, sg); Tabs.save(data); return r; };
+    const take = (tid, sg) => { const r = tourSetSong(tourData(data), tid, sg); Tabs.save(data); return r; };
     let b;
-    if ((b = q("[data-tsong]"))) { const tid = b.dataset.tsong, sb = songbookFor(data, tid); if (sb) { take(tid, sb.song); renderRoad(); } return; }
-    if ((b = q("[data-twait]"))) { const tid = b.dataset.twait, sg = data.songs.find(x => x.id === b.dataset.songId); if (sg) { take(tid, sg); delete data.curriculum.waiting?.[sg.id]; Tabs.save(data); renderRoad(); } return; }
-    if ((b = q("[data-tfirst]"))) { const tid = b.dataset.tfirst, l1 = tour1Song(data, []); if (l1?.from === "list") { tourPicked(data, tid, { title: l1.title, artist: l1.artist, chords: l1.chords, new: [] }); Tabs.save(data); if (aiKey()) tourGet(tid); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); renderRoad(); } return; }
+    if ((b = q("[data-tsong]"))) { const tid = b.dataset.tsong, sb = songbookFor(tourData(data), tid); if (sb) { take(tid, sb.song); renderRoad(); } return; }
+    if ((b = q("[data-twait]"))) { const tid = b.dataset.twait, sg = data.songs.find(x => x.id === b.dataset.songId); if (sg) { take(tid, sg); delete tourData(data).curriculum?.waiting?.[sg.id]; Tabs.save(data); renderRoad(); } return; }
+    if ((b = q("[data-tfirst]"))) { const tid = b.dataset.tfirst, l1 = tour1Song(data, []); if (l1?.from === "list") { tourPicked(tourData(data), tid, { title: l1.title, artist: l1.artist, chords: l1.chords, new: [] }); Tabs.save(data); if (aiKey()) tourGet(tid); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); renderRoad(); } return; }
     if ((b = q("[data-tget]"))) { if (aiKey()) tourGet(b.dataset.tget); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); return; }
     if ((b = q("[data-tpick]"))) { askPick(b.dataset.tpick); renderRoad(); return; }
     if ((b = q("[data-tchoose]"))) return chooseSong(b.dataset.tchoose);
-    if ((b = q("[data-tswap]"))) { tourSwap(data, b.dataset.tswap); Tabs.save(data); tourErr.delete(b.dataset.tswap); return renderRoad(); }
+    if ((b = q("[data-tswap]"))) { tourSwap(tourData(data), b.dataset.tswap); Tabs.save(data); tourErr.delete(b.dataset.tswap); return renderRoad(); }
     if ((b = q("[data-capo]"))) { data.settings = { ...data.settings, capo: b.dataset.capo === "1" }; Tabs.save(data); return renderRoad(); }
     if ((b = q("[data-chart]"))) return go("#/song/" + encodeURIComponent(b.dataset.chart));
   });

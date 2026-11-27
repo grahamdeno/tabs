@@ -121,6 +121,23 @@ test("fix 5: with Unlock all tours on, choosing a song and Not yet last for the 
   assert.doesNotMatch(await page.textContent(".rd-pop"), /Play a piece of/, "gone after a reload");
 });
 
+test("fix A: a song chosen with Unlock all tours on is not in the library after it is turned off in the same visit", { skip: skip() }, async t => {
+  const d = lib(); d.songs = d.songs.filter(s => s.id === "easy"); d.settings = { ...(d.settings || {}), unlockAll: true };
+  const page = await phone(t, d, { home: true });
+  await page.waitForSelector(".rn-neck"); await settled(page);
+  await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
+  await page.click(".rd-pop [data-tsong]"); await settled(page);
+  await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
+  assert.match(await page.textContent(".rd-pop"), /Play a piece of Easy Pier/, "the choice shows on the card");
+  await page.evaluate(() => { location.hash = "#/settings"; }); await page.waitForSelector("[data-page='playing']"); await settled(page);
+  await page.click("[data-page='playing']"); await page.waitForSelector("#s-unlock");
+  await page.click("#s-unlock");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1") || "{}").settings?.unlockAll === false);
+  const saved = await stored(page);
+  assert.equal(saved.songTour?.legs?.t2?.song, undefined, "no song stored for Tour 2");
+  assert.equal(saved.curriculum?.waiting, undefined);
+});
+
 test("fix 9 and 8: the locked Lead row says Opens after Tour 4, and a headline card names the song's speed", { skip: skip() }, async t => {
   const d = withSong("easy", {}); d.curriculum.done["k2.5"] = 6; d.songs = d.songs.filter(s => s.id === "easy");
   const page = await phone(t, d, { home: true });

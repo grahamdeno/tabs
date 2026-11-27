@@ -4741,3 +4741,47 @@ test("fix 11: capo is cleaned on load as well as on import", () => {
   assert.equal(C.migrate({ songs: [], settings: { capo: "yes" } }).settings.capo, undefined);
   assert.equal(C.migrate({ songs: [], settings: { capo: false } }).settings.capo, false);
 });
+
+test("fix A: a save writes the library as it is, even with Unlock all tours on and a finished old song tour in a backup", () => {
+  const song = { id: "x", title: "Old Song", artist: "a", status: "solid", format: "chords", body: "[Chorus]\n[Am]la [Dm]la" };
+  const legs = { switch: { pick: { title: "Old Song", artist: "a", chords: ["Am", "Dm"], new: [] }, song: "x", skipped: [], done: ["r:switch-1", "r:switch-2", "h:switch"], solid: true } };
+  const d0 = cur({ songs: [song], settings: { unlockAll: true }, songTour: { v: 1, legs }, curriculum: { v: 1, done: {}, waiting: { x: 3 } } });
+  const fans = C.fansOf(d0);
+  const seen = []; C.Tabs.write = json => { seen.push(JSON.parse(json)); return true; };
+  try {
+    const imp = C.Tabs.import(JSON.stringify(C.backupOf(d0))), d = imp?.data;
+    assert.ok(d, "the backup restores");
+    assert.equal(C.Tabs.flush(), true);
+    const s = seen[seen.length - 1];
+    assert.deepEqual(s.songTour.legs.switch, legs.switch, "the finished old song tour is stored as it was");
+    assert.equal(s.curriculum?.waiting?.x, 3, "and so is what waits for a tour");
+    assert.equal(C.fansOf(s), fans, "the same fans");
+    /* the Tour's song choices under Unlock all tours live in memory, never in the library */
+    const v = C.tourData(d);
+    assert.notEqual(v, d, "a view while Unlock all tours is on");
+    const song2 = { id: "y", title: "Easy", artist: "b", format: "chords", status: "learning", body: "[Chorus]\n[Em]la [A]la [D]la [E]la" };
+    d.songs.push(song2);
+    const r = C.tourSetSong(v, "t2", song2); assert.equal(r.ok, true);
+    assert.equal(C.tourData(d).songTour.legs.t2.song, "y", "read back through the view");
+    C.Tabs.save(d); C.Tabs.flush();
+    assert.equal(seen[seen.length - 1].songTour.legs.t2, undefined, "nothing of it is stored");
+    d.settings.unlockAll = false; C.tourVisitClear();
+    C.Tabs.save(d); C.Tabs.flush();
+    assert.equal(seen[seen.length - 1].songTour.legs.t2, undefined, "not after Unlock all tours is turned off either");
+    assert.equal(C.tourData(d), d, "the library itself once it is off");
+  } finally { C.Tabs.write = null; C.tourVisitClear(); }
+});
+test("fix B: an old song carried to a tour is fitted to it, with its capo", () => {
+  const song = { id: "g", title: "Four Chords", artist: "a", status: "learning", format: "chords", body: "[Chorus]\n[G]la la [C]la la\n[Am]la la [F]la la\n[G]la la [C]la la\n[Am]la la [F]la la" };
+  const legs = { open: { pick: { title: "Four Chords", artist: "a", chords: ["G", "C", "Am", "F"], new: [] }, song: "g", skipped: [], done: ["r:open-1"] } };
+  const d = cur({ songs: [song], songTour: { v: 1, legs } });
+  assert.equal(C.carrySongTours(d), true);
+  assert.equal(d.songTour.legs.t3.song, "g");
+  assert.equal(d.songTour.legs.t3.capo, 5, "G, C, Am, F plays with a capo at fret 5 on Tour 3");
+  assert.equal(typeof d.songTour.legs.t3.simplified, "boolean");
+  /* a song that does not fit is carried as it was */
+  const odd = { ...song, id: "z", body: "[Chorus]\n[F#m7b5]la [Bbm]la [Ebdim]la [C#]la" };
+  const d2 = cur({ songs: [odd], songTour: { v: 1, legs: { open: { ...legs.open, song: "z" } } } });
+  assert.equal(C.carrySongTours(d2), true);
+  assert.equal(d2.songTour.legs.t3.capo, 0); assert.equal(d2.songTour.legs.t3.simplified, false);
+});

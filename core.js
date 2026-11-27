@@ -7,7 +7,7 @@ import { beatsOf, chartOfSheet, chordFit, chordLine, chordName, chordWords, dete
 import { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalRound, journalTime, journalTune, playBars, profileOf, streakMoment, whenYouPlay } from "./core/playing.js";
 import { DRUM_BEATS, DRUM_PARTS, DRUM_SWING, GROOVE, barHits, cleanDrums, cleanGroove, drumBeatName, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf, soundOffset } from "./core/groove.js";
 import { GUITAR_SHARE, HEX_KM2, HEX_M, HOLD_DAYS, PRACTICE_MEDIAN, PRACTICE_SPREAD, VENUES, cellsOutline, claimCells, cleanTour, coarseSpot, densityAt, edgePressure, hexNeighbours, hexSpiral, lifetimePlays, localBar, percentileOf, playsForCells, rng, sceneMap, seedOf, simulateRivals, takeoverPlan, territory, tourDay, userAvg7, venueName, venueOf, zOf, cornersSettle } from "./core/turf.js";
-import { oldSongStops, carrySongTours, piecePays, HEADLINE_RATE, TOUR_LEG, curriculumWon, pieceChords, piecePlayed, toursWon, EASY, TOUR1_SONGS, capoAnswer, tour1Song, CURRICULUM_V, ROUTES, STOPS, TOURS, allowedChords, cleanCurriculum, curriculumBoxOpen, curriculumBoxesOpened, curriculumChords, curriculumRoad, curriculumSeed, curriculumState, isCurriculumBox, mappedDone, nextStop, playNext, playable, rewardsOn, routeOf, stopById, stopsOf } from "./core/curriculum.js";
+import { tourData, tourVisitClear, oldSongStops, carrySongTours, piecePays, HEADLINE_RATE, TOUR_LEG, curriculumWon, pieceChords, piecePlayed, toursWon, EASY, TOUR1_SONGS, capoAnswer, tour1Song, CURRICULUM_V, ROUTES, STOPS, TOURS, allowedChords, cleanCurriculum, curriculumBoxOpen, curriculumBoxesOpened, curriculumChords, curriculumRoad, curriculumSeed, curriculumState, isCurriculumBox, mappedDone, nextStop, playNext, playable, rewardsOn, routeOf, stopById, stopsOf } from "./core/curriculum.js";
 import { tourEntry, DEFAULT_BPM, PART_SECS, TOUR_NEW, chordSpots, cleanSongTour, mostUsed, nearStrum, newChords, pickKey, plainChord, roadTour, roundName, roundNext, roundPassed, roundPlan, roundSay, roundSets, drillPlan, drillTempos, slotTimes, songPart, songTourLeg, songTourStops, songbookPick, tourAttach, tourFit, tourLegIds, tourPicked, tourPlayed, tourSeed, tourSwap, wholeSong } from "./core/songtour.js";
 import { CHORD_EXTRA, CHORD_FIT, HEAR, SCALES, chordLead, chordLeadOver, SKILL_LEVELS, bleedProfile, buzzRms, strumFit, chordNotes, chordTargets, chromaOf, cleanSkills, gradeSwitches, judgeTarget, pitchRms, practiceRate, practicing, scaleTargets, skillDone, skillState, roadNote, chordPlays, songsWith, KNOW_PLAYS, stringRange, strumDetector, strumLine, trackFloor } from "./core/neck.js";
 import { COMBO_STEPS, CALLOUT_LOOKS, achSettle, castFor, pickLook, CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, GUITARS, GUITAR_SHOP, guitarFor, guitarShown, shopState, shopBuy, BUILD_PARTS, BUILD_TAKES, BUILD_STOCK, sunflowerOn, buildState, buildOf, buildShown, buildKey, buildNew, buildCost, buildSave, cleanBuilds, shopChoose, guitarNew, guitarsEarned, guitarsOwned, roadGuitars, GUITAR_START, fretLayout, fretAt, neckSlots, neckScale, neckBoard, NECK_INLAY, NECK_CLEAR, NECK_GOLD_CLEAR, NECK_WIDTH, NECK_NUT, FRET_STEPS, FRET_MIN, FRET_HEAD, FRET_BODY, FULL_NECK, neckStops, ROAD, roadPlace, roadHit, cleanGuitars, ME_DEFAULT, ME_GENRE, ME_WHO, STAGE_LOOKS, cleanMe, meOf, meMood, stageLook, stageLookOf, boxesSeed, cleanBoxes, openBox, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, MERCH, OPENING, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanFame, cleanOpening, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansNow, fansToSpend, fameSettle, venueNow, tipsOf, gigTips, tipsMigrate, FADE, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigCrowd, gigDone, gigFans, gigStart, relativeOf, catchTargets, targetAt, catchStart, catchAt, catchClose, beatsLate, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, headlined, looksOwned, lookOfTheme, missedChanges, noteHeard, openingAdvance, openingOn, openingReplay, openingSkip, openingStep, openingView, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal, showPlayed, showPaused, showWhole, stretchOf, STRETCH, starsOf, starsSettle, STAR_NAMES, STAR_FANS } from "./core/game.js";
@@ -130,9 +130,7 @@ export const raw = s => new SafeHTML(String(s ?? ""));
 const part = v => v instanceof SafeHTML ? v.s : Array.isArray(v) ? v.map(part).join("") : v == null || v === false ? "" : esc(v);
 export const html = (strings, ...vals) => new SafeHTML(strings.reduce((out, s, i) => out + s + (i < vals.length ? part(vals[i]) : ""), ""));
 
-const tourSnap = d => ({ songTour: d?.songTour ? JSON.parse(JSON.stringify(d.songTour)) : null, waiting: d?.curriculum?.waiting ? JSON.parse(JSON.stringify(d.curriculum.waiting)) : null });
 export const Tabs = {
-  tourBase: null,
   // Without the app's store (tests, or a phone without IndexedDB) the library
   // lives in localStorage. `loaded` says how that went: "ok", "empty" or "broken".
   loaded: "empty",
@@ -140,9 +138,7 @@ export const Tabs = {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       this.loaded = raw ? "ok" : "empty";
-      const d = raw ? migrate(JSON.parse(raw)) : blank();
-      this.tourBase = tourSnap(d);
-      return d;
+      return raw ? migrate(JSON.parse(raw)) : blank();
     } catch {
       this.loaded = "broken";
       return blank();
@@ -160,16 +156,7 @@ export const Tabs = {
   flush() {
     clearTimeout(saveTimer); saveTimer = 0;
     if (!pending) return true;
-    let d = pending; pending = null;
-    /* Unlock all tours saves nothing from the Tour (5.18.1): a tour's song and the songs waiting for a tour stay as they were stored,
-       so a choice made while it is on lasts for the visit and is gone after a reload. */
-    if (!rewardsOn(d) && this.tourBase) {
-      const b = this.tourBase, c = d.curriculum ? { ...d.curriculum } : null;
-      d = { ...d };
-      if (b.songTour) d.songTour = b.songTour; else delete d.songTour;
-      if (c) { if (b.waiting) c.waiting = b.waiting; else delete c.waiting; d.curriculum = c; }
-    }
-    else this.tourBase = tourSnap(d);
+    const d = pending; pending = null;
     const json = JSON.stringify(d);
     if (this.write) return this.write(json);
     try { localStorage.setItem(STORAGE_KEY, json); return true; }
@@ -1563,7 +1550,7 @@ export { beatsOf, chartOfSheet, chordFit, chordLine, chordName, chordWords, dete
 export { PASSPORT, PRACTICE_PLAY, STREAK_GOALS, isBarre, journalGot, journalOf, journalPlay, journalPractice, journalRound, journalTime, journalTune, playBars, profileOf, streakMoment, whenYouPlay };
 export { DRUM_BEATS, DRUM_PARTS, DRUM_SWING, GROOVE, barHits, cleanDrums, cleanGroove, drumBeatName, drumHits, drumLevelBar, drumStyle, grooveOf, grooveText, partOf, soundOffset };
 export { GUITAR_SHARE, HEX_KM2, HEX_M, HOLD_DAYS, PRACTICE_MEDIAN, PRACTICE_SPREAD, VENUES, cellsOutline, claimCells, cleanTour, coarseSpot, densityAt, edgePressure, hexNeighbours, hexSpiral, lifetimePlays, localBar, percentileOf, playsForCells, rng, sceneMap, seedOf, simulateRivals, takeoverPlan, territory, tourDay, userAvg7, venueName, venueOf, zOf, cornersSettle };
-export { oldSongStops, carrySongTours, piecePays, HEADLINE_RATE, TOUR_LEG, curriculumWon, pieceChords, piecePlayed, toursWon, EASY, TOUR1_SONGS, capoAnswer, tour1Song, CURRICULUM_V, ROUTES, STOPS, TOURS, allowedChords, cleanCurriculum, curriculumBoxOpen, curriculumBoxesOpened, curriculumChords, curriculumRoad, curriculumSeed, curriculumState, isCurriculumBox, mappedDone, nextStop, playNext, playable, rewardsOn, routeOf, stopById, stopsOf };
+export { tourData, tourVisitClear, oldSongStops, carrySongTours, piecePays, HEADLINE_RATE, TOUR_LEG, curriculumWon, pieceChords, piecePlayed, toursWon, EASY, TOUR1_SONGS, capoAnswer, tour1Song, CURRICULUM_V, ROUTES, STOPS, TOURS, allowedChords, cleanCurriculum, curriculumBoxOpen, curriculumBoxesOpened, curriculumChords, curriculumRoad, curriculumSeed, curriculumState, isCurriculumBox, mappedDone, nextStop, playNext, playable, rewardsOn, routeOf, stopById, stopsOf };
 export { tourEntry, DEFAULT_BPM, PART_SECS, TOUR_NEW, chordSpots, cleanSongTour, mostUsed, nearStrum, newChords, pickKey, plainChord, roadTour, roundName, roundNext, roundPassed, roundPlan, roundSay, roundSets, drillPlan, drillTempos, slotTimes, songPart, songTourLeg, songTourStops, songbookPick, tourAttach, tourFit, tourLegIds, tourPicked, tourPlayed, tourSeed, tourSwap, wholeSong };
 export { CHORD_EXTRA, CHORD_FIT, HEAR, SCALES, chordLead, chordLeadOver, SKILL_LEVELS, bleedProfile, buzzRms, strumFit, chordNotes, chordTargets, chromaOf, cleanSkills, gradeSwitches, judgeTarget, pitchRms, practiceRate, practicing, scaleTargets, skillDone, skillState, roadNote, chordPlays, songsWith, KNOW_PLAYS, stringRange, strumDetector, strumLine, trackFloor };
 export { COMBO_STEPS, CALLOUT_LOOKS, achSettle, castFor, pickLook, CHANGES_DAYS, changesToWork, LESSON_PASSES, LESSON_XP, lessonDone, lessonKeep, lessonOfDay, lessonPartOf, BAND, BOX_EVERY, GUITARS, GUITAR_SHOP, guitarFor, guitarShown, shopState, shopBuy, BUILD_PARTS, BUILD_TAKES, BUILD_STOCK, sunflowerOn, buildState, buildOf, buildShown, buildKey, buildNew, buildCost, buildSave, cleanBuilds, shopChoose, guitarNew, guitarsEarned, guitarsOwned, roadGuitars, GUITAR_START, fretLayout, fretAt, neckSlots, neckScale, neckBoard, NECK_INLAY, NECK_CLEAR, NECK_GOLD_CLEAR, NECK_WIDTH, NECK_NUT, FRET_STEPS, FRET_MIN, FRET_HEAD, FRET_BODY, FULL_NECK, neckStops, ROAD, roadPlace, roadHit, cleanGuitars, ME_DEFAULT, ME_GENRE, ME_WHO, STAGE_LOOKS, cleanMe, meOf, meMood, stageLook, stageLookOf, boxesSeed, cleanBoxes, openBox, CHART_DEMOTE, CHART_PROMOTE, COVER_MULT, FANS, FRIEND_QUEST, MERCH, OPENING, QUEST, SOUNDCHECK_XP, XP, addXP, bandMeet, bandParts, bandState, battleFor, chartRivals, chartState, chartsSettle, cleanBand, cleanCharts, cleanDuelLink, cleanDuels, cleanGig, cleanMerch, cleanFame, cleanOpening, cleanQuests, cleanRehearse, cleanXP, coverState, duelRecord, duelWon, fansOf, fansNow, fansToSpend, fameSettle, venueNow, tipsOf, gigTips, tipsMigrate, FADE, friendQuest, friendQuestPick, friendQuestSettle, friendsOf, gelOf, gigCrowd, gigDone, gigFans, gigStart, relativeOf, catchTargets, targetAt, catchStart, catchAt, catchClose, beatsLate, knownChords, merchBuy, merchState, merchTip, merchWear, merchWorn, headlined, looksOwned, lookOfTheme, missedChanges, noteHeard, openingAdvance, openingOn, openingReplay, openingSkip, openingStep, openingView, playableSongs, questState, questsSettle, rainSettle, rehearseMisses, requestSong, roadPath, secondTake, sheetChords, soundcheck, soundcheckDone, startBattle, startDuel, takeDuel, weekOf, weekXP, badgesOf, levelOf, levelStart, xpTotal, showPlayed, showPaused, showWhole, stretchOf, STRETCH, starsOf, starsSettle, STAR_NAMES, STAR_FANS };

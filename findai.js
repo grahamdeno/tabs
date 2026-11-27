@@ -1,6 +1,6 @@
 // AI help for songs you don't have yet: chord charts from the web (chords only) and
 // "What can I play next?". Loaded the first time either is opened.
-import { fitRuns, tourAllowed, tourKnown, tourNewMax, Tabs, TUNINGS, meOf, tourAttach, tourFit, tourPicked, tourSwap, pickKey, chartOfSheet, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
+import { tourData, fitRuns, tourAllowed, tourKnown, tourNewMax, Tabs, TUNINGS, meOf, tourAttach, tourFit, tourPicked, tourSwap, pickKey, chartOfSheet, knownChords, sheetChords, buildChart, chordCounts, changesOf, mergeWords, numberLyrics, cleanPlaced, placedSheet, lyricsOfSheet, liningDue, SPOTS_V, chordsUsed, pickVersions, tempoPick, beatsOf, playerLevel, cleanGroove, cleanDrums, DRUM_PARTS, rankTracks } from "./core.js";
 import { oneHandMQ } from "./ui.js";
 import { coverHead, searchApple, attachRecording } from "./listen.js";
 import { itunes, appleBlocksSearch } from "./sets.js";
@@ -413,8 +413,8 @@ export function getSong(q, preset = {}) {
     /* 5.9.0: a song tour's pick: the song is saved as Learning and the tour takes it, with the new chords the sheet really has */
     if (preset.tour) {
       s.status = "learning";
-      const r = tourAttach(data, preset.tour, s);
-      if (!r.ok) tourSwap(data, preset.tour);
+      const r = tourAttach(tourData(data), preset.tour, s);
+      if (!r.ok) tourSwap(tourData(data), preset.tour);
       Tabs.save(data); go("#/");
       return toast(r.ok ? `Added ${c.title}. Your tour starts with playing it now` : /^t\d/.test(preset.tour) ? (r.opens ? `Not yet: ${c.title} opens at Tour ${r.opens}. It's in your Songbook` : `${c.title} has chords this tour doesn't allow, so Louie is picking another song`) : `${c.title} has ${r.new.length} new chords, so Louie is picking another song for the tour`);
     }
@@ -561,7 +561,7 @@ export function getSong(q, preset = {}) {
     catch (e) {
       if (!alive) return;
       /* 5.9.0: a song tour pick whose words can't be found: on to the next pick, said in one line */
-      if (preset.tour && e.status === -2) { tourSwap(data, preset.tour); Tabs.save(data); close(); leaveSearch(); go("#/"); return toast(`Couldn't find the words to ${title0 || "that song"}. Louie is picking another.`); }
+      if (preset.tour && e.status === -2) { tourSwap(tourData(data), preset.tour); Tabs.save(data); close(); leaveSearch(); go("#/"); return toast(`Couldn't find the words to ${title0 || "that song"}. Louie is picking another.`); }
       st.view = "error"; st.err = e.status === -2 ? "Couldn't find reliable chords for that song. Check the spelling, or add the artist." : aiError(e);
       if (kept === me) setKept(null);
       return paint();
@@ -827,7 +827,7 @@ const TOUR_RULES = `- Each song needs 2 to 4 chords they don't play. "new" lists
 - Aim at their genre, their favourite songs and the artists in their Songbook.
 - "why": under 12 words, plain, no praise.`;
 export async function tourPick(legId) {
-  const t = data.songTour?.legs?.[legId];
+  const tv = tourData(data), t = tv.songTour?.legs?.[legId];
   if (!t || t.pick) return;
   const have = knownChords(data), known = [...have].slice(0, 30);
   const mine = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 60).join("; ");
@@ -846,8 +846,8 @@ export async function tourPick(legId) {
     if (t.skipped.includes(pickKey(x)) || have2.has(x.title.trim().toLowerCase())) continue;
     const fit = tourFit(x.chords, have);
     if (!fit.ok) continue;
-    if (data.songTour.legs[legId] !== t || t.pick) return; /* swapped or picked while this was loading */
-    tourPicked(data, legId, { ...x, new: fit.new });
+    if (tv.songTour.legs[legId] !== t || t.pick) return; /* swapped or picked while this was loading */
+    tourPicked(tv, legId, { ...x, new: fit.new });
     Tabs.save(data);
     return;
   }
@@ -860,8 +860,8 @@ const CURRICULUM_RULES = `- Every chord in the song must be one of the allowed c
 - Not songs they have and not songs listed as already tried.
 - Aim at their genre, their favourite songs and the artists in their Songbook.`;
 export async function curriculumPick(tourId) {
-  const n = +String(tourId).replace(/^t/, ""), allowed = tourAllowed(n);
-  const t = data.songTour?.legs?.[tourId];
+  const n = +String(tourId).replace(/^t/, ""), allowed = tourAllowed(n), tv = tourData(data);
+  const t = tv.songTour?.legs?.[tourId];
   if (!allowed.length || t?.pick) return;
   const skipped = t?.skipped || [];
   const mine = data.songs.map(s => `${s.title}${s.artist ? ` (${s.artist})` : ""}`).slice(0, 60).join("; ");
@@ -879,7 +879,7 @@ export async function curriculumPick(tourId) {
     if (skipped.includes(pickKey(pick)) || have2.has(pick.title.trim().toLowerCase())) continue;
     const fit = fitRuns(pick.chords, pick.chords, tourAllowed(n), { known: tourKnown(n), maxNew: tourNewMax(n), easy: n === 1 });
     if (!fit.ok) continue;
-    tourPicked(data, tourId, { ...pick, new: fit.new });
+    tourPicked(tv, tourId, { ...pick, new: fit.new });
     Tabs.save(data);
     return;
   }
@@ -887,7 +887,7 @@ export async function curriculumPick(tourId) {
 }
 /* Get it on the first stop: the Get the song flow with the title and artist filled in */
 export function tourGet(legId) {
-  const t = data.songTour?.legs?.[legId];
+  const t = tourData(data).songTour?.legs?.[legId];
   if (!t?.pick || !aiKey()) return;
   getSong("", { title: t.pick.title, artist: t.pick.artist, level: data.settings.nextLevel === "step" ? "rec" : "mine", tour: legId });
 }

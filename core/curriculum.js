@@ -9,6 +9,7 @@
 import { isObj } from "../core.js";
 import { OPENING, openingView, openingStep, sheetChords } from "./game.js";
 import { KNOW_PLAYS } from "./neck.js";
+import { fitTour } from "./fit.js";
 
 export const CURRICULUM_V = 1;
 export const ROUTES = {
@@ -207,6 +208,23 @@ export const curriculumChords = () => [...new Set(STOPS.flatMap(s => s.chords))]
 /* Reward code asks this one function. Unlock all tours (data.settings.unlockAll) plays everything and pays nothing. */
 export const rewardsOn = data => !data?.settings?.unlockAll;
 
+/* The Tour's song choices under Unlock all tours (5.18.1): held in memory for the visit, never in the library. `tourData(data)` is the
+   library itself while rewards are on. While Unlock all tours is on it is a view of the library with its own copy of songTour and
+   curriculum.waiting; read and change the Tour's song through it, and save the real `data` (which the view never touches). */
+let visit = null;
+export const tourVisitClear = () => { visit = null; };
+export function tourData(data) {
+  if (rewardsOn(data)) { visit = null; return data; }
+  if (visit?.data !== data) {
+    const view = Object.create(data), cur = isObj(data.curriculum) ? { ...data.curriculum } : { v: CURRICULUM_V, done: {} };
+    if (cur.waiting) cur.waiting = { ...cur.waiting };
+    view.songTour = data.songTour ? JSON.parse(JSON.stringify(data.songTour)) : null;
+    view.curriculum = cur;
+    visit = { data, view };
+  }
+  return visit.view;
+}
+
 // ---------- What is done: today's progress mapped onto the stops ----------
 /* A finished Opening night step, or the whole of it for a player who skipped it, finished it, replays it or had played before it. */
 function openingDone(data) {
@@ -262,7 +280,9 @@ export function carrySongTours(data) {
     if (!(data.songs || []).some(x => x.id === o.song)) continue;
     const have = data.songTour.legs[tid];
     if (have?.song) continue;
-    data.songTour.legs[tid] = { pick: o.pick ? { ...o.pick } : null, song: o.song, skipped: [], done: [], capo: 0, simplified: false, ...(o.solid ? { solid: true } : {}) };
+    /* fitted like any song for that tour, so it plays with the capo it needs; a song that no longer fits is carried as it was */
+    const song = data.songs.find(x => x.id === o.song), f = song ? fitTour(song.body, tid) : null;
+    data.songTour.legs[tid] = { pick: o.pick ? { ...o.pick } : null, song: o.song, skipped: [], done: [], capo: f?.ok ? f.capo : 0, simplified: f?.ok ? !!f.simplified : false, ...(o.solid ? { solid: true } : {}) };
     changed = true;
   }
   return changed;
