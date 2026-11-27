@@ -5,7 +5,7 @@
 // before the first round that uses it; Round 1 plays the part with only its most used chord (the other bars are rests),
 // one more round adds each further chord in the order it first appears, and the headline plays the whole song.
 // Stored as data.songTour = { v: 1, legs: { open: { pick, song, skipped, done, solid }, ... } }. See docs/DATA.md.
-import { isObj } from "../core.js";
+import { isObj, rewardsOn } from "../core.js";
 import { chordShape, parseBlocks } from "./chords.js";
 import { knownChords, roadPath, sheetChords } from "./game.js";
 
@@ -307,6 +307,7 @@ export function tourAttach(data, legId, song, now = Date.now()) {
 }
 /* A round (or the headline) that passed: it is done; the headline makes the song Solid. Returns what happened for the show's card. */
 export function tourPlayed(data, stop, now = Date.now()) {
+  if (!rewardsOn(data)) return null; /* Unlock all tours (5.17.0): play it, mark nothing */
   const t = entry(data, stop.tour);
   if (!t || t.done.includes(stop.id)) return null;
   const cur = songTourStops(data, stop.tour, now).find(x => x.state === "now");

@@ -8,8 +8,11 @@ useBrowser();
 const AT = Date.now();
 const doneOf = ids => ({ done: Object.fromEntries(ids.map((id, i) => [id, { n: 3, best: 90, at: AT - 1000 + i }])), last: AT });
 const OPEN = ["G", "C", "D", "Em", "Am", "E", "A"].map(c => "c:" + c);
-const MID = doneOf(OPEN.slice(0, 4));
-const lib = (theme, skills) => ({ ...LIB, skills, merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] }, settings: { ...LIB.settings, v: 6, theme } });
+/* 5.17.0: the Tour is the curriculum map: Tours 1 to 3 done (and their merch boxes opened) make Am, the first stop of Tour 4, the current stop */
+const T3 = ["c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C", "s:C-D", "s:G-D"];
+const MID = doneOf(T3);
+const BOXES = { opened: Array.from({ length: 13 }, (_, i) => `b:t${i + 1}`) };
+const lib = (theme, skills) => ({ ...LIB, skills, boxes: BOXES, merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] }, settings: { ...LIB.settings, v: 6, theme } });
 
 test("Neck-only Road: the neck is 55 to 60 percent wide, a gutter drag does not open a stop, and a tap on a stop opens its card", { skip: skip() }, async t => {
   const page = await phone(t, lib("dark", MID), { home: true });
@@ -256,8 +259,8 @@ const LEG1 = doneOf([...OPEN, "k:open"]);
 const SWITCH = ["s:G-C", "s:C-D", "s:G-D", "s:Em-Am", "s:Am-C", "s:D-A", "s:A-E", "s:Em-C", "k:switch"];
 const LAST = doneOf([...OPEN, "k:open", ...SWITCH]);
 
-test("Neck-only Road: the next leg is its real stops, grayed out, and the neck ends just above the plate", { skip: skip() }, async t => {
-  const page = await phone(t, lib("dark", LEG1), { home: true, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+test("Neck-only Road: the lead and fingerstyle rows are grayed out and locked, and the neck ends just above the plate", { skip: skip() }, async t => {
+  const page = await phone(t, lib("dark", MID), { home: true, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
   await page.waitForSelector(".rn-slot.rn-dim"); await settled(page);
   const before = await page.evaluate(() => {
     const cur = document.querySelector(".rd-node.cur");
@@ -276,7 +279,7 @@ test("Neck-only Road: the next leg is its real stops, grayed out, and the neck e
     };
   });
   assert.equal(before.peek, 0, "no empty fret stub");
-  assert.ok(before.dim >= 5, `the next leg has ${before.dim} stops`);
+  assert.equal(before.dim, 2, `the two routes are one locked row each (${before.dim})`);
   assert.equal(before.locked, before.dim, "every upcoming stop is locked");
   assert.ok(before.locks >= before.dim, "each upcoming stop has a lock");
   assert.equal(before.checks, 0, "a grayed stop does not wear a check");
@@ -284,20 +287,20 @@ test("Neck-only Road: the next leg is its real stops, grayed out, and the neck e
   assert.equal(before.veil, 1, "one gray band");
   assert.equal(before.curDim, false, "the current stop stays in the live leg");
   assert.equal(before.curGlow, true, "the current stop still glows");
-  assert.equal(before.next, "Tour 3");
-  assert.match(before.sub, /Scales/);
+  assert.equal(before.next, "Lead route");
+  assert.match(before.sub, /Tours 14 to 16/);
   await page.evaluate(() => {
     const path = document.getElementById("rd-path");
     const mark = document.querySelector(".rn-lat.rn-next");
     path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
   });
-  await page.waitForFunction(() => /Tour 3/.test(document.getElementById("rn-legline").innerText));
-  assert.match(await page.innerText("#rn-legline"), /Tour 3 · Scales/);
+  await page.waitForFunction(() => /(Lead|Fingerstyle) route/.test(document.getElementById("rn-legline").innerText));
+  assert.match(await page.innerText("#rn-legline"), /(Lead route · Tours 14 to 16|Fingerstyle route · Tours 17 to 18)/, "at the end of the neck the legline names the row in view");
   const hash = await page.evaluate(() => location.hash);
   await page.locator(".rn-slot.rn-dim .rd-node").last().click();
   await page.waitForSelector(".rn-slot.rn-dim .rd-pop");
   assert.equal(await page.locator(".rd-pop .rd-start").count(), 0, "a grayed stop has no Start");
-  assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one|opens when you get here/);
+  assert.match(await page.innerText(".rd-pop"), /Finish the stops before this one|opens when you get here|Opens after Tour/);
   assert.equal(await page.evaluate(() => location.hash), hash, "the lesson does not open");
   await page.waitForFunction(() => {
     const pop = document.querySelector(".rd-pop"), plate = document.getElementById("rn-now");
@@ -313,34 +316,19 @@ test("Neck-only Road: the next leg is its real stops, grayed out, and the neck e
   assert.ok(gap.gap >= 16 && gap.gap <= 120, `the neck ends ${gap.gap}px above the plate`);
 });
 
-test("Neck-only Road: the last leg ends clean, with no gray leg and no empty frets", { skip: skip() }, async t => {
+test("Neck-only Road: with every stop that can be played done, no stop is current and the neck ends clean", { skip: skip() }, async t => {
   const page = await phone(t, { ...lib("dark", LAST), guitars: { seen: ["open", "switch"] } }, { home: true, viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
-  await page.waitForSelector(".rd-node.cur"); await settled(page);
+  await page.waitForSelector(".rn-neck"); await settled(page);
   const m = await page.evaluate(() => ({
     next: document.querySelectorAll(".rn-lat.rn-next").length,
     dim: document.querySelectorAll(".rn-slot.rn-dim").length,
     veil: document.querySelectorAll(".rn-upcoming").length,
     peek: document.querySelectorAll(".rn-wire.peek").length,
-    curDim: !!document.querySelector(".rd-node.cur").closest(".rn-dim")
+    cur: document.querySelectorAll(".rd-node.cur").length
   }));
-  assert.equal(m.next, 0, "no upcoming leg marker");
-  assert.equal(m.dim, 0, "nothing is grayed out");
-  assert.equal(m.veil, 0);
+  assert.equal(m.next, 1, "the lead and fingerstyle rows are the only upcoming part");
+  assert.equal(m.dim, 2);
+  assert.equal(m.veil, 1);
   assert.equal(m.peek, 0, "no empty frets past the last gold");
-  assert.equal(m.curDim, false);
-  await page.evaluate(() => {
-    const path = document.getElementById("rd-path");
-    const mark = [...document.querySelectorAll(".rn-lat")].at(-1);
-    path.scrollTop += mark.getBoundingClientRect().top - path.getBoundingClientRect().top;
-  });
-  await page.waitForFunction(() => /Tour 3/.test(document.getElementById("rn-legline").innerText));
-  assert.match(await page.innerText("#rn-legline"), /Scales/);
-  const gap = await page.evaluate(() => {
-    const path = document.getElementById("rd-path");
-    path.scrollTop = path.scrollHeight;
-    const neck = document.querySelector(".rn-neck").getBoundingClientRect();
-    const plate = document.getElementById("rn-now").getBoundingClientRect();
-    return plate.top - neck.bottom;
-  });
-  assert.ok(gap >= 16 && gap <= 180, `the last leg ends ${gap}px above the plate`);
+  assert.equal(m.cur, 0, "what is left is Coming soon, so nothing is current");
 });
