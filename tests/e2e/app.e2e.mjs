@@ -328,8 +328,10 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   assert.equal((await page.innerText("#tn-menubtn")).trim(), "Standard · Acoustic");
   assert.ok(await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".tn-note b")).fontSize) >= 96), "the note is 96px");
   assert.equal(await page.isVisible("#tn-menu"), false, "the menu starts closed");
-  const faceFill = () => page.evaluate(() => getComputedStyle(document.querySelector(".tn-face rect")).fill);
-  assert.equal(await faceFill(), "rgb(154, 91, 52)", "acoustic is wood");
+  /* 5.17.0: in Light and Dark the headstock is a painting (art/tuner/); the older looks keep the flat drawing */
+  const faceFill = () => page.evaluate(() => { const p = document.querySelector(".tn-paint"); return p ? p.getAttribute("href").replace(/\?.*$/, "") : getComputedStyle(document.querySelector(".tn-face rect")).fill; });
+  const rrLook = ["neon", "festival"].includes(await page.evaluate(() => document.documentElement.dataset.look));
+  assert.equal(await faceFill(), rrLook ? "art/tuner/head-acoustic.webp" : "rgb(154, 91, 52)", "acoustic is wood");
   await page.click("#tn-menubtn");
   assert.ok((await page.locator("[data-mode='electric']").boundingBox()).y < 300, "4.29.1: the menu opens under the pill, on screen");
   await page.click("[data-mode='electric']");
@@ -337,8 +339,8 @@ test("tuner: guided acoustic walks the strings, the meter shows how far off, chr
   assert.equal(await page.isVisible("#tn-menu"), false, "choosing closes the menu");
   assert.equal((await page.innerText("#tn-menubtn")).trim(), "Standard · Electric");
   const look = await page.evaluate(() => document.documentElement.dataset.look);
-  const electric = look === "festival" ? "rgb(233, 221, 196)" : look === "neon" ? "rgb(59, 36, 23)" : "rgb(58, 134, 255)";
-  assert.equal(await faceFill(), electric, "5.16.1: in Light and Dark the electric is one fixed finish");
+  const electric = look === "festival" || look === "neon" ? "art/tuner/head-electric.webp" : "rgb(58, 134, 255)";
+  assert.equal(await faceFill(), electric, "in Light and Dark the electric is one painting (5.17.0)");
   await page.evaluate(() => { document.body.dataset.wear = "pink"; });
   if (look === "neon" || look === "festival") assert.equal(await faceFill(), electric, "and it no longer follows Louie's finish");
   await page.evaluate(() => { delete document.body.dataset.wear; });
