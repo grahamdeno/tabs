@@ -4369,18 +4369,59 @@ test("Unlock all tours: everything open, nothing paid, nothing marked, and the m
   C.skillDone(d, "c:D", 90); C.skillDone(d, "c:Em", 90);
   assert.equal(C.tourPlayed(d, { tour: "open", id: "r:open-1", kind: "round" }), null);
   C.journalRound(d, 120);
-  C.Tabs.logPlay(d, d.songs[0]);
   assert.equal(C.openingAdvance(d, "hold"), false);
   assert.equal(C.openBox(d, "b:t1"), false);
   assert.equal(C.curriculumBoxOpen(d, "b:t1"), false);
   assert.equal(C.curriculumSeed(d, 999), false, "the curriculum is not written");
-  const g = C.gigDone(d, "s1", { played: 10, changes: 10 });
-  assert.equal(g.fans + g.tips, 0, "a show pays nothing");
   assert.equal(JSON.stringify({ ...d, settings: {} }), base, "no field changed while it was on");
   assert.equal(C.fansOf(d), fansBefore);
   d.settings.unlockAll = false;
   assert.equal(snapshot(d), before, "turning it off restores the map exactly");
   assert.equal(JSON.stringify(d).replace(/"unlockAll":false,?/, ""), saved.replace(/"unlockAll":false,?/, ""), "and the saved data is as it was");
+});
+
+test("Unlock all tours: songs and Gigs still count while it is on", () => {
+  const w = { played: 10, changes: 10 };
+  const mk = () => { const song = { id: "a", title: "A", format: "chords", body: "[Verse]\nG C\nla", playLog: { total: 1, days: {} } }; return cur({ songs: [song], journal: { chords: { G: { n: 9 }, C: { n: 9 } } } }); };
+  const on = mk(), off = mk();
+  on.settings.unlockAll = true;
+  const at = new Date(2026, 10, 27, 20).getTime();
+  for (const d of [on, off]) { C.Tabs.logPlay(d, d.songs[0], at); }
+  assert.equal(on.songs[0].playLog.total, 2, "a song played through is a play");
+  assert.equal(on.songs[0].playLog.total, off.songs[0].playLog.total, "the same as with it off");
+  const g = C.gigDone(on, "a", w, false, at, { song: on.songs[0], full: true }), h = C.gigDone(off, "a", w, false, at, { song: off.songs[0], full: true });
+  assert.ok(g.fans > 0 && g.tips > 0, "a Gig pays");
+  assert.equal(g.fans + g.tips, h.fans + h.tips, "the same as with it off");
+  assert.equal(C.curriculumSeed(on, 5), false, "and the curriculum still is not written");
+  assert.equal(on.curriculum, undefined);
+});
+
+test("Boxes behind the player when the map is first written show opened and pay nothing; boxes ahead pay", () => {
+  const d = cur({ opening: { step: 9, v: 3 }, skills: skillsDone(...T123), songs: [] });
+  const state = (x, id) => C.curriculumRoad(x).legs.flatMap(l => l.stops).find(y => y.id === id)?.state;
+  const fans0 = C.fansOf(d);
+  assert.equal(C.curriculumSeed(d, 10), true);
+  assert.ok(d.curriculum.settled.includes("b:t1") && d.curriculum.settled.includes("b:t2"), "boxes behind are settled");
+  assert.ok(!d.curriculum.settled.includes("b:t12"), "boxes ahead are not");
+  assert.equal(state(d, "b:t1"), "done", "a box behind shows opened");
+  assert.equal(C.curriculumBoxOpen(d, "b:t1"), false, "and cannot be opened for pay");
+  assert.equal(C.openBox(d, "b:t1"), false);
+  assert.equal(C.fansOf(d), fans0, "so it pays nothing");
+  const before = JSON.stringify(d.curriculum.settled);
+  d.skills = skillsDone(...T123, "c:Am");
+  C.curriculumSeed(d, 20);
+  assert.equal(JSON.stringify(d.curriculum.settled), before, "later progress does not change the list");
+  assert.deepEqual(C.cleanCurriculum({ done: {}, settled: ["b:t2", "x", "b:t2"] }).settled, ["b:t2"], "a bad list is cleaned");
+  /* a box that is still ahead when the map is first written pays when it is reached */
+  const e = cur({ opening: { step: 2, v: 3 } });
+  C.curriculumSeed(e, 10);
+  assert.equal(e.curriculum.settled, undefined, "nothing is behind this player");
+  e.opening.step = 9; e.skills = skillsDone("c:Em");
+  C.curriculumSeed(e, 20);
+  assert.equal(state(e, "b:t1"), "now");
+  const f = C.fansOf(e);
+  assert.equal(C.openBox(e, "b:t1"), true);
+  assert.equal(C.fansOf(e), f + C.FANS.box, "a box ahead pays");
 });
 
 test("Unlock all tours: off by default, kept in the settings and in a backup", () => {

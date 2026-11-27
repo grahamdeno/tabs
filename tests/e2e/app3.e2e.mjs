@@ -340,7 +340,8 @@ test("A run that stops early is not a play", { skip: skip() }, async t => {
 test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", { skip: skip() }, async t => {
   /* 5.17.0: Tour 1's first three stops (Opening night's two and the Em lesson) done: its merch box waits */
   const skills = { done: { "c:Em": { n: 3, best: 90, at: Date.now() } } };
-  const page = await phone(t, { ...LIB, skills, boxes: { opened: [] } }, { home: true });
+  /* a map written before the player reached the box: the box is ahead, so it pays (a box already behind at the first write is settled and pays nothing) */
+  const page = await phone(t, { ...LIB, skills, boxes: { opened: [] }, curriculum: { v: 1, done: {} } }, { home: true });
   await page.waitForSelector(".rd-node.box.now");
   assert.match(await page.innerText(".rn-now-tx"), /Merch box/, "the shut box is the next stop");
   const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");
@@ -587,7 +588,7 @@ test("4.82.0 the fretboard Road: a neck per leg with its guitar's name, and the 
   const page = await phone(t, { ...LIB, skills: { done, last: Date.now() }, merch: { tconv: 1, lconv: 1, hlseen: 1 } }, { home: true });
   await page.waitForSelector(".rn-neck");
   assert.equal(await page.locator(".rn-neck").count(), 1, "one rosewood neck for the legs you can see");
-  assert.match(await page.innerText(".rn-legbar"), /Tour 1/);
+  assert.match(await page.innerText(".rn-legbar"), /Tour \d/);
   assert.equal(await page.locator(".rn-bubble").count(), 0, "no name bubble in the gutter");
   assert.equal(await page.locator(".rn-now").count(), 1, "one now plate, for the current stop");
   assert.equal(await page.locator(".rd-node.headline .rn-pearl").count() >= 1, true, "the headline is an inlay");

@@ -69,7 +69,6 @@ export function journalOf(data, now = Date.now()) {
 }
 // A song played to its end: its chords, changes, key, tempo, and when.
 export function journalPlay(data, song, now = Date.now()) {
-  if (!rewardsOn(data)) return; /* Unlock all tours (5.17.0): no play is kept while it is on */
   const j = journalOf(data, now), day = dayKey(now), d = new Date(now);
   const m = j.months[monthKey(now)] || (j.months[monthKey(now)] = { plays: 0, secs: 0, bpm: 0, bpmN: 0 });
   m.plays++;

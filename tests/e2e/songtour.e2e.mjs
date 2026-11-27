@@ -467,6 +467,7 @@ test("5.16.0 a change drill runs on the neck: two bars each, a bar each, every t
   assert.equal(await page.getAttribute("#round .rnd-speed", "aria-label"), "Speed, 80 BPM", "one step up: the target");
   await page.waitForSelector("#pk-next", { timeout: 60000 });
   assert.match(await page.innerText(".rd-first-t"), /Played through at 80 BPM/);
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).skills?.done?.["s:C-F"]?.best === 80, null, { timeout: 5000 });
   const s = await stored(page);
   assert.equal(s.skills.done["s:C-F"].best, 80, "done at the target tempo, as before");
 });

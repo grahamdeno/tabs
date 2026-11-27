@@ -209,7 +209,8 @@ export function cleanCurriculum(raw) {
   if (!isObj(raw)) return null;
   const done = {};
   for (const [id, at] of Object.entries(isObj(raw.done) ? raw.done : {})) if (STOP_BY[id] && +at > 0) done[id] = Math.floor(+at);
-  return { v: CURRICULUM_V, done };
+  const settled = [...new Set((Array.isArray(raw.settled) ? raw.settled : []).filter(isCurriculumBox))];
+  return settled.length ? { v: CURRICULUM_V, done, settled } : { v: CURRICULUM_V, done };
 }
 /* Unlock mode writes nothing. Otherwise the stops done by the old fields are remembered (once each). True when something was added. */
 export function curriculumSeed(data, now = Date.now()) {
@@ -218,7 +219,9 @@ export function curriculumSeed(data, now = Date.now()) {
   const add = [...mappedDone(data)].filter(id => !have[id]);
   if (cur && !add.length) return false;
   if (!cur && !add.length && !data.skills && !data.opening && !data.songTour) { data.curriculum = { v: CURRICULUM_V, done: {} }; return true; }
-  data.curriculum = { v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) } };
+  /* The first time only: a new box behind where the player stands shows as opened and pays nothing (`settled`); boxes ahead pay. */
+  const settled = cur ? cur.settled : curriculumState(data).tours.filter(t => t.route === "main" && t.stops.length > BOX_AFTER && boxState(data, t, new Set()) === "now").map(t => boxId(t.number));
+  data.curriculum = { v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
   return true;
 }
 const doneSet = data => new Set([...mappedDone(data), ...Object.keys(data.curriculum?.done || {}).filter(id => STOP_BY[id])]);
@@ -267,7 +270,7 @@ export const boxId = tourNumber => `b:t${tourNumber}`;
 export const isCurriculumBox = id => /^b:t\d{1,2}$/.test(String(id));
 const boxState = (data, tour, opened) => {
   const id = boxId(tour.number);
-  if (opened.has(id)) return "done";
+  if (opened.has(id) || (data.curriculum?.settled || []).includes(id)) return "done";
   const before = tour.stops.slice(0, BOX_AFTER);
   if (tour.state === "locked" || tour.route !== "main") return "locked";
   return before.every(s => s.state === "done") ? "now" : "locked";

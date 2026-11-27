@@ -1157,7 +1157,6 @@ export function gelOf(name) {
 export function gigDone(data, songId, g, encore = false, now = Date.now(), opt = {}) {
   const song = opt.song || (data.songs || []).find(x => x.id === songId), full = opt.full !== false;
   const stretch = stretchOf(data, song, { full, now });
-  if (!rewardsOn(data)) return { fans: 0, tips: 0, stretch, stars: { before: 0, after: 0 }, starFans: 0, request: null }; /* Unlock all tours pays nothing */
   const stars = song ? starsSettle(data, song, g, full, now) : { before: 0, after: 0 };
   const starFans = stars.after > stars.before ? STAR_FANS[stars.after] || 0 : 0;
   const fans = gigFans(g, encore, stretch.k) + starFans, tips = gigTips(g, encore);

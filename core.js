@@ -251,7 +251,6 @@ export const Tabs = {
 
   // A play counts when a song is played through (kept as counts per day; see Play history).
   logPlay(data, song, now = Date.now()) {
-    if (!rewardsOn(data)) return; /* Unlock all tours (5.17.0): no play is kept while it is on */
     recordPlay(song, now);
     journalPlay(data, song, now);
     this.save(data);
