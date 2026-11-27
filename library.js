@@ -205,8 +205,17 @@ export function renderLibrary() {
     renderLibrary();
   };
   /* Move the bar before the keyboard opens, so iPhone has nothing to push up. */
+  /* 5.10.2: only a tap opens the search; a scroll that starts on the bar (it floats over the list) doesn't */
+  let qDown = null;
   q.addEventListener("pointerdown", e => {
     if (searching) return;
+    e.preventDefault();
+    qDown = { x: e.clientX, y: e.clientY, t: performance.now() };
+  });
+  q.addEventListener("pointercancel", () => { qDown = null; });
+  q.addEventListener("pointerup", e => {
+    const d = qDown; qDown = null;
+    if (searching || !d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 10 || performance.now() - d.t > 700) return;
     e.preventDefault();
     enterSearch();
     q.focus({ preventScroll: true });
