@@ -1,6 +1,6 @@
 // The curriculum (5.17.0, Release A): 19 tours and their stops, in three routes. The main line (Tours 1 to 13) is
-// chords and rhythm; the lead route (14 to 16) opens after Tour 3; the fingerstyle route (17 and 18) opens after
-// Tour 4; Tour 19 is held. Every stop is a piece of a real song and a tour ends with the whole song, but Release A
+// chords and rhythm; the lead route (14 to 16) and the fingerstyle route (17 and 18) both open after
+// Tour 4 (Graham, decision 16); Tour 19 is held. Every stop is a piece of a real song and a tour ends with the whole song, but Release A
 // only draws the map: a stop that already has something playable (an Opening night step, a chord or switch lesson,
 // a song tour) opens it, and every other stop says "Coming soon" and plays nothing.
 // Today's progress is never rewritten: the old fields stay as they are (skills, opening, songTour, boxes, journal)
@@ -37,7 +37,7 @@ export const capoAnswer = data => data?.settings?.capo === true ? true : data?.s
    come from the Songbook or Get the song, never from here. `note` says what to play differently from the recording. */
 export const TOUR1_SONGS = [
   { title: "Eleanor Rigby", artist: "The Beatles", chords: ["Em", "Cmaj7"], note: "Play the C as Cmaj7: one finger less." },
-  { title: "Tom Dooley", artist: "Traditional", chords: ["Em", "A7"], note: "Two chords. This one is in the public domain." }
+  { title: "Drunken Sailor", artist: "Traditional", chords: ["Em", "D6/9"], note: "Play the D as D6/9. This one is in the public domain." }
 ];
 /* The song for Tour 1: a Songbook song with only easy-set chords (at least two, no tab), else the first hand-checked song not skipped. */
 export function tour1Song(data, skipped = []) {
@@ -233,10 +233,42 @@ export function mappedDone(data) {
     if (!ok && s.carry && op(s.carry)) ok = true; /* Tour 1's second shape: the show is played, so it is done */
     if (ok) out.add(s.id);
   }
-  /* 5.18.0 (B6): a finished old song tour (data.songTour.legs, read only) is the headline of the tour it became */
-  for (const [leg, stop] of Object.entries(OLD_SONG_TOUR)) if (data.songTour?.legs?.[leg]?.solid === true) out.add(stop);
+  /* 5.18.0 (B6): a finished old song tour (data.songTour.legs, read only) is the headline of the tour it became; rounds played
+     in a half-done one are the first song stops of that tour */
+  for (const id of oldSongStops(data)) out.add(id);
   return out;
 }
+/* What the old song tours (data.songTour.legs.open and .switch, read only) already did, as stops of the tour each became.
+   The old fans for them are counted by fansOf already, so playing these stops again pays nothing more. */
+const OLD_LEG_TOUR = { open: "t3", switch: "t4" };
+export function oldSongStops(data) {
+  const out = new Set();
+  for (const [leg, tid] of Object.entries(OLD_LEG_TOUR)) {
+    const o = data.songTour?.legs?.[leg];
+    if (!o) continue;
+    const rounds = (o.done || []).filter(x => /^r:/.test(x)).length;
+    const pieces = STOPS.filter(s => s.tour === tid && s.play?.piece && !s.headline);
+    for (const s of pieces.slice(0, rounds)) out.add(s.id);
+    if (o.solid === true) out.add(OLD_SONG_TOUR[leg]);
+  }
+  return out;
+}
+/* Once per tour, add-only: a half-done old song tour (some rounds played, or a finished one) hands its song to the tour it became. */
+export function carrySongTours(data) {
+  let changed = false;
+  for (const [leg, tid] of Object.entries(OLD_LEG_TOUR)) {
+    const o = data.songTour?.legs?.[leg];
+    if (!o?.song || !((o.done || []).length || o.solid)) continue;
+    if (!(data.songs || []).some(x => x.id === o.song)) continue;
+    const have = data.songTour.legs[tid];
+    if (have?.song) continue;
+    data.songTour.legs[tid] = { pick: o.pick ? { ...o.pick } : null, song: o.song, skipped: [], done: [], capo: 0, simplified: false, ...(o.solid ? { solid: true } : {}) };
+    changed = true;
+  }
+  return changed;
+}
+/* Does playing this piece pay? Once, and never for progress carried from the old song tours. */
+export const piecePays = (data, stopId) => rewardsOn(data) && !data.curriculum?.paid?.[stopId] && !oldSongStops(data).has(stopId);
 /* The old song tours became the tours' own song stops: Open chords' song tour is Tour 3's headline, Chord switches' is Tour 4's. */
 const OLD_SONG_TOUR = { open: "k3.5", switch: "k4.6" };
 /* data.curriculum is only what was mapped: it keeps a stop done once it was, so replaying or clearing an old field loses nothing. */
@@ -247,20 +279,44 @@ export function cleanCurriculum(raw) {
   const settled = [...new Set((Array.isArray(raw.settled) ? raw.settled : []).filter(isCurriculumBox))];
   const won = {};
   for (const [id, at] of Object.entries(isObj(raw.won) ? raw.won : {})) if (/^t\d{1,2}$/.test(id) && TOUR_BY[id] && +at > 0) won[id] = Math.floor(+at);
+  const paid = {};
+  for (const [id, at] of Object.entries(isObj(raw.paid) ? raw.paid : {})) if (STOP_BY[id]?.play?.piece && +at > 0) paid[id] = Math.floor(+at);
   const waiting = {};
   for (const [id, n] of Object.entries(isObj(raw.waiting) ? raw.waiting : {}).slice(0, 20)) if (/^[\w.-]{1,64}$/.test(id) && Number.isInteger(n) && n >= 1 && n <= 4) waiting[id] = n;
-  return { v: CURRICULUM_V, done, ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}), ...(Object.keys(waiting).length ? { waiting } : {}) };
+  return { v: CURRICULUM_V, done, ...(raw.box1 ? { box1: 1 } : {}), ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}), ...(Object.keys(waiting).length ? { waiting } : {}), ...(Object.keys(paid).length ? { paid } : {}) };
 }
 /* Unlock mode writes nothing. Otherwise the stops done by the old fields are remembered (once each). True when something was added. */
 export function curriculumSeed(data, now = Date.now()) {
+  const first = !(data.curriculum && isObj(data.curriculum) && data.curriculum.box1); /* only the first load of 5.18.0 on a library */
+  const a = seedCore(data, now), b = first && backfillWon(data);
+  return a || b;
+}
+/* Once: a player who played the Opening night show before 5.18.0 has Tour 1's headline, so Cornerstone is theirs (announced once, no fans). */
+function backfillWon(data) {
+  const o = data.opening;
+  if (!rewardsOn(data) || !isObj(o) || !(+o.done > 0) || o.skipped) return false;
+  const cur = data.curriculum && isObj(data.curriculum) ? data.curriculum : (data.curriculum = { v: CURRICULUM_V, done: {} });
+  if (cur.won?.t1) return false;
+  cur.won = { ...(cur.won || {}), t1: Math.floor(+o.done) };
+  return true;
+}
+function seedCore(data, now) {
   if (!rewardsOn(data)) return false;
   const cur = data.curriculum && isObj(data.curriculum) ? data.curriculum : null, have = cur?.done || {};
+  /* Once, for a library saved before 5.18.0: Tour 1 has a box now. A player already past the stops before it finds it opened, and it pays nothing. */
+  let touched = false;
+  if (cur && !cur.box1) {
+    const t1 = curriculumState(data).tours.find(t => t.id === "t1");
+    cur.box1 = 1; touched = true;
+    if (t1 && t1.stops.length > BOX_AFTER && boxState(data, t1, new Set(data.boxes?.opened || [])) === "now") cur.settled = [...new Set([...(cur.settled || []), boxId(1)])];
+  }
+  if (carrySongTours(data)) touched = true;
   const add = [...mappedDone(data)].filter(id => !have[id]);
-  if (cur && !add.length) return false;
+  if (cur && !add.length) return touched;
   if (!cur && !add.length && !data.skills && !data.opening && !data.songTour) { data.curriculum = { v: CURRICULUM_V, done: {} }; return true; }
   /* The first time only: a new box behind where the player stands shows as opened and pays nothing (`settled`); boxes ahead pay. */
   const settled = cur ? cur.settled : curriculumState(data).tours.filter(t => t.route === "main" && t.stops.length > BOX_AFTER && boxState(data, t, new Set()) === "now").map(t => boxId(t.number));
-  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), ...(cur?.waiting ? { waiting: cur.waiting } : {}), v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
+  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), ...(cur?.waiting ? { waiting: cur.waiting } : {}), ...(cur?.paid ? { paid: cur.paid } : {}), box1: 1, v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
   return true;
 }
 const doneSet = data => new Set([...mappedDone(data), ...Object.keys(data.curriculum?.done || {}).filter(id => STOP_BY[id])]);
@@ -384,19 +440,23 @@ export const pieceChords = (stopId, songChords) => { const ok = new Set(allowedC
 /* A piece round passed. Returns { id, headline, solid, tour, guitar } or null when it counts for nothing (Unlock all tours, a stop
    that is not the one you are on, a headline played below 0.8x). The headline at 1.0x marks the song Solid. Writes only
    data.curriculum.done and .won (add-only) and the song's own status. */
-/* 0.8x (0.75x, the nearest speed, when a YouTube recording slows the song) */
+/* A headline passes at the song's middle speed: 0.75x with a recording, 0.8x with Louie's band (`need`, from `speedsFor` in rounds.js).
+   Called without one it takes the lower of the two. */
 export const HEADLINE_RATE = 0.75;
-export function piecePlayed(data, stopId, { rate = 1, now = Date.now() } = {}) {
+export function piecePlayed(data, stopId, { rate = 1, need = HEADLINE_RATE, now = Date.now() } = {}) {
   if (!rewardsOn(data)) return null;
   const s = STOP_BY[stopId];
   if (!s?.play?.piece) return null;
-  if (s.headline && rate < HEADLINE_RATE - 1e-9) return null;
+  if (s.headline && rate < need - 1e-9) return null;
   const at = curriculumState(data).tours.flatMap(t => t.stops).find(x => x.id === stopId);
   if (!at || (at.state !== "now" && at.state !== "done")) return null;
   const cur = data.curriculum && isObj(data.curriculum) ? data.curriculum : (data.curriculum = { v: CURRICULUM_V, done: {} });
   const first = !cur.done[stopId];
   if (first) cur.done[stopId] = now;
-  const out = { id: stopId, headline: !!s.headline, solid: false, tour: s.tour, first, guitar: null };
+  /* A piece pays FANS.lesson once, the first time it is played (counted by fansOf from `paid`); progress carried from before pays nothing. */
+  const pays = piecePays(data, stopId);
+  if (pays) cur.paid = { ...(cur.paid || {}), [stopId]: now };
+  const out = { id: stopId, headline: !!s.headline, solid: false, tour: s.tour, first, pays, guitar: null };
   if (s.headline) {
     if (!cur.won?.[s.tour]) cur.won = { ...(cur.won || {}), [s.tour]: now };
     const t = data.songTour?.legs?.[s.tour];

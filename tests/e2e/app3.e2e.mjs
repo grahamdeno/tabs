@@ -341,7 +341,7 @@ test("4.76.0 the merch box: a road case you reach, tap open, and get its fans", 
   /* 5.17.0: Tour 1's first three stops (Opening night's two and the Em lesson) done: its merch box waits */
   const skills = { done: { "c:Em": { n: 3, best: 90, at: Date.now() } } };
   /* a map written before the player reached the box: the box is ahead, so it pays (a box already behind at the first write is settled and pays nothing) */
-  const page = await phone(t, { ...LIB, skills, boxes: { opened: [] }, curriculum: { v: 1, done: {} } }, { home: true });
+  const page = await phone(t, { ...LIB, skills, boxes: { opened: [] }, curriculum: { v: 1, done: {}, box1: 1 } }, { home: true });
   await page.waitForSelector(".rd-node.box.now");
   assert.match(await page.innerText(".rn-now-tx"), /Merch box/, "the shut box is the next stop");
   const fans = async () => +(await page.innerText("#h-fans")).replace(/\D/g, "");

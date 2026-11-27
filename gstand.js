@@ -1,7 +1,7 @@
 // The guitar stand (Road Ready Dark and Light): one hero guitar in an A-frame cradle, the
 // previous and next guitars peeking at the sides, and a dot pager under the feet. Me and the
 // new-guitar sheet share this. Green Room and Headliner never call it.
-import { VERSION, GUITARS, GUITAR_START, roadGuitars, roadPath, shopState } from "./core.js";
+import { VERSION, GUITARS, GUITAR_START, TOUR_LEG, TOURS, roadGuitars, shopState } from "./core.js";
 import { guitarPic, largeGuitar } from "./fretboard.js";
 import { buildPic } from "./buildart.js";
 import { esc } from "./ui.js";
@@ -26,8 +26,13 @@ export function standPic(body) {
 
 /* Guitars you own, in road order then shop order. extraId is the one just earned, so the sheet can
    put it in the row before that leg is marked done. A road id kept in guitars.seen is shown too. */
+/* The tour whose headline earns a guitar: the one for the guitar before it in the order (Cornerstone on Tour 1). Tour names only. */
+const GUITAR_AFTER = ["open", "switch", "scales", "strum", "pick", "finger", "encore"];
+const earnedOnTour = id => {
+  const prev = GUITAR_AFTER[GUITAR_AFTER.indexOf(id) - 1], t = Object.keys(TOUR_LEG).find(k => TOUR_LEG[k] === prev);
+  return t ? TOURS.find(x => x.id === t) || null : null;
+};
 export function collectionOf(data, extraId) {
-  const legs = roadPath(data).legs;
   /* roadGuitars: each headlined leg's guitar plus the next leg's (2026-11-23), labelled with the leg that earned it */
   const owned = roadGuitars(data), earned = new Set(owned.map(g => g.id)), wonOn = Object.fromEntries(owned.map(g => [g.id, g.li]));
   const seen = new Set(Array.isArray(data.guitars?.seen) ? data.guitars.seen : []);
@@ -35,14 +40,14 @@ export function collectionOf(data, extraId) {
   const items = [];
   for (const id of Object.keys(GUITARS)) {
     if (!earned.has(id) && !seen.has(id)) continue;
-    const g = GUITARS[id], li = wonOn[id] ?? legs.findIndex(l => l.id === id), lg = li >= 0 ? legs[li] : null;
+    const g = GUITARS[id], tour = earnedOnTour(id);
     const painted = standPic(g.body);
     const bp = data.builds?.[id] ? buildPic(id, data.builds[id], painted) : { src: painted, attr: "" };
-    const got = earned.has(id) && lg, first = wonOn[id] === GUITAR_START; /* 5.5.0: the guitar you start with */
+    const got = earned.has(id) && tour, first = wonOn[id] === GUITAR_START; /* 5.5.0: the guitar you start with */
     items.push({
       id, name: g.name, src: bp.src || painted, attr: bp.attr || "",
-      label: first ? `${g.name}, your first guitar` : got ? `${g.name}, earned on Tour ${li + 1}, ${lg.name}` : g.name,
-      status: first ? "Your first guitar" : got ? `Earned on Tour ${li + 1}` : (extraId === id ? "New" : "Yours"),
+      label: first ? `${g.name}, your first guitar` : got ? `${g.name}, earned on Tour ${tour.number}, ${tour.name}` : g.name,
+      status: first ? "Your first guitar" : got ? `Earned on Tour ${tour.number}` : (extraId === id ? "New" : "Yours"),
       on: false, road: true
     });
   }

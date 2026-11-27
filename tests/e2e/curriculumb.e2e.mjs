@@ -20,7 +20,8 @@ const lib = (extra = {}) => {
   d.songs = SONGS.map(s => ({ ...s }));
   d.skills = { done: Object.fromEntries(["G", "C", "D", "Em", "Am", "E", "A"].map(c => [`c:${c}`, { n: 1, best: 0, at: 5 }])), last: 6 };
   d.boxes = { opened: Array.from({ length: 13 }, (_, i) => `b:t${i + 1}`) };
-  d.curriculum = { v: 1, done: Object.fromEntries(T.map(id => [id, 5])) };
+  d.curriculum = { v: 1, done: Object.fromEntries(T.map(id => [id, 5])), box1: 1 };
+  d.guitars = { seen: ["open", "switch"] }; /* Cornerstone has been announced */
   return { ...d, ...extra };
 };
 const stored = page => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1") || "{}"));
@@ -29,7 +30,8 @@ const toastText = page => page.waitForFunction(() => /Not yet|simplified|needs c
 const withSong = (id, t) => lib({ songTour: { v: 1, legs: { t2: { pick: { title: "x", artist: "y", chords: [] }, song: id, skipped: [], done: [], ...t } } } });
 
 test("B1: the capo question on Tour 1 is asked once, the answer is kept and the question does not come back", { skip: skip() }, async t => {
-  const page = await phone(t, LIB, { home: true });
+  const l1 = JSON.parse(JSON.stringify(LIB)); l1.guitars = { seen: ["open"] };
+  const page = await phone(t, l1, { home: true });
   await page.waitForSelector(".rn-neck"); await settled(page);
   await tap(page, "k1.4"); await page.waitForSelector(".rd-pop");
   assert.match(await page.textContent(".rd-pop"), /Do you have a capo\?/);
@@ -92,4 +94,52 @@ test("B2: with a capo the card says where it goes", { skip: skip() }, async t =>
   await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
   const card = await page.textContent(".rd-pop");
   assert.match(card, /Capo at fret 2/); assert.doesNotMatch(card, /band plays/);
+});
+
+test("fix 5: with Unlock all tours on, choosing a song and Not yet last for the visit and are not saved", { skip: skip() }, async t => {
+  const d = lib(); d.songs = d.songs.filter(s => s.id === "easy" || s.id === "far"); d.settings = { ...(d.settings || {}), unlockAll: true };
+  const page = await phone(t, d, { home: true });
+  await page.waitForSelector(".rn-neck"); await settled(page);
+  await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
+  await page.click(".rd-pop [data-tsong]");
+  await page.waitForFunction(() => /simplified/.test(document.body.innerText) || document.querySelector(".rd-pop [data-chart]") || true);
+  await page.waitForTimeout(1200); /* real timer: the save settles a moment after the tap */
+  let saved = await stored(page);
+  assert.equal(saved.songTour?.legs?.t2?.song, undefined, "the choice is not saved");
+  await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
+  assert.match(await page.textContent(".rd-pop"), /Play a piece of Easy Pier/, "it stays for the visit");
+  await page.click(".rd-pop [data-tswap]"); await settled(page);
+  await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
+  await page.click(".rd-pop [data-tchoose]"); await page.waitForSelector('[data-pick="far"]');
+  await page.click('[data-pick="far"]');
+  await page.waitForTimeout(1200); /* real timer */
+  saved = await stored(page);
+  assert.equal(saved.curriculum?.waiting, undefined, "Not yet is not saved");
+  assert.equal(saved.songTour?.legs?.t2?.song, undefined);
+  await page.reload(); await page.waitForSelector(".rn-neck"); await settled(page);
+  await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
+  assert.doesNotMatch(await page.textContent(".rd-pop"), /Play a piece of/, "gone after a reload");
+});
+
+test("fix 9 and 8: the locked Lead row says Opens after Tour 4, and a headline card names the song's speed", { skip: skip() }, async t => {
+  const d = withSong("easy", {}); d.curriculum.done["k2.5"] = 6; d.songs = d.songs.filter(s => s.id === "easy");
+  const page = await phone(t, d, { home: true });
+  await page.waitForSelector(".rn-neck"); await settled(page);
+  await tap(page, "route:lead"); await page.waitForSelector(".rd-pop");
+  assert.match(await page.textContent(".rd-pop"), /Opens after Tour 4\./);
+  await page.reload(); await page.waitForSelector(".rn-neck"); await settled(page);
+  await tap(page, "k2.6"); await page.waitForSelector(".rd-pop");
+  assert.match(await page.textContent(".rd-pop"), /Pass at 0\.8x\. 1\.0x makes it Solid\./, "with Louie's band");
+});
+
+test("fix 11: the guitar stand names the tours that earned each guitar, Tour 4's included, with no old leg names", { skip: skip() }, async t => {
+  const d = lib(); d.curriculum.won = { t1: 5, t2: 6, t3: 7, t4: 8 }; d.guitars = { seen: ["open", "switch", "scales", "strum", "pick"] };
+  const page = await phone(t, d, { home: true });
+  await page.waitForSelector(".rn-neck"); await settled(page);
+  const items = await page.evaluate(async () => { const m = await import("/gstand.js"); return m.collectionOf(JSON.parse(localStorage.getItem("tabs-v1"))).map(i => [i.id, i.label, i.status]); });
+  const by = Object.fromEntries(items.map(i => [i[0], i]));
+  assert.equal(by.switch[2], "Earned on Tour 1"); assert.equal(by.scales[2], "Earned on Tour 2"); assert.equal(by.strum[2], "Earned on Tour 3"); assert.equal(by.pick[2], "Earned on Tour 4");
+  assert.equal(by.switch[1], "Cornerstone, earned on Tour 1, Opening Night");
+  assert.match(by.pick[1], /earned on Tour 4, /);
+  for (const i of items) if (/earned on/.test(i[1])) assert.match(i[1], new RegExp("earned on Tour (\\d+), "), i[1]);
 });

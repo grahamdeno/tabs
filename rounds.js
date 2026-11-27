@@ -23,6 +23,8 @@ const PX_BEAT = 56;
    and you hear the song at every speed. Otherwise 0.6x and 0.8x play with Louie's band, and 1.0x with the recording. */
 const slows = song => !song.bandOnly && usesMusic(song) && recordingOn(song) === "youtube";
 export const speedsFor = song => slows(song) ? [0.5, 0.75, 1] : [0.6, 0.8, 1];
+/* the speed a headline passes at: the song's middle speed */
+export const passSpeed = song => speedsFor(song)[1];
 export const speedName = v => v === 1 ? "1.0x" : `${+v.toFixed(2)}x`;
 let R = null; // the round on screen
 
@@ -48,7 +50,7 @@ export function openRound(stop, { onClose } = {}) {
   let song = real;
   if (stop.piece) {
     const capo = t.capo || 0;
-    song = { ...real, body: t.simplified || capo ? simplifyBody(real.body, capo, tourAllowed(+stop.tour.slice(1))) : real.body };
+    song = { ...real, body: t.simplified || capo ? simplifyBody(real.body, capo, tourAllowed(+stop.tour.slice(1)), stop.tour === "t1") : real.body };
     if (capo > 0) { if (capoAnswer(data) === true) song.capoUp = capo; else song.bandOnly = true; }
   }
   /* the tap: ask for the microphone and wake the sound before anything is awaited */
@@ -270,9 +272,9 @@ function finish(r) {
   let result = null;
   if (r.drill) { r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null; return drillCard(r, { n, total, listened, passed }); }
   if (passed) {
-    result = r.stop.piece ? piecePlayed(data, r.stop.id, { rate: r.speed }) : tourPlayed(data, r.stop);
+    result = r.stop.piece ? piecePlayed(data, r.stop.id, { rate: r.speed, need: passSpeed(r.song) }) : tourPlayed(data, r.stop);
     journalRound(data, r.plan.secs, Date.now(), !!result);
-    if (result && (!r.stop.piece || result.first)) result.fans = FANS.lesson;
+    if (result && (!r.stop.piece || result.pays)) result.fans = FANS.lesson;
     Tabs.save(data);
   }
   r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null;
@@ -300,7 +302,7 @@ function card(r, { n, total, listened, passed, result }) {
   r.next = nextStop;
   const title = listened ? `Louie heard ${n} of ${total}` : "Louie wasn't listening";
   const sub = !listened ? "The microphone is off, so this round counts when you play it through."
-    : slow ? `The headline passes at 0.8x or faster. Play it again a little quicker.`
+    : slow ? `The headline passes at ${speedName(passSpeed(r.song))} or faster. Play it again a little quicker.`
     : passed && r.stop.piece ? (r.stop.kind === "headline" ? (result?.solid ? `${data.songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now.` : "The headline show is done. Play it at 1.0x to make the song Solid.") : "That counts.")
     : passed ? (r.stop.kind === "headline" ? `${r.part && data.songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now and its chords count as yours.` : "That counts. Each round adds a chord.")
     : "Louie needs 3 in 4 to count a round. Nothing is lost.";

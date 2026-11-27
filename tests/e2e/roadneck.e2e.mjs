@@ -13,7 +13,7 @@ const T3 = ["c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C"
 const MID = doneOf(T3);
 const BOXES = { opened: Array.from({ length: 13 }, (_, i) => `b:t${i + 1}`) };
 /* 5.18.0: Down-ups, the folk pattern and the headlines of Tours 2 to 4 are pieces of a song; these players have played the ones before where they stand */
-const PIECES = { v: 1, done: { "k2.5": AT, "k2.6": AT, "k3.5": AT } };
+const PIECES = { v: 1, box1: 1, done: { "k2.5": AT, "k2.6": AT, "k3.5": AT } };
 const PIECES_ALL = { v: 1, done: { ...PIECES.done, "k4.4": AT, "k4.5": AT, "k4.6": AT } };
 const lib = (theme, skills) => ({ ...LIB, skills, curriculum: skills === MID ? PIECES : PIECES_ALL, boxes: BOXES, merch: { tconv: 1, lconv: 1, hlseen: 1 }, guitars: { seen: ["open"] }, settings: { ...LIB.settings, v: 6, theme } });
 

@@ -13,7 +13,7 @@ const T3 = ["c:Em", "c:A", "c:D", "c:E", "s:D-A", "s:A-E", "c:G", "c:C", "s:G-C"
 const MID = doneOf(T3);
 const BOXES = { opened: ["b:t1", "b:t2", "b:t3", "b:t4"] };
 /* 5.18.0: Down-ups and Tour 2's headline are pieces of a song; a player at Tour 3 or 4 has played them */
-const PIECES = { v: 1, done: { "k2.5": AT, "k2.6": AT, "k3.5": AT } };
+const PIECES = { v: 1, box1: 1, done: { "k2.5": AT, "k2.6": AT, "k3.5": AT } };
 const lib = (theme, skills, extra = {}) => ({ ...LIB, skills, curriculum: extra.curriculum || PIECES, boxes: BOXES, merch: { tconv: 1, lconv: 1, hlseen: 1, ...(extra.merch || {}) }, guitars: { seen: ["open"] }, journal: extra.journal, settings: { ...LIB.settings, v: 6, theme } });
 /* the path scrolls to the current stop, and again after a card opens or closes (revealPop): wait until the stop has stopped moving */
 const still = page => page.evaluate(() => new Promise(res => { const el = document.querySelector(".rd-node.cur"); let last = -1, n = 0; const f = () => { const y = el.getBoundingClientRect().top; n = y === last ? n + 1 : 0; last = y; n >= 10 ? res() : requestAnimationFrame(f); }; f(); }));

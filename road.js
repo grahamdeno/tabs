@@ -22,7 +22,7 @@
 //   the path      the same necks, the stops drawn as pearl inlays, an amber line from done stop to done stop up to
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
-import { roadTour, TOUR_LEG, allowedChords, capoAnswer, songbookFor, tour1Song, tourPicked, tourSetSong, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
+import { piecePays, roadTour, TOUR_LEG, allowedChords, capoAnswer, songbookFor, tour1Song, tourPicked, tourSetSong, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { curriculumRoad, curriculumSeed, playNext, rewardsOn } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { holdSheet, micSheet, notesSheet, songFor, stringsSheet } from "./opening.js";
@@ -30,7 +30,7 @@ import { makerSheet } from "./maker.js";
 import { chordNames, data, go, homeHooks, openSearch, playGig, route, showCallout, tourGet, curriculumPick } from "./app.js";
 import { aiKey } from "./aihelp.js";
 import { louie } from "./louie.js";
-import { openRound } from "./rounds.js";
+import { openRound, passSpeed, speedName } from "./rounds.js";
 import { guitarSVG, inlaySVG, neckHTML, rrStopArt, bareNeckHTML } from "./fretboard.js";
 import { bindStand, collectionOf, standHTML, standIndex } from "./gstand.js";
 import { statBar, rrStats, bindStatBar, settleStats } from "./hud.js";
@@ -145,9 +145,9 @@ function pieceCard(stop) {
   let line, acts = "";
   if (own) {
     const { sg } = own, capo = own.t.capo || 0, band = capo > 0 && capoAnswer(data) !== true;
-    line = `${stop.headline ? `Play the whole of ${sg.title} at 0.8x or faster. 1.0x makes the song Solid.` : `Play a piece of ${sg.title}. Louie marks the strums with your chords; the rest are rests.`}`
+    line = `${stop.headline ? `Play the whole of ${sg.title}. Pass at ${speedName(passSpeed({ ...sg, bandOnly: band }))}. 1.0x makes it Solid.` : `Play a piece of ${sg.title}. Louie marks the strums with your chords; the rest are rests.`}`
       + `${own.t.simplified ? " This is the simplified version." : ""}${capo > 0 ? (band ? ` It needs a capo at fret ${capo}, so Louie's band plays it.` : ` Capo at fret ${capo}.`) : ""} ${csPass(stop)}${off ? " Unlock all tours is on: nothing is paid or saved." : ""}`;
-    acts = `${!off && stop.state !== "done" ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "PLAY"}</button>`
+    acts = `${!off && piecePays(data, stop.id) ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "PLAY"}</button>`
       + (own.t.simplified || capo > 0 ? `<button class="rd-other" data-chart="${esc(sg.id)}">See the real chart</button>` : "")
       + `<button class="rd-other" data-tswap="${id}">Use another song</button>`;
   } else if (sb) {

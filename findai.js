@@ -877,7 +877,7 @@ export async function curriculumPick(tourId) {
   for (const x of (j.songs || []).filter(x => x && x.title)) {
     const pick = { title: String(x.title).slice(0, 80), artist: String(x.artist || "").slice(0, 60), chords: (x.chords || []).filter(ok).slice(0, 14) };
     if (skipped.includes(pickKey(pick)) || have2.has(pick.title.trim().toLowerCase())) continue;
-    const fit = fitRuns(pick.chords, pick.chords, tourAllowed(n), { known: tourKnown(n), maxNew: tourNewMax(n) });
+    const fit = fitRuns(pick.chords, pick.chords, tourAllowed(n), { known: tourKnown(n), maxNew: tourNewMax(n), easy: n === 1 });
     if (!fit.ok) continue;
     tourPicked(data, tourId, { ...pick, new: fit.new });
     Tabs.save(data);
