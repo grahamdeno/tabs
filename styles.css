@@ -6319,3 +6319,52 @@ body:has(#gig.idle) .app.viewer .dock { opacity: 0; pointer-events: none; }
 .fp-nav { right: 80px; bottom: calc(142px + var(--safe-b)); } /* above the bar and the Next card */
 .fp-band { right: 18px; bottom: calc(142px + var(--safe-b)); }
 body:has(#gig.done, #gig .on-count) .app.viewer .dock { visibility: hidden; } /* Show complete and the first show's Count me in card have their own buttons */
+/* 5.15.0 the round screen: a chord name on every strum, rests that say listen, Now and Next cards, and Speed, Pause and
+   Restart always on screen (the highway takes what's left, so nothing falls below the screen) */
+.rnd { overflow: hidden; }
+.rnd-hw { flex: 1 1 0; height: auto; min-height: 170px; max-height: 420px; }
+.rnd-nm { top: 8px; transform: translateX(-50%); min-width: 30px; box-sizing: border-box; padding: 3px 7px; border-radius: 7px; background: var(--nm-bg); color: var(--nm-fg); text-align: center; font: 700 var(--type-callout, 16px) / 1.2 Inter, system-ui, sans-serif; z-index: 2; }
+.rnd-nm.now { top: 4px; padding: 4px 11px; font-size: calc(var(--type-callout, 16px) * 1.35); }
+.rnd-nm.past { background: #6B675F; color: #F4ECDD; }
+.rnd-arr { top: 34px; font-size: var(--type-footnote, 13px); line-height: 1; } /* the down strum, under its chord name */
+.rnd-blk { top: 26%; height: auto; bottom: 7%; width: 20px; margin-left: -2px; border-radius: 6px; }
+.rnd-blk.past { opacity: 1; background: #8B857A; }
+.rnd-blk.now { background: #9FE1CB; }
+.rnd-blk.heard { background: var(--rnd-acc); }
+.rnd-rest { top: 26%; height: auto; bottom: 7%; border: 0; border-radius: 10px; background: rgba(10, 8, 6, .62); color: #CFC6B6; font: 500 var(--type-footnote, 13px) Inter, system-ui, sans-serif; }
+.rnd-rest b { display: block; margin-top: 2px; font: 700 var(--type-title2, 22px) Inter, system-ui, sans-serif; color: #F6EEE0; }
+.rnd-heard { gap: 8px; padding: 0 14px; }
+.rnd-heard > .i { width: 18px; height: 18px; fill: none; stroke: #E8A64A; stroke-width: 2; }
+.rnd-lv { display: flex; align-items: flex-end; gap: 2px; height: 16px; }
+.rnd-lv i { width: 3px; border-radius: 1px; background: var(--rnd-hair); }
+.rnd-lv i:nth-child(1) { height: 5px; } .rnd-lv i:nth-child(2) { height: 8px; } .rnd-lv i:nth-child(3) { height: 12px; } .rnd-lv i:nth-child(4) { height: 16px; }
+.rnd-lv i.on { background: var(--rnd-acc); }
+.rnd-heard b { font: 600 var(--type-subhead, 15px) "IBM Plex Mono", monospace; }
+.rnd-foot { flex: 0 0 auto; display: flex; flex-direction: column; gap: 10px; padding: 0 16px max(14px, env(safe-area-inset-bottom)); }
+.rnd-below, .rnd-nx { margin: 0; padding: 12px 16px; border-radius: 16px; border: 1px solid var(--rnd-hair); background: var(--rnd-card); }
+.rnd-below { justify-content: space-between; }
+.rnd-info small, .rnd-nx small { display: block; font: 600 var(--type-caption, 12px) "IBM Plex Mono", monospace; letter-spacing: .14em; }
+.rnd-info small { color: var(--rnd-acc); }
+.rnd-nx small { color: var(--rnd-2); }
+.rnd-next { margin: 4px 0 0; font-size: var(--type-headline, 17px); font-weight: 600; color: var(--rr-text, #F6EEE0); }
+.rnd-bar { position: static; margin: auto 0 0; padding: 0; justify-content: space-around; align-items: flex-start; background: none; }
+.rnd-ctl { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 64px; }
+.rnd-ctl > span { font-size: var(--type-caption, 12px); color: var(--rnd-2); }
+.rnd .rnd-speed, .rnd .rnd-again { width: 56px; height: 56px; min-width: 0; border-radius: 28px; border: 1.5px solid var(--rnd-hair); background: var(--rnd-card); display: grid; place-items: center; padding: 0; font: 700 var(--type-callout, 16px) Inter, system-ui, sans-serif; box-shadow: none; }
+.rnd-again .i { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.rnd-pause { width: 68px; height: 68px; border-radius: 34px; }
+@media (orientation: landscape) and (max-height: 500px) {
+  .rnd-hw { height: auto; min-height: 120px; max-height: none; }
+  .rnd-foot { flex-direction: row; align-items: center; gap: 12px; padding-top: 2px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+  .rnd-shape { display: block; min-width: 0; min-height: 0; }
+  .rnd-shape svg { height: 84px; width: auto; }
+  .rnd-below, .rnd-nx { padding: 8px 14px; align-self: stretch; }
+  .rnd-below { gap: 14px; }
+  .rnd-nx { display: flex; flex-direction: column; justify-content: center; min-width: 0; flex: 0 1 260px; }
+  .rnd-info { flex: none; display: block; } .rnd-now { font-size: calc(var(--sys-px, 17px) * 2.4); }
+  .rnd-bar { margin: 0 0 0 auto; gap: 16px; align-items: center; }
+  .rnd-ctl { min-width: 56px; }
+}
+@media (max-width: 340px) { .rnd-foot { padding-left: 12px; padding-right: 12px; } .rnd .rnd-speed, .rnd .rnd-again { width: 50px; height: 50px; } }
+@media (prefers-reduced-motion: reduce) { .rnd-nm { transition: none; } }
+@media (orientation: portrait) and (max-height: 720px) { .rnd { gap: 8px; } .rnd-song { display: none; } .rnd-hw { min-height: 140px; } .rnd-shape { min-height: 0; } .rnd-shape svg { height: 76px; width: auto; } .rnd-below, .rnd-nx { padding: 8px 14px; } .rnd-now { font-size: calc(var(--sys-px, 17px) * 2); } .rnd-foot { gap: 8px; } }
