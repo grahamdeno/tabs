@@ -397,7 +397,7 @@ test("5.10.1 rounds: on its side Pause is on top and answers; the line sits near
   await page.click('#round [data-rnd="pause"]');
   await page.waitForFunction(() => document.querySelector('#round [data-rnd="pause"]').ariaLabel === "Play");
   const at = await page.evaluate(() => { const hw = document.querySelector("#round .rnd-hw").getBoundingClientRect(), l = document.querySelector("#round .rnd-line").getBoundingClientRect(); return (l.left - hw.left) / hw.width; });
-  assert.ok(at > 0.27 && at < 0.33, `the line is near 30% across (${at})`);
+  assert.ok(at > 0.19 && at < 0.25, `5.14.0: the line is near 22% across, over the chord shape side (${at})`);
   const gap = await page.evaluate(() => { const b = [...document.querySelectorAll("#round .rnd-blk")].map(x => x.getBoundingClientRect().left); return b[1] - b[0]; });
   assert.ok(gap >= 50, `strums are spread out (${gap} px)`);
 });

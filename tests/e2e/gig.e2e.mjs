@@ -67,7 +67,7 @@ test("The Gig (4.1.0, 4.2.0, 4.14.0): a show from Play to Show complete, with a 
   assert.equal(look.overflow, false, "4.58.0: no line runs past the edge at the boldest weight");
   assert.equal(await page.locator("#gg-lc").count(), 0, "4.2.0: Lines moved to Tools");
   /* Paused, the show holds the line you stopped on; Tools has only what you change mid-song */
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   assert.equal(await page.locator("#gg-hline, .gg-here, #gg-hold, #gg-back, #gg-sheet").count(), 0, "4.52.0: no pause screen, no Back a line, no Sheet");
   assert.ok(await page.locator(".app.viewer .shead").isVisible(), "paused, the song page is back");
   assert.match(await page.innerText("#play"), /RESUME/, "Play reads Resume");
@@ -108,7 +108,7 @@ test("Gig: paused, Tools has no Lines in a gig (4.43.0); Play resumes the show; 
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   const held = await page.innerText("#sheet > .st-now");
   await page.click("#more"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.locator(".menu [data-lines]").count(), 0, "no Lines in a gig");
@@ -120,7 +120,7 @@ test("Gig: paused, Tools has no Lines in a gig (4.43.0); Play resumes the show; 
   assert.equal(await page.locator("#gig.paused").count(), 0);
   await page.waitForFunction(a => scrollY > a + 20, at, { timeout: 8000 });
   await page.keyboard.press("Shift"); /* 4.60.0: the controls may have faded; a key wakes them without pressing */
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   assert.equal(await page.evaluate(() => location.hash), "#/song/g", "paused on the song page");
   assert.ok(await page.evaluate(() => { const b = getComputedStyle(document.querySelector("#sheet > .st-now"), "::before"); return b.content !== "none"; }), "a quiet band on the line you stopped on");
   await page.click(".shead .sh-back"); await page.waitForFunction(() => !document.getElementById("gig"));
@@ -133,7 +133,7 @@ test("4.49.12 the Metronome switch in a gig is the band's switch: Beat's drums g
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#gig");
   await page.waitForFunction(() => import("/audio.js").then(m => m.metro.timer > 0), null, { timeout: 8000 });
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   await page.click("#more"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.getAttribute(".menu [data-m='metro']", "aria-checked"), "true", "Beat is playing, so the switch says on");
   await page.click(".menu [data-m='metro']");
@@ -144,7 +144,7 @@ test("4.49.12 the Metronome switch in a gig is the band's switch: Beat's drums g
   await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
   /* real timer */ await page.waitForTimeout(600);
   assert.equal(await page.evaluate(() => import("/audio.js").then(m => m.metro.timer)), 0, "Resume does not start the drums again");
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   await page.click("#more"); await page.waitForSelector(".menu.tools");
   await page.click(".menu [data-m='metro']");
   await page.waitForFunction(() => { const s = JSON.parse(localStorage.getItem("tabs-v1")).settings; return s.metronome === true && s.bandPlays === undefined; });
@@ -156,7 +156,7 @@ test("4.2.2 the Gig moves under a finger: drag the lines or the line you stopped
   const page = await phone(t, { ...LIB, songs: [long], settings: { ...LIB.settings, plainPlay: false, gigScore: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/l"; }); await page.waitForSelector("#play");
   await page.click("#play"); await page.waitForSelector("#gig");
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   assert.equal(await page.locator("#gg-mic").count(), 0, "4.91.0: no microphone in a show");
   const before = await page.evaluate(() => scrollY), line = await page.innerText("#sheet > .st-now");
   const cdp = await page.context().newCDPSession(page);
@@ -228,7 +228,7 @@ test("4.50.0 Now and Next is gone: an intro is lines like any other, and Tools h
   await page.evaluate(() => { location.hash = "#/song/i"; }); await page.waitForSelector("#play"); await settled(page);
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now .c");
   assert.equal(await page.locator("#gig.bigc, .gg-chords").count(), 0, "no big cards, even with the old setting on");
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   await page.click("#more"); await page.waitForSelector(".menu.tools");
   assert.equal(await page.locator('.menu [data-m="nn"]').count(), 0, "no Now and Next row");
 });
@@ -261,7 +261,7 @@ test("4.51.0 one page: a line of the song fits on one line, an intro's chords sp
   assert.equal(await page.evaluate(() => parseFloat(getComputedStyle(document.getElementById("sheet")).fontSize)), size, "the same size playing as paused");
   /* Road Ready 05 polish (no stage light, the page steps back) moved to "lyrics are full size", which runs in Dark (2026-11-19) */
   /* 4.66.0: no X: Pause, then the page's own Back leaves the show */
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   await page.click(".shead .sh-back"); await page.waitForSelector("#gig", { state: "detached" });
   assert.equal(await page.locator("#st-bg, #sheet .st-now, #sheet .st-lit").count(), 0, "leaving the show clears the stage");
 });
@@ -371,12 +371,12 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
   assert.equal(look.light, "none", "no stage light on a cover");
   assert.equal(await page.locator("#gig .gg-bd").count(), 0, "4.66.0: no backdrop over the show (it's on Show complete)");
   /* 4.60.1: paused, the page and Tools are dark with white text, not white on white */
-  await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   const dock = await page.evaluate(() => { const t = document.querySelector(".dock"); const b = document.querySelector(".dock .tools, .dock button:not(#play)"); const cs = getComputedStyle(b || t); return { text: cs.color, dockBg: getComputedStyle(t).backgroundColor }; });
   assert.notEqual(dock.text, dock.dockBg, "the Tools button is readable on the dock");
   assert.ok(!/rgb\(2[0-9]{2}, 2[0-9]{2}, 2[0-9]{2}\)/.test(dock.dockBg), "the dock is dark under a cover: " + dock.dockBg);
   await page.click("#play"); await page.waitForSelector("body.staged:not(.held)");
-  await page.click("#gg-pause"); await page.waitForSelector("body.held");
+  await page.click("#play"); await page.waitForSelector("body.held");
   assert.equal(await page.locator("#gg-cover").count(), 1, "paused, the cover stays behind the song page");
   await page.goto(base + "#/"); await page.waitForFunction(() => !document.getElementById("gg-cover"));
   assert.equal(await page.evaluate(() => document.body.classList.contains("covered")), false, "off the song page, the cover is gone");
@@ -392,17 +392,17 @@ test("The album cover behind the show (4.59.0)", { skip: skip() }, async t => {
 test("Controls that hide while the song plays (4.60.0)", { skip: skip() }, async t => {
   const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, plainPlay: false } }, "#/song/g");
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
-  const box = await page.locator("#gg-pause").boundingBox();
+  const box = await page.locator("#play").boundingBox();
   await page.waitForSelector("#gig.idle", { timeout: 15000 }); /* real timer */
-  await page.waitForFunction(() => getComputedStyle(document.getElementById("gg-pause")).visibility === "hidden");
-  assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("gg-pause")).opacity), "0", "Pause is hidden");
+  await page.waitForFunction(() => getComputedStyle(document.querySelector(".app.viewer .dock")).opacity === "0");
+  assert.equal(await page.evaluate(() => getComputedStyle(document.querySelector(".app.viewer .dock")).pointerEvents), "none", "5.14.0: the one bar fades, and a tap goes past it");
   assert.equal(await page.evaluate(() => getComputedStyle(document.getElementById("gg-combo")).visibility), "visible", "the combo stays");
-  assert.equal(await page.getAttribute("#gg-pause", "aria-label"), "Pause", "hidden, it keeps its name");
+  assert.equal(await page.getAttribute("#play", "aria-label"), "Pause", "hidden, it keeps its name");
   /* a tap where Pause was only wakes the controls */
   await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
   await page.waitForSelector("#gig:not(.idle)"); await page.waitForTimeout(300); /* real timer: the tap would have paused by now */
   assert.equal(await page.locator("#gig.paused").count(), 0, "the first touch only wakes the controls, it doesn't pause");
-  await page.click("#gg-pause"); await page.waitForSelector("#gig.paused", { state: "attached" });
+  await page.click("#play"); await page.waitForSelector("#gig.paused", { state: "attached" });
   await page.waitForTimeout(4500); /* real timer */
   assert.equal(await page.locator("#gig.idle").count(), 0, "paused, the controls stay");
 });
@@ -421,7 +421,7 @@ test("Road Ready 05: with Keep playing controls on screen on, or keyboard focus 
   const page = await strummingPage(t, rr("dark"), "#/song/g");
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   await page.waitForTimeout(1000); /* real timer: no touch just before the focus */
-  await page.keyboard.press("Shift"); await page.focus("#gg-pause");
+  await page.evaluate(() => document.activeElement?.blur()); await page.keyboard.press("Shift"); await page.focus("#play");
   await page.waitForTimeout(4500); /* real timer */
   assert.equal(await idleNow(page), false, "focus on Pause keeps them on screen");
   /* focus that came with no touch (a screen reader or a switch) keeps them until the song is paused */
@@ -514,19 +514,19 @@ for (const theme of ["dark", "light"]) test(`Road Ready 05 (${theme}): words in 
   assert.equal(r.bar, "3px", "a 3 px bar beside the line you're on");
   assert.equal(r.prog, "2px", "a 2 px progress line"); assert.equal(r.progHidden, "true");
   assert.match(r.title, /Short Road[\s\S]*Me/, "the song's title and artist at the top");
-  const box = await page.locator("#gg-pause").boundingBox();
+  const box = await page.locator("#play").boundingBox();
   assert.ok(box.width >= 44 && box.height >= 44, "Pause is at least 44 px");
 });
 
-for (const motion of ["no-preference", "reduce"]) test(`Road Ready 05: the controls hide with ${motion === "reduce" ? "a plain 0.2 s fade (Reduce Motion)" : "a 0.25 s fade and an 8 px slide"}`, { skip: skip() }, async t => {
+for (const motion of ["no-preference", "reduce"]) test(`Road Ready 05: the bar hides with ${motion === "reduce" ? "a plain 0.2 s fade (Reduce Motion)" : "a 0.25 s fade, and never slides (5.14.0)"}`, { skip: skip() }, async t => {
   const page = await strummingPage(t, rr("dark", { used: { playHint: true } }), "#/song/g");
   await page.emulateMedia({ reducedMotion: motion });
   await page.click("#play"); await page.waitForSelector("#sheet > .st-now");
   await page.evaluate(() => document.activeElement?.blur());
   await page.waitForSelector("#gig.idle", { timeout: 15000 }); await page.waitForTimeout(500); /* real timer: the fade is done */
-  const r = await page.evaluate(() => { const c = getComputedStyle(document.getElementById("gg-pause")); return { tr: c.transitionDuration, prop: c.transitionProperty, tf: c.transform }; });
-  if (motion === "reduce") { assert.match(r.tr, /^0\.2s/); assert.equal(r.tf, "none", "no slide"); assert.doesNotMatch(r.prop, /transform/); }
-  else { assert.match(r.tr, /^0\.25s/); assert.equal(r.tf, "matrix(1, 0, 0, 1, 0, 8)", "an 8 px slide"); }
+  const r = await page.evaluate(() => { const d = document.querySelector(".app.viewer .dock"), c = getComputedStyle(d), p = getComputedStyle(document.getElementById("play")); return { tr: c.transitionDuration, prop: c.transitionProperty, op: c.opacity, ptf: p.transform }; });
+  assert.match(r.tr, motion === "reduce" ? /^0\.2s/ : /^0\.25s/); assert.equal(r.prop, "opacity", "a fade only, no slide"); assert.equal(r.op, "0");
+  assert.equal(r.ptf, "none", "Play doesn't move");
 });
 
 test("Road Ready 05: at large text only the line you're on and the next ones show, nothing runs off the edge or sits under Pause", { skip: skip() }, async t => {
@@ -534,7 +534,7 @@ test("Road Ready 05: at large text only the line you're on and the next ones sho
   await page.click("#play"); await page.waitForSelector("#sheet > .st-past");
   await page.evaluate(() => { const r = document.documentElement; r.style.setProperty("--sys-px", "33px"); r.dataset.ax = "1"; });
   const r = await page.evaluate(() => {
-    const p = document.getElementById("gg-pause").getBoundingClientRect(), sheet = document.getElementById("sheet").getBoundingClientRect();
+    const p = document.getElementById("play").getBoundingClientRect(), sheet = document.getElementById("sheet").getBoundingClientRect();
     const lines = [...document.querySelectorAll("#sheet > :is(.pr, .ly, .crow)")].filter(l => getComputedStyle(l).visibility !== "hidden" && l.getBoundingClientRect().bottom > 0 && l.getBoundingClientRect().top < innerHeight);
     return { n: lines.length, past: [...document.querySelectorAll("#sheet > .st-past")].some(l => getComputedStyle(l).visibility !== "hidden"),
       off: lines.some(l => [...l.querySelectorAll("*")].some(c => c.getBoundingClientRect().right > sheet.right + 1)),
@@ -583,7 +583,7 @@ for (const theme of ["dark", "light"]) test(`Road Ready 05 polish (${theme}): no
   assert.equal(r.comboInk, r.amber, "the run chip's text is amber"); assert.equal(r.comboBg, r.card, "on the Road Ready card");
   assert.equal(r.shapeBg, r.card, "the NOW card is the Road Ready card"); assert.equal(r.shapeEdge, r.hair, "with a hairline edge");
   assert.equal(r.shapeLabel, r.amber, "and an amber NOW");
-  await page.keyboard.press("Shift"); await page.click("#gg-pause"); await page.waitForSelector("body.held"); await settled(page);
+  await page.keyboard.press("Shift"); await page.click("#play"); await page.waitForSelector("body.held"); await settled(page);
   assert.notEqual(await page.evaluate(() => getComputedStyle(document.querySelector("#sheet > .st-now"), "::before").content), "none", "paused keeps the quiet band on the line you stopped on");
 });
 
@@ -723,10 +723,11 @@ test("Road Ready: Louie's first-song line shows once inside the playing screen, 
 test("4.108.0 Dark and Light: the song controls are an amp-style bar, Speed, a lit Pause, Loop and Tools, each a 44 px target, and they work", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "dark", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
-  await page.click("#play"); await page.waitForSelector(".gg-bar #gg-pause");
-  const ids = await page.$$eval(".gg-bar button", bs => bs.map(b => [b.id, b.getAttribute("aria-label"), b.getBoundingClientRect().width >= 44 && b.getBoundingClientRect().height >= 44]));
-  assert.deepEqual(ids, [["gg-speed", "Song length: 3:20", true], ["gg-pause", "Pause", true], ["gg-loop", "Loop a section", true], ["gg-tools", "Tools", true]]);
-  await page.keyboard.press("Shift"); await page.click("#gg-tools"); await page.waitForSelector(".menu[aria-label='Tools']");
+  await page.click("#play"); await page.waitForSelector("body.gigging.staged");
+  assert.equal(await page.locator("#gig .gg-bar, #gg-pause").count(), 0, "5.14.0: the Gig draws no bar of its own");
+  const ids = await page.$$eval(".app.viewer .player button:is(#pw-speed, #play, #pw-loop, #more)", bs => bs.sort((x, y) => x.getBoundingClientRect().x - y.getBoundingClientRect().x).map(b => [b.id, b.getAttribute("aria-label"), b.getBoundingClientRect().width >= 44 && b.getBoundingClientRect().height >= 44]));
+  assert.deepEqual(ids, [["pw-speed", "Song length: 3:20", true], ["play", "Pause", true], ["pw-loop", "Loop a section", true], ["more", "Tools", true]]);
+  await page.keyboard.press("Shift"); await page.click("#more"); await page.waitForSelector(".menu[aria-label='Tools']");
   await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
 });
 
@@ -737,10 +738,10 @@ test("4.111.0 Speed shows its setting, lit when not 1.0x, on the song page and i
   assert.equal((await page.innerText("#pw-speed .sp-val")).trim(), "0.8x");
   assert.equal(await page.getAttribute("#pw-speed", "aria-label"), "Speed: 0.8x");
   assert.ok(await page.$eval("#pw-speed", b => b.classList.contains("sp-off")), "lit while not at the real speed");
-  await page.click("#play"); await page.waitForSelector(".gg-bar #gg-speed");
-  assert.equal((await page.innerText("#gg-speed .sp-val")).trim(), "0.8x", "the Gig's Speed says the same");
-  assert.ok(await page.$eval("#gg-speed", b => b.classList.contains("sp-off")));
-  await page.click("#gg-speed"); await page.waitForSelector(".dial .dial-reset:not([hidden])");
+  await page.click("#play"); await page.waitForSelector("body.gigging.staged");
+  assert.equal((await page.innerText("#pw-speed .sp-val")).trim(), "0.8x", "in the Gig, the same Speed says the same");
+  assert.ok(await page.$eval("#pw-speed", b => b.classList.contains("sp-off")));
+  await page.click("#pw-speed"); await page.waitForSelector(".dial .dial-reset:not([hidden])");
   const r = await page.$eval(".dial-reset", b => { const x = b.getBoundingClientRect(); return { h: x.height, bottom: innerHeight - x.bottom, text: b.textContent }; });
   assert.equal(r.text, "Back to 1.0x"); assert.ok(r.h >= 44, "a 44 px target"); assert.ok(r.bottom < 80, "at the bottom, in thumb reach");
   await page.click(".dial-reset"); await page.waitForSelector(".dial", { state: "detached" });
@@ -754,31 +755,46 @@ test("4.111.0 Speed shows its setting, lit when not 1.0x, on the song page and i
 test("a saved Green Room uses the amp bar while a song plays", { skip: skip() }, async t => {
   const page = await phone(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, v: 6, theme: "green", plainPlay: false, gigScore: false, countIn: false } }, { isMobile: true });
   await page.evaluate(() => { location.hash = "#/song/g"; }); await page.waitForSelector("#play"); await settled(page);
-  await page.click("#play"); await page.waitForSelector("#gg-pause");
-  assert.ok(await page.locator(".gg-bar").count() >= 1);
+  await page.click("#play"); await page.waitForSelector("body.gigging #play");
+  assert.ok(await page.locator(".app.viewer .player.rr-amp #play").isVisible(), "the one amp bar");
   assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).settings.theme), "green");
 });
 
-test("5.10.2 Play and Pause swap bars without the bar moving: the Gig's bar has the paused bar's size, place and control spots", { skip: skip() }, async t => {
+test("5.14.0 one bar: paused, playing and in a Gig the same bar stays in the same place at the same size; only Play's icon and name change", { skip: skip() }, async t => {
   for (const width of [390, 320]) {
-    const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, theme: "neon", plainPlay: false } }, "#/song/g", { width });
+    const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, theme: "neon", plainPlay: false, keepControls: true } }, "#/song/g", { width });
     if (width !== 390) await page.setViewportSize({ width, height: 844 });
     await settled(page);
-    const box = sel => page.evaluate(s => { const e = document.querySelector(s); const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(Math.round); }, sel);
-    const paused = { bar: await box(".app.viewer .pw.glass"), speed: await box(".player .gg-speed"), play: await box("#play"), loop: await box("#pw-loop"), tools: await box("#more") };
-    await page.click("#play"); await page.waitForSelector("#gig .gg-bar");
-    await page.waitForFunction(() => { const b = document.querySelector("#gig .gg-bar"); return b && getComputedStyle(b).opacity === "1"; });
-    const playing = { bar: await box("#gig .gg-bar"), speed: await box("#gg-speed"), play: await box("#gg-pause"), loop: await box("#gg-loop"), tools: await box("#gg-tools") };
-    for (const k of Object.keys(paused)) paused[k].forEach((v, i) => assert.ok(Math.abs(v - playing[k][i]) <= 2, `at ${width} px ${k} stays put (${paused[k]} then ${playing[k]})`));
+    const box = sel => page.evaluate(s => { const r = document.querySelector(s).getBoundingClientRect(); return [r.x, r.y, r.width, r.height].map(Math.round); }, sel);
+    const look = async () => ({ bar: await box(".app.viewer .pw.glass"), speed: await box("#pw-speed"), play: await box("#play"), loop: await box("#pw-loop"), tools: await box("#more") });
+    const paused = await look();
+    if (width === 320) for (const k of ["speed", "play", "loop", "tools"]) assert.ok(paused[k][2] >= 44 && paused[k][3] >= 44, `${k} is a 44 px target below 340 px`);
+    assert.equal(await page.getAttribute("#play", "aria-label"), "Play as a gig");
+    await page.click("#play"); await page.waitForSelector("body.gigging.staged:not(.held)");
+    const playing = await look();
+    assert.equal(await page.getAttribute("#play", "aria-label"), "Pause");
+    assert.equal(await page.evaluate(() => document.body.classList.contains("fold")), false, "no fold");
+    await page.click("#play"); await page.waitForSelector("body.held");
+    const held = await look();
+    assert.equal(await page.getAttribute("#play", "aria-label"), "Resume the show");
+    for (const k of Object.keys(paused)) for (const [name, b] of [["playing", playing], ["held", held]]) paused[k].forEach((v, i) => assert.ok(Math.abs(v - b[k][i]) <= 1, `at ${width} px ${k} stays put ${name} (${paused[k]} then ${b[k]})`));
   }
 });
 
-test("5.13.1 in a Gig, Pause and Play swap the two bars with no motion: nothing shrinks into the corner or grows back out", { skip: skip() }, async t => {
-  const page = await strummingPage(t, { ...LIB, songs: [LONG], settings: { ...LIB.settings, theme: "neon", plainPlay: false, keepControls: true } }, "#/song/g");
-  const moving = () => page.evaluate(() => document.getAnimations().filter(a => { const el = a.effect?.target; return el instanceof Element && (el.closest(".dock, .fold-ghost") || el.id === "play" || el.classList.contains("fold-ghost")); }).length + document.querySelectorAll(".fold-ghost").length);
-  await page.click("#play"); await page.waitForSelector("#gig .gg-bar");
-  assert.equal(await moving(), 0, "starting: no ghost of the bar shrinking away");
-  await page.waitForTimeout(800); /* real timer: let it play */
-  await page.click("#gg-pause"); await page.waitForFunction(() => document.body.classList.contains("held"));
-  assert.equal(await moving(), 0, "pausing: the bar doesn't grow back out of the corner");
+test("5.14.0 in a Gig, Speed, Loop and Tools on the one bar open what the Gig's buttons opened, and the bar never animates", { skip: skip() }, async t => {
+  const set = { ...LIB, songs: [LONG], settings: { ...LIB.settings, theme: "neon", plainPlay: false, keepControls: true } };
+  const page = await strummingPage(t, set, "#/song/g");
+  const moving = () => page.evaluate(() => document.getAnimations().filter(a => { const el = a.effect?.target; return el instanceof Element && (el.closest(".dock") || el.classList.contains("fold-ghost")); }).length + document.querySelectorAll(".fold-ghost").length);
+  await page.click("#play"); await page.waitForSelector("body.gigging.staged:not(.held)");
+  assert.equal(await moving(), 0, "starting: nothing on the bar moves");
+  await page.click("#more"); await page.waitForSelector(".menu[aria-label='Tools']");
+  await page.keyboard.press("Escape"); await page.waitForSelector(".menu", { state: "detached" });
+  if (!(await page.locator("body.held").count())) { await page.waitForTimeout(600); await page.click("#play"); await page.waitForSelector("body.held"); }
+  assert.equal(await moving(), 0, "pausing: nothing grows back out of the corner");
+  await page.click("#pw-loop"); await page.waitForSelector(".lpk, .loopbanner");
+  const sp = await strummingPage(t, set, "#/song/g");
+  await sp.click("#play"); await sp.waitForSelector("body.gigging.staged:not(.held)");
+  await sp.click("#pw-speed"); await sp.waitForSelector(".dial");
 });
+
+
