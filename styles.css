@@ -6393,3 +6393,6 @@ body:has(#gig.done, #gig .on-count) .app.viewer .dock { visibility: hidden; } /*
 :root:is([data-look="neon"], [data-look="festival"]) .ib .dotmark::before { border-color: #E0A43A; animation-iteration-count: 1; }
 :root:is([data-look="neon"], [data-look="festival"]) .ib .dotmark::after { display: none; }
 :root:is([data-look="neon"], [data-look="festival"]) .more-ic .dotmark { background: #E0A43A; box-shadow: 0 0 0 2px var(--rr-card, #1F1D1A); } /* the Me and More tuner rows */
+/* 5.16.2: the electric headstock's rim, in the look's line colour */
+:root[data-look="neon"] .tuner2[data-kind="electric"] { --tn-rim: rgba(241, 227, 196, .42); }
+:root[data-look="festival"] .tuner2[data-kind="electric"] { --tn-rim: rgba(92, 72, 44, .55); }
