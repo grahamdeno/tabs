@@ -10,7 +10,7 @@
 //   listening  the same strum detector and chord check as the chord lessons (core/neck.js); a strum near a marked one
 //              (from half a beat before to one beat after) is checked once, for the chord marked
 //   passing    Louie heard at least 3 in 4 of the strums
-import { CHORD_FIT, FANS, Tabs, tourData, journalRound, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, drillPlan, drillTempos, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM, capoAnswer, rewardsOn, piecePlayed, simplifyBody, tourAllowed, transposeChord } from "./core.js";
+import { CHORD_FIT, FANS, Tabs, tourData, checkPassed, openingOn, openingSkip, refresherFor, refresherDeclined, cleanMe, ME_DEFAULT, testLevel, tourNumber, TEST_LEVELS, journalRound, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, drillPlan, drillTempos, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM, capoAnswer, rewardsOn, piecePlayed, simplifyBody, tourAllowed, transposeChord } from "./core.js";
 import { esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
 import { drum, strumAt, tempoFor } from "./audio.js";
 import { musicClock, musicLead, pauseMusic, recordingOn, startMusic } from "./listen.js";
@@ -42,7 +42,7 @@ const nameOf = (r, v) => r.drill ? `${v} BPM` : speedName(v);
 
 /* Open a round. `stop` is a song tour stop (kind "round" or "headline"); `onClose` runs when the screen closes. Call it from the
    tap that starts the round, so the phone lets the microphone and the sound start. */
-export function openRound(stop, { onClose } = {}) {
+export function openRound(stop, { onClose, onStartHere, onBelow } = {}) {
   closeRound();
   const t = tourData(data).songTour?.legs?.[stop.tour], real = (data.songs || []).find(s => s.id === t?.song);
   if (!real) return toast("Get the song first");
@@ -53,6 +53,7 @@ export function openRound(stop, { onClose } = {}) {
     const capo = t.capo || 0;
     song = { ...real, body: t.simplified || capo ? simplifyBody(real.body, capo, tourAllowed(+stop.tour.slice(1)), stop.tour === "t1") : real.body };
     if (capo > 0) { if (capoAnswer(data) === true) song.capoUp = capo; else song.bandOnly = true; }
+    if (stop.check) song.bandOnly = true; /* 5.19.0: a check piece plays with Louie's band, never the recording */
   }
   /* the tap: ask for the microphone and wake the sound before anything is awaited */
   let micP = null;
@@ -62,7 +63,7 @@ export function openRound(stop, { onClose } = {}) {
   el.setAttribute("aria-label", `${kicker(stop).toLowerCase()}, ${stop.sub || ""}`);
   document.body.appendChild(el);
   document.getElementById("app")?.setAttribute("inert", "");
-  R = { stop, song, el, onClose, speed: stop.state === "done" ? 1 : speedsFor(song)[stop.piece && stop.kind === "headline" ? 1 : 0], micP, gen: 0 };
+  R = { stop, song, el, onClose, onStartHere, onBelow, speed: stop.state === "done" ? 1 : speedsFor(song)[stop.piece && stop.kind === "headline" ? 1 : 0], micP, gen: 0 };
   begin();
 }
 
@@ -125,6 +126,7 @@ async function begin() {
   if (!part) { closeRound(); return toast("This song has no chords to play along with"); }
   const lined = !r.drill && usesMusic(song) && !song.bandOnly && (rate === 1 || slows(song)) ? slotTimes(song, chordSpots(parseBlocks(song.body))) : null;
   const plan = r.drill ? drillPlan(r.drill.a, r.drill.b, { bpm }) : roundPlan(part.bars, stop.chords, { bpm, beats, rate, times: lined });
+  if (stop.check && !plan.strums.length) { closeRound(); return toast("This song has no chord for this stop. Use another song."); }
   r.clk = null; r.plan = plan; r.part = part; r.heard = new Set(); r.taken = new Set(); r.pending = []; r.paused = false; r.at = 0; r.bar = -1; r.finished = false;
   r.recording = !r.drill && plan.recorded && usesMusic(song) && !song.bandOnly;
   paint();
@@ -145,6 +147,7 @@ async function begin() {
     } catch { stream.getTracks().forEach(x => x.stop()); }
   } else stream?.getTracks().forEach(x => x.stop());
   mark();
+  if (stop.check?.mic && !r.mic) { stopAll(); return noMicCard(r); } /* 5.19.0 (C4): a check that listens needs the microphone */
   if (!ctx) return;
   /* the count in, then the music */
   const spb = 60 / (bpm * rate), t0 = ctx.currentTime + 0.4;
@@ -271,6 +274,7 @@ function finish(r) {
   const n = r.heard.size, total = r.plan.strums.length, listened = r.mic;
   const passed = listened ? roundPassed(n, total) : true;
   let result = null;
+  if (r.stop.check) return checkFinish(r, { n, total, listened, passed });
   if (r.drill) { r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null; return drillCard(r, { n, total, listened, passed }); }
   if (passed) {
     result = r.stop.piece ? piecePlayed(data, r.stop.id, { rate: r.speed, need: passSpeed(r.song) }) : tourPlayed(data, r.stop);
@@ -297,6 +301,59 @@ function drillCard(r, { n, total, listened, passed }) {
   el.querySelector("button")?.focus();
 }
 
+/* ---- Check pieces (5.19.0, Release C): Test up, Test out of a tour or a stop ---- */
+const fails = new Map(); /* tries that did not pass, this visit; two offer the choices */
+const missedBy = new Map(); /* failed rounds a chord was missed in, this visit; two offer a refresher */
+const refreshOffer = r => {
+  const missed = new Set(r.plan.strums.filter(s => !r.heard.has(s.id)).map(s => s.chord));
+  let offer = null;
+  for (const c of missed) {
+    missedBy.set(c, (missedBy.get(c) || 0) + 1);
+    if (!offer && missedBy.get(c) >= 2) offer = refresherFor(data, c);
+  }
+  return offer;
+};
+const checkWords = c => c.kind === "level" ? "Testing up" : "Testing out";
+function checkCardHTML(r, { title, sub, fans = 0, buttons }) {
+  const el = r.el.querySelector(".rnd-card");
+  el.hidden = false;
+  el.innerHTML = `<b role="status">${esc(title)}</b><p>${esc(sub)}</p>${fans ? `<div class="rd-earn"><span>+${fans} fans</span></div>` : ""}${buttons}`;
+  el.querySelector("button")?.focus();
+}
+function noMicCard(r) {
+  const c = r.stop.check, lv = c.kind === "level";
+  checkCardHTML(r, { title: `${checkWords(c)} needs the microphone`, sub: lv ? "Allow the microphone for Louie and try again. Or start here anyway: nothing is marked done and nothing is paid." : "Allow the microphone for Louie and try again. You can still play the stop as usual.",
+    buttons: `${lv ? `<button class="btn primary" data-rnd="here">Start here anyway</button>` : ""}<button class="btn${lv ? "" : " primary"}" data-rnd="back">Back to the Tour</button>` });
+}
+function checkFinish(r, { n, total, listened, passed }) {
+  const c = r.stop.check, tries = fails.get(c.key) || 0;
+  r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null;
+  const heard = listened ? `Louie heard ${n} of ${total}.` : "";
+  if (passed && c.kind !== "stop" && r.speed < passSpeed(r.song) - 1e-9) {
+    return checkCardHTML(r, { title: listened ? `Louie heard ${n} of ${total}` : "Louie wasn't listening", sub: `The check passes at ${speedName(passSpeed(r.song))} or faster. Play it again a little quicker.`, buttons: `<button class="btn primary" data-rnd="again">Play it again</button><button class="btn" data-rnd="back">Back to the Tour</button>` });
+  }
+  if (passed) {
+    const lv = c.kind === "level" ? testLevel(c.level) : null;
+    const result = checkPassed(data, c.kind === "level" ? { kind: "level", level: c.level } : c.kind === "tour" ? { kind: "tour", tour: c.tour } : { kind: "stop", stop: c.stop }, { rate: r.speed });
+    if (!result) return checkCardHTML(r, { title: "Nothing to test out", sub: "That is already done.", buttons: `<button class="btn primary" data-rnd="next">Back to the Tour</button>` });
+    journalRound(data, r.plan.secs, Date.now(), true); /* a passed check counts as one played show for charts and challenges */
+    if (c.kind === "level" && openingOn(data)) { openingSkip(data); if (!data.me) data.me = cleanMe(ME_DEFAULT); }
+    fails.delete(c.key);
+    const fans = result.pays ? FANS.lesson : 0;
+    Tabs.save(data);
+    const sub = lv ? `${tourNumber(lv.tour) > 1 ? `Tours 1 to ${tourNumber(lv.tour)}` : "Tour 1"} ${tourNumber(lv.tour) > 1 ? "are" : "is"} tested out. You start at Tour ${tourNumber(lv.start)}.`
+      : c.kind === "tour" ? `Tour ${tourNumber(c.tour)} is tested out. Its stops pay when you play them.`
+      : "This stop is tested out. It pays when you play it.";
+    return checkCardHTML(r, { title: "Tested out", sub: `${heard} ${sub}`.trim(), fans, buttons: `<button class="btn primary" data-rnd="next">Back to the Tour</button>` });
+  }
+  fails.set(c.key, tries + 1);
+  const two = tries + 1 >= 2 && c.kind === "level";
+  const idx = TEST_LEVELS.findIndex(l => l.id === c.level);
+  checkCardHTML(r, { title: `Louie heard ${n} of ${total}`, sub: two ? "Louie needs 3 in 4. Nothing is lost. You can try the level below, or start here anyway: nothing is marked done and nothing is paid." : "Louie needs 3 in 4 to pass. Nothing is lost.",
+    buttons: two ? `<button class="btn primary" data-rnd="below">${idx > 0 ? "Try the level below" : "Start from Tour 1"}</button><button class="btn" data-rnd="here">Start here anyway</button><button class="btn" data-rnd="again">Play it again</button>`
+      : `<button class="btn primary" data-rnd="again">Play it again</button><button class="btn" data-rnd="back">Back to the Tour</button>` });
+}
+
 function card(r, { n, total, listened, passed, result }) {
   const nextStop = passed && !r.stop.piece ? songTourStops(data, r.stop.tour).find(x => x.state === "now") || null : null;
   const slow = passed && r.stop.piece && r.stop.kind === "headline" && !result && rewardsOn(data);
@@ -307,9 +364,10 @@ function card(r, { n, total, listened, passed, result }) {
     : passed && r.stop.piece ? (r.stop.kind === "headline" ? (result?.solid ? `${tourData(data).songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now.` : "The headline show is done. Play it at 1.0x to make the song Solid.") : "That counts.")
     : passed ? (r.stop.kind === "headline" ? `${r.part && tourData(data).songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now and its chords count as yours.` : "That counts. Each round adds a chord.")
     : "Louie needs 3 in 4 to count a round. Nothing is lost.";
+  const rf = !passed && listened ? refreshOffer(r) : null;
   const el = r.el.querySelector(".rnd-card");
   el.hidden = false;
-  el.innerHTML = `<b role="status">${esc(title)}</b><p>${esc(sub)}</p>${result?.fans ? `<div class="rd-earn"><span>+${result.fans} fans</span></div>` : ""}
+  el.innerHTML = `<b role="status">${esc(title)}</b><p>${esc(sub)}</p>${rf ? `<div class="rnd-refresh"><p>Want a refresher? Tour ${rf.tour} teaches ${esc(rf.chord)}.</p><div class="rd-pair"><button class="btn" data-rnd="refresh" data-chord="${esc(rf.chord)}">Open the lesson</button><button class="btn" data-rnd="nothanks" data-chord="${esc(rf.chord)}">No thanks</button></div></div>` : ""}${result?.fans ? `<div class="rd-earn"><span>+${result.fans} fans</span></div>` : ""}
     ${passed ? `<button class="btn primary" data-rnd="next">${nextStop ? "Next" : "Back to the Tour"}</button>` : ""}
     <button class="btn${passed ? "" : " primary"}" data-rnd="again">Play it again</button>${passed ? "" : `<button class="btn" data-rnd="back">Back to the Tour</button>`}`;
   el.querySelector("button")?.focus();
@@ -354,6 +412,10 @@ function paint() {
     const k = b.dataset.rnd;
     if (k === "close" || k === "back") return closeRound();
     if (k === "restart" || k === "again") return begin();
+    if (k === "here") { const f = r.onStartHere; closeRound(true); return f?.(); } /* 5.19.0: Start here anyway */
+    if (k === "below") { const f = r.onBelow; closeRound(true); return f?.(); }
+    if (k === "refresh") { closeRound(); location.hash = `#/practice/${encodeURIComponent("c:" + b.dataset.chord)}`; return; }
+    if (k === "nothanks") { refresherDeclined(data, b.dataset.chord); Tabs.save(data); b.closest(".rnd-refresh")?.remove(); return; }
     if (k === "faster" && r.nextBpm) { r.speed = r.nextBpm; return begin(); }
     if (k === "self" && r.drill) { const done = r.onDone, bpm = r.speed; closeRound(true); return done?.(bpm, "Marked as got."); } /* as the old drill's button */
     if (k === "pause") return pause(r, b);

@@ -6412,3 +6412,18 @@ body:has(.pastecard) :is(#tabs, .cmd.float) { visibility: hidden; } /* the knob 
 /* 5.18.0 the capo question's answers (wording check of PR #275): two equal buttons across the card, 44 pt or taller, with a gap */
 .rd-pop .rd-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
 .rd-pop .rd-pair .btn { width: 100%; min-height: 44px; margin: 0; justify-content: center; }
+
+/* 5.19.0 Release C: Test up and Test out. "Tested out" stands where the check mark would be, in words. */
+.rn-mark.rn-tested { width: auto; height: auto; min-width: 44px; padding: 3px 6px; border-radius: 8px; box-sizing: border-box; text-align: center; white-space: nowrap;
+  background: var(--rr-card, #1A1918); color: var(--rr-text, #F6EEE0); border: 1px solid var(--rr-hairline, #46423C); font: 700 var(--type-caption, 11px) / 1.15 "Inter", var(--sans); }
+.rn-mark.rn-tested.rn-dim { opacity: .7; }
+.rd-check .rd-pop, .rd-level .rd-pop { width: auto; margin-top: 0; display: block; }
+.rd-chk-t { margin: 4px 0 8px; font: 700 var(--type-title2, 20px) Sora, var(--display), sans-serif; }
+.rd-level .rd-start { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 48px; margin-top: 10px; }
+.rd-level .rd-start small { display: block; font: 600 var(--type-footnote, 13px) var(--sans); opacity: .85; }
+.rd-check .rd-pop .rd-other { display: block; width: 100%; min-height: 44px; text-align: center; }
+.rnd-refresh { border-top: 1px solid var(--rnd-hair); padding-top: 8px; }
+.rnd-refresh p { margin: 0 0 6px; }
+.rnd-refresh .rd-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rnd-refresh .rd-pair .btn { min-height: 44px; width: 100%; }
+.rd-pop .rd-other[data-gocheck] { display: block; width: 100%; min-height: 44px; margin-top: 6px; text-align: center; }

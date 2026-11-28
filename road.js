@@ -24,6 +24,7 @@
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
 import { piecePays, roadTour, TOUR_LEG, allowedChords, capoAnswer, songbookFor, tour1Song, tourPicked, tourSetSong, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
 import { curriculumRoad, curriculumSeed, playNext, rewardsOn, tourData } from "./core.js";
+import { TEST_LEVELS, testLevel, headlineOf, stopById, levelAsk, levelAnswered, levelsOpen, testUpOn, startHere, openingOn, tourNumber } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { holdSheet, micSheet, notesSheet, songFor, stringsSheet } from "./opening.js";
 import { makerSheet } from "./maker.js";
@@ -108,11 +109,11 @@ function csCard(stop) {
   let body, act = "", cls = stop.state;
   if (stop.row) body = `${stop.routeOpen ? "Coming soon." : `Opens after Tour ${stop.after}.`} ${stop.skill}.`;
   else if (stop.kind === "box") body = "Boxes stay shut while Unlock all tours is on, so nothing is paid.";
-  else if (stop.soon) { cls = "soon"; body = `Coming soon. ${stop.skill}. ${csPass(stop)}`; }
-  else if (locked) body = "Finish the stop before it first.";
+  else if (stop.soon) { cls = "soon"; body = stop.tourId === "t5" ? `Coming soon. Tours 5 and up are on the way. Songs and Gigs keep playing. ${stop.skill}.` : `Coming soon. ${stop.skill}. ${csPass(stop)}`; }
+  else if (locked) { body = "Finish the stop before it first."; act = testOutBtn(stop); }
   else {
     body = `${stop.skill}. ${csPass(stop)}${off ? " Unlock all tours is on: nothing is paid or saved." : ""}`;
-    act = `${!off && stop.state !== "done" ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "START"}</button>`;
+    act = `${!off && stop.state !== "done" ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "START"}</button>${testOutBtn(stop)}`;
   }
   return `<div class="rd-pop ${cls}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(body)}</p>${act}</div>`;
 }
@@ -133,22 +134,25 @@ function stopCard(stop) {
   }
   const act = stop.kind === "box" || stop.state === "locked" ? ""
     : `${stop.state === "done" || !rewardsOn(data) ? "" : `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>`}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" ? "PLAY AGAIN" : "START"}</button>`;
-  return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? (stop.kind === "chord" ? "Its lesson opens when you get here." : "Finish the stops before this one to open it.") : line)}</p>${act}${alt}</div>`;
+  const act2 = act + testOutBtn(stop);
+  return `<div class="rd-pop ${now ? "now" : stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(stop.state === "locked" && stop.kind !== "box" ? (stop.kind === "chord" ? "Its lesson opens when you get here." : "Finish the stops before this one to open it.") : line)}</p>${act2}${alt}</div>`;
 }
 /* ---- A piece of the tour's song (5.18.0, B2): the card, the song choice, the capo question ---- */
 const tourBusy = new Set(), tourErr = new Map();
 const tourNo = stop => +String(stop.tourId).replace(/^t/, "");
 const songOfTour = stop => { const t = tourData(data).songTour?.legs?.[stop.tourId], sg = t?.song && data.songs.find(x => x.id === t.song); return sg ? { t, sg } : null; };
-function pieceCard(stop) {
+function pieceCard(stop, check = null) {
   const title = stop.headline ? "Headline show" : stop.name, off = !rewardsOn(data), id = esc(stop.tourId);
   const tv = tourData(data), own = songOfTour(stop), t = tv.songTour?.legs?.[stop.tourId], sb = own ? null : songbookFor(tv, stop.tourId);
   const wait = !own && Object.entries(tv.curriculum?.waiting || {}).find(([sid, n]) => n === tourNo(stop) && data.songs.some(x => x.id === sid));
   let line, acts = "";
   if (own) {
     const { sg } = own, capo = own.t.capo || 0, band = capo > 0 && capoAnswer(data) !== true;
-    line = `${stop.headline ? `Play all of ${sg.title}. Pass at ${speedName(passSpeed({ ...sg, bandOnly: band }))}. 1.0x makes it Solid.` : `Play a piece of ${sg.title}. Strum on the marked beats and rest on the others.`}`
+    line = check ? `${check.kind === "stop" ? `Test out: play a piece of ${sg.title}` : `${check.kind === "level" ? "Level check" : `Test out of Tour ${tourNo(stop)}`}: play all of ${sg.title}`} with Louie's band. Louie listens, so it needs the microphone.${check.kind === "stop" ? "" : ` It passes at ${speedName(passSpeed({ ...sg, bandOnly: true }))}.`}${own.t.simplified ? " This is the simplified version." : ""}${capo > 0 ? ` Put a capo at fret ${capo}.` : ""}`
+      : `${stop.headline ? `Play all of ${sg.title}. Pass at ${speedName(passSpeed({ ...sg, bandOnly: band }))}. 1.0x makes it Solid.` : `Play a piece of ${sg.title}. Strum on the marked beats and rest on the others.`}`
       + `${own.t.simplified ? " This is the simplified version." : ""}${capo > 0 ? (band ? ` It needs a capo at fret ${capo}, so Louie's band plays it.` : ` Capo at fret ${capo}.`) : ""} ${csPass(stop)}${off ? " Unlock all tours is on: nothing is paid or saved." : ""}`;
-    acts = `${!off && piecePays(data, stop.id) ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "PLAY"}</button>`
+    acts = check ? `${piecePays(data, stop.id) && check.kind !== "stop" && !data.curriculum?.won?.[stop.tourId] ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-gocheck="${esc(check.kind === "level" ? `level:${check.level}` : check.kind === "tour" ? `tour:${check.tour}` : `stop:${check.stop}`)}">PLAY THE CHECK</button>`
+      : `${!off && piecePays(data, stop.id) ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "PLAY"}</button>`
       + (own.t.simplified || capo > 0 ? `<button class="rd-other" data-chart="${esc(sg.id)}">See the real chart</button>` : "")
       + `<button class="rd-other" data-tswap="${id}">Use another song</button>`;
   } else if (sb) {
@@ -170,6 +174,7 @@ function pieceCard(stop) {
     if (tourErr.has(stop.tourId)) acts += `<p class="rd-alt">${esc(tourErr.get(stop.tourId))}</p>`;
   }
   /* asked once, on Tour 1: a song that needs a capo plays with Louie's band when there is none */
+  if (!check) acts += testOutBtn(stop);
   const ask = stop.tourId === "t1" && capoAnswer(data) === null ? `<p class="rd-alt">Do you have a capo?</p><div class="rd-pair"><button class="btn" data-capo="1">Yes</button><button class="btn" data-capo="0">No</button></div>` : "";
   return `<div class="rd-pop ${stop.state}" role="dialog" aria-label="${esc(title)}"><b>${esc(title)}</b><p>${esc(line)}</p>${acts}${ask}</div>`;
 }
@@ -196,6 +201,94 @@ const askPick = id => {
   const done = () => { tourBusy.delete(id); if (document.getElementById("rd-path")) renderRoad(); };
   curriculumPick(id).then(done, e => { tourErr.set(id, e?.message || "Picking a song needs a connection."); done(); });
 };
+
+
+/* ---- Test up and Test out (5.19.0, Release C) ---- */
+/* the check a button names: "level:few", "tour:t2" or "stop:k2.5" */
+const checkOf = (kind, id) => {
+  if (kind === "level") return { kind, level: id, tourId: testLevel(id)?.tour || "t1", key: `level:${id}` };
+  if (kind === "tour") return { kind, tour: id, tourId: id, key: `tour:${id}` };
+  return { kind: "stop", stop: id, tourId: stopById(id)?.tour || "", key: `stop:${id}` };
+};
+/* Test out is for the stops of Tours 2 to 4 that are not done, in a tour that is open */
+const canTestOut = stop => rewardsOn(data) && stop.cs && stop.state !== "done" && stop.tourOpen !== false && !stop.soon && !stop.row && stop.kind !== "box" && !stop.play?.opening && tourNo(stop) >= 2 && tourNo(stop) <= 4;
+const testOutBtn = stop => canTestOut(stop) ? `<button class="rd-other" data-gocheck="${stop.headline ? `tour:${esc(stop.tourId)}` : `stop:${esc(stop.id)}`}">${stop.headline ? "Test out of this tour" : "Test out"}</button>` : "";
+const testUpBtn = () => testUpOn(data) ? `<button type="button" class="rn-skip" id="rn-testup" aria-label="Test up: play one song to start further on">Test up</button>` : "";
+let reopenCheck = null; /* redraws the check sheet when the Tour is redrawn under it (a song was chosen or fetched) */
+const closeCheck = () => { reopenCheck = null; layer.innerHTML = ""; };
+function startCheck(check) {
+  const tid = check.tourId, own = tourData(data).songTour?.legs?.[tid], hl = headlineOf(tid);
+  if (!hl) return;
+  if (!own?.song || !data.songs.some(x => x.id === own.song)) return openCheckSheet(check);
+  closeCheck();
+  const id = check.kind === "stop" ? check.stop : hl.id, st = stopById(id);
+  openRound({ id, tour: tid, kind: check.kind === "stop" ? "round" : "headline", name: st.title, sub: st.title, piece: true, chords: allowedChords(id), state: "now", check: { ...check, mic: check.kind !== "stop" || st.pass === "heard" } },
+    { onClose: () => { if (document.getElementById("rd-path")) renderRoad(); }, onStartHere: () => startAnyway(check.level), onBelow: () => {
+      const at = TEST_LEVELS.findIndex(l => l.id === check.level);
+      if (at > 0) openCheckSheet(checkOf("level", TEST_LEVELS[at - 1].id)); else renderRoad();
+    } });
+}
+/* Start here anyway: the tours up to the level open, nothing is marked done and nothing is paid */
+function startAnyway(levelId) {
+  if (!startHere(data, levelId)) return renderRoad();
+  if (openingOn(data)) { openingSkip(data); if (!data.me) data.me = cleanMe(ME_DEFAULT); }
+  Tabs.save(data); closeCheck(); renderRoad();
+}
+/* the check's own sheet: the tour's song to pick, then Play the check */
+function openCheckSheet(check) {
+  const hl = headlineOf(check.tourId);
+  if (!hl) return;
+  const stop = { id: hl.id, tourId: check.tourId, name: "Headline show", headline: true, piece: true, kind: "headline", state: "now", cs: true, skill: hl.skill };
+  const lv = check.kind === "level" ? testLevel(check.level) : null;
+  const title = lv ? lv.name : check.kind === "tour" ? `Test out of Tour ${tourNo(stop)}` : "Test out";
+  layer.innerHTML = `<div class="scrim" id="ck-scrim"></div><div class="panel de-sheet rd-others rd-check" role="dialog" aria-label="${esc(lv ? `Test up: ${title}` : title)}"><div class="grab"></div>
+    <div class="ph"><button class="tb" id="ck-x">Close</button><h2>${esc(lv ? "Test up" : "Test out")}</h2><span style="width:56px"></span></div>
+    <div class="pbody"><h3 class="rd-chk-t">${esc(title)}</h3>${pieceCard(stop, check)}</div></div>`;
+  reopenCheck = () => openCheckSheet(check);
+  document.getElementById("ck-scrim").onclick = closeCheck; document.getElementById("ck-x").onclick = closeCheck;
+  layer.querySelector(".rd-check").addEventListener("click", songActs);
+  layer.querySelector(".rd-start, .rd-check .btn")?.focus();
+}
+/* "Have you played guitar before?": asked once, to a new player */
+function levelQuestion() {
+  if (layer.innerHTML || !levelAsk(data)) return;
+  layer.innerHTML = `<div class="scrim"></div><div class="panel de-sheet rd-others rd-level" role="dialog" aria-modal="true" aria-label="Have you played guitar before?"><div class="grab"></div>
+    <div class="pbody"><h2 class="rd-chk-t">Have you played guitar before?</h2><p class="easy-note">Tell me and I will start you in the right place. You can change your mind later: Test up is at the top of the Tour.</p>
+    <button class="btn primary rd-start" id="lq-new">New to guitar</button><button class="btn rd-start" id="lq-play">I already play</button></div></div>`;
+  document.getElementById("lq-new").focus();
+  document.getElementById("lq-new").onclick = () => { levelAnswered(data); Tabs.save(data); closeCheck(); renderRoad(); };
+  document.getElementById("lq-play").onclick = () => { levelAnswered(data); Tabs.save(data); levelPicker(); };
+}
+/* the levels: one song, and the tours up to it are tested out */
+function levelPicker() {
+  const open = levelsOpen(data);
+  layer.innerHTML = `<div class="scrim" id="lp-scrim"></div><div class="panel de-sheet rd-others rd-level" role="dialog" aria-label="Test up"><div class="grab"></div>
+    <div class="ph"><button class="tb" id="lp-x">Close</button><h2>Test up</h2><span style="width:56px"></span></div>
+    <div class="pbody"><p class="easy-note">Play one song well and start further on. Louie listens, so it needs the microphone, and the band plays along.</p>
+    ${open.map(l => `<button class="btn rd-start" data-level="${l.id}"><b>${esc(l.name)}</b><small>Play a Tour ${tourNumber(l.tour)} song, start at Tour ${tourNumber(l.start)}</small></button>`).join("")}
+    <button class="btn rd-start" id="lp-new">New to guitar</button></div></div>`;
+  reopenCheck = null;
+  document.getElementById("lp-scrim").onclick = closeCheck; document.getElementById("lp-x").onclick = closeCheck;
+  document.getElementById("lp-new").onclick = () => { closeCheck(); renderRoad(); };
+  layer.querySelectorAll("[data-level]").forEach(b => b.onclick = () => openCheckSheet(checkOf("level", b.dataset.level)));
+}
+
+/* The taps on a tour's song and the checks: used by the Tour's path and by the check sheet */
+function songActs(e) {
+  const q = sel => e.target.closest(sel);
+  const take = (tid, sg) => { const r = tourSetSong(tourData(data), tid, sg); Tabs.save(data); return r; };
+  let b;
+  if ((b = q("[data-tsong]"))) { const tid = b.dataset.tsong, sb = songbookFor(tourData(data), tid); if (sb) { take(tid, sb.song); renderRoad(); } return; }
+  if ((b = q("[data-twait]"))) { const tid = b.dataset.twait, sg = data.songs.find(x => x.id === b.dataset.songId); if (sg) { take(tid, sg); delete tourData(data).curriculum?.waiting?.[sg.id]; Tabs.save(data); renderRoad(); } return; }
+  if ((b = q("[data-tfirst]"))) { const tid = b.dataset.tfirst, l1 = tour1Song(data, []); if (l1?.from === "list") { tourPicked(tourData(data), tid, { title: l1.title, artist: l1.artist, chords: l1.chords, new: [] }); Tabs.save(data); if (aiKey()) tourGet(tid); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); renderRoad(); } return; }
+  if ((b = q("[data-tget]"))) { if (aiKey()) tourGet(b.dataset.tget); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); return; }
+  if ((b = q("[data-tpick]"))) { askPick(b.dataset.tpick); renderRoad(); return; }
+  if ((b = q("[data-tchoose]"))) return chooseSong(b.dataset.tchoose);
+  if ((b = q("[data-tswap]"))) { tourSwap(tourData(data), b.dataset.tswap); Tabs.save(data); tourErr.delete(b.dataset.tswap); return renderRoad(); }
+  if ((b = q("[data-capo]"))) { data.settings = { ...data.settings, capo: b.dataset.capo === "1" }; Tabs.save(data); return renderRoad(); }
+  if ((b = q("[data-gocheck]"))) { const v = b.dataset.gocheck, i = v.indexOf(":"); return startCheck(checkOf(v.slice(0, i), v.slice(i + 1))); }
+  if ((b = q("[data-chart]"))) return go("#/song/" + encodeURIComponent(b.dataset.chart));
+}
 
 /* ---- Opening night (4.40.0): the first leg teaches the app by doing it ---- */
 const OIC = {
@@ -343,7 +436,7 @@ function pinLeg(path) {
     const sep = document.createElement("span"); sep.className = "rn-sep"; sep.setAttribute("aria-hidden", "true"); sep.textContent = " · ";
     const small = document.createElement("small"); small.textContent = sub;
     line.replaceChildren(b, sep, small);
-    const skip = bar.querySelector(".rn-skip");
+    const skip = bar.querySelector(".rn-skip:not(#rn-testup)"); /* 5.19.0: Test up stays in every tour */
     if (skip) skip.hidden = m.dataset.cls !== "on-night";
     fitRoadText();
   };
@@ -510,8 +603,9 @@ document.addEventListener("keydown", e => {
 export function renderRoad() {
   screenHeight(); window.scrollTo(0, 0);
   clearFit();
+  if (levelAsk(data)) queueMicrotask(levelQuestion); /* the first time a new player opens the Tour: once */
   const ov = rewardsOn(data) ? openingView(data) : null; /* Unlock all tours skips Opening night's own screen */
-  if (ov) { homeHooks.openDrawer = false; return renderOpening(ov); }
+  if (ov) { homeHooks.openDrawer = false; renderOpening(ov); reopenCheck?.(); return; }
   const wantDrawer = homeHooks.openDrawer; homeHooks.openDrawer = false;
   const rr = rrLook();
   if (rr) settleStats(); /* Rain checks and fading fans first, so the streak and fans shown are the settled ones */
@@ -532,7 +626,7 @@ export function renderRoad() {
 
   /* the path: one neck per leg (fretboard.js), with a label where each new leg starts */
   const all = road.legs.flatMap(l => l.stops);
-  const said = s => s.state === "now" ? "your next stop" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked";
+  const said = s => s.state === "now" ? "your next stop" : s.state === "done" ? (s.tested ? "tested out" : "done") : s.state === "open" ? "open" : "locked";
   /* Road Ready: each stop's number in its leg, and a label that says it ("Show 4 of 6, The D chord, current") */
   const numOf = s => { const l = road.legs.find(x => x.stops.includes(s)); return l ? l.stops.indexOf(s) + 1 : 0; };
   /* 5.9.0: a song tour in progress never holds the next skill tour back: it is drawn open beside the song tour */
@@ -542,7 +636,7 @@ export function renderRoad() {
   const ahead = new Set(nxt ? nxt.stops.map(s => s.id) : []);
   const rrLabel = s => {
     if (s.kind === "headline" || s.kind === "box") return esc(`${s.kind === "headline" ? "Headline show" : "Merch box"}, ${ahead.has(s.id) ? "locked" : said(s)}`);
-    const l = road.legs.find(x => x.stops.includes(s)), state = ahead.has(s.id) ? "locked" : s.state === "now" ? "current" : s.state === "done" ? "done" : s.state === "open" ? "open" : "locked";
+    const l = road.legs.find(x => x.stops.includes(s)), state = ahead.has(s.id) ? "locked" : s.state === "now" ? "current" : s.state === "done" ? (s.tested ? "tested out" : "done") : s.state === "open" ? "open" : "locked";
     return esc(`Show ${numOf(s)} of ${l ? l.stops.length : 0}, ${stopTitle(s)}, ${state}`);
   };
   const labelOf = rr ? rrLabel : s => esc(`${s.kind === "headline" ? "Headline show" : s.kind === "box" ? "Merch box" : s.name}, ${said(s)}`);
@@ -553,7 +647,7 @@ export function renderRoad() {
   const gx = { cur, id: s => esc(s.id), icon: dotIcon, label: labelOf, tag: s => esc(rr ? rrTag(s, all) : tagOf(s)), songs: opens, rr, num: numOf, fresh, tonight: rr && song ? esc(song.title) : "", tonightAdd: rr && !song };
   const shown = rr ? road.legs : road.legs.slice(0, curAt >= 0 ? curAt + 1 : road.legs.length);
   /* The legs already reached, then the next one in full, flagged so it draws gray and locked. Nothing past that. */
-  const legTitle = l => l.song ? { title: "Song tour", sub: l.note, aria: `Song tour, ${l.note}` } : l.row ? { title: l.name, sub: l.note, aria: `${l.name}, ${l.note}, locked` } : { title: `Tour ${l.n}`, sub: l.name, aria: `Tour ${l.n}, ${l.name}` };
+  const legTitle = l => l.song ? { title: "Song tour", sub: l.note, aria: `Song tour, ${l.note}` } : l.row ? { title: l.name, sub: l.note, aria: `${l.name}, ${l.note}, locked` } : { title: `Tour ${l.n}`, sub: l.tested ? `${l.name} · Tested out` : l.name, aria: `Tour ${l.n}, ${l.name}${l.tested ? ", tested out" : ""}` };
   const bareLegs = shown.filter(l => l.stops.length).map(l => ({ ...legTitle(l), stops: l.stops, ...(l.row ? { row: true } : {}) }));
   /* the lead and fingerstyle rows are drawn gray and locked until their release */
   const rowAt = bareLegs.findIndex(l => l.row && l.stops[0]?.state === "locked");
@@ -581,7 +675,7 @@ export function renderRoad() {
   if (rr) {
     app.innerHTML = `
     ${rrRow()}
-    ${headLeg ? legBar({ title: `Tour ${headLeg.n}`, sub: headLeg.name, aria: `Tour ${headLeg.n}, ${headLeg.name}` }) : ""}
+    ${headLeg ? legBar({ title: `Tour ${headLeg.n}`, sub: headLeg.name, aria: `Tour ${headLeg.n}, ${headLeg.name}` }, testUpBtn()) : ""}
     <div class="rr-stage rn-stage">
       <div class="rd-path rr rn" id="rd-path">${bare}${!nxt && coming ? coming : ""}</div>
     </div>
@@ -603,6 +697,7 @@ export function renderRoad() {
   homeHooks.refresh = null;
   if (wantDrawer) return go("#/library"); /* asked for the songs (4.9.0: the Songbook page, not a drawer) */
   $("rd-songbook")?.addEventListener("click", () => go("#/library"));
+  $("rn-testup")?.addEventListener("click", levelPicker);
   $("rd-book")?.addEventListener("click", () => go("#/practice"));
   $("rd-tonight")?.addEventListener("click", () => song ? playGig(song.id, { from: "road" }) : openSearch("road")); /* 4.1.0: tonight's song is a gig */
   $("rd-search")?.addEventListener("click", () => openSearch("road")); /* 4.48.0: opens with "Open your Songbook" on top */
@@ -625,20 +720,7 @@ export function renderRoad() {
     if (!songOfTour(s)) return toast("Pick this tour's song first");
     openRound({ id: s.id, tour: s.tourId, kind: s.headline ? "headline" : "round", name: s.name, sub: s.name, piece: true, chords: allowedChords(s.id), state: s.state }, { onClose: () => { if (document.getElementById("rd-path")) renderRoad(); } });
   };
-  path.addEventListener("click", e => {
-    const q = sel => e.target.closest(sel);
-    const take = (tid, sg) => { const r = tourSetSong(tourData(data), tid, sg); Tabs.save(data); return r; };
-    let b;
-    if ((b = q("[data-tsong]"))) { const tid = b.dataset.tsong, sb = songbookFor(tourData(data), tid); if (sb) { take(tid, sb.song); renderRoad(); } return; }
-    if ((b = q("[data-twait]"))) { const tid = b.dataset.twait, sg = data.songs.find(x => x.id === b.dataset.songId); if (sg) { take(tid, sg); delete tourData(data).curriculum?.waiting?.[sg.id]; Tabs.save(data); renderRoad(); } return; }
-    if ((b = q("[data-tfirst]"))) { const tid = b.dataset.tfirst, l1 = tour1Song(data, []); if (l1?.from === "list") { tourPicked(tourData(data), tid, { title: l1.title, artist: l1.artist, chords: l1.chords, new: [] }); Tabs.save(data); if (aiKey()) tourGet(tid); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); renderRoad(); } return; }
-    if ((b = q("[data-tget]"))) { if (aiKey()) tourGet(b.dataset.tget); else toast("Add your own key in Settings to get this song, or choose one from your Songbook"); return; }
-    if ((b = q("[data-tpick]"))) { askPick(b.dataset.tpick); renderRoad(); return; }
-    if ((b = q("[data-tchoose]"))) return chooseSong(b.dataset.tchoose);
-    if ((b = q("[data-tswap]"))) { tourSwap(tourData(data), b.dataset.tswap); Tabs.save(data); tourErr.delete(b.dataset.tswap); return renderRoad(); }
-    if ((b = q("[data-capo]"))) { data.settings = { ...data.settings, capo: b.dataset.capo === "1" }; Tabs.save(data); return renderRoad(); }
-    if ((b = q("[data-chart]"))) return go("#/song/" + encodeURIComponent(b.dataset.chart));
-  });
+  path.addEventListener("click", songActs);
   const closePop = () => { path.querySelectorAll(".rd-pop").forEach(p => p.remove()); path.classList.remove("has-pop"); };
   const openStopCard = (node, s, fromKey) => {
     const wrap = node.parentElement, open = wrap.querySelector(".rd-pop");
@@ -735,6 +817,20 @@ export function renderRoad() {
   headlinerEarned(oldRoad);
   guitarEarned(oldRoad);
   guitaristAsk();
+  markTested(path, all);
+  reopenCheck?.();
+}
+/* 5.19.0: "Tested out", in words, stands where the check mark would be */
+function markTested(path, all) {
+  for (const s of all) {
+    if (!s.tested) continue;
+    const img = path.querySelector(`.rn-check[data-for="${CSS.escape(s.id)}"]`);
+    if (!img) continue;
+    const t = document.createElement("span");
+    t.className = "rn-mark rn-tested"; t.dataset.for = s.id; t.setAttribute("aria-hidden", "true"); t.textContent = "Tested out";
+    t.style.top = img.style.top; t.style.left = img.style.left;
+    img.replaceWith(t);
+  }
 }
 
 /* 4.85.0: a player who never made a guitarist (past Opening night) meets the picker once, after the other sheets. Skip keeps the default. */
