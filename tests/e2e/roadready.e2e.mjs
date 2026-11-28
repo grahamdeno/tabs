@@ -569,17 +569,17 @@ test("Road Ready design fixes: the selected Merch finish has an amber ring", { s
 
 /* ---------- Road Ready, step 06: the new-guitar sheet, the guitar in its case ---------- */
 const HEADLINED = doneOf([...OPEN, "k:open"]);
-test("Road Ready 06: a headlined leg shows the new guitar in its case, with the leg's name, chrome corners, Louie and Rock on", { skip: skip() }, async t => {
+test("Road Ready 06: a headlined leg shows the new guitar in its case, with the tour's name (5.19.0), Louie and Rock on", { skip: skip() }, async t => {
   for (const theme of ["dark", "light"]) {
     const page = await phone(t, roadLib(theme, HEADLINED, { merch: { tconv: 1, lconv: 1, hlseen: 1 } }), { home: true });
     await page.waitForSelector(".rd-gt.rr-case #gt-x");
     assert.equal(await page.innerText(".rr-case .sc-over"), "HEADLINE SHOW");
-    assert.equal(await page.innerText(".rr-case .sc-title"), "Open chords, all 10 shows");
+    assert.equal(await page.innerText(".rr-case .sc-title"), "Tour 1, Opening Night");
     assert.equal(await page.innerText(".rr-case .sc-new"), "New guitar earned");
     assert.equal(await page.locator(".sc-corner, .rr-gcase").count(), 0, "no velvet case and no chrome corners");
     assert.match(await page.getAttribute(".gs-item.is-on img", "src"), /art\/guitars\/streak\/cornerstone-road\.webp/, "Cornerstone, the crisp full picture, is the one in the cradle");
     assert.equal(await page.innerText(".rr-case .sc-label"), "Cornerstone");
-    assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Tour 2, Chord switches/);
+    assert.match(await page.innerText(".rr-case .sc-next"), /Next stop: Tour 2, Open Mic/);
     assert.equal(await page.locator(".gs-back").count(), 1, "the A-frame stand");
     const c = await page.evaluate(() => {
       const rgb = s => s.match(/[\d.]+/g).slice(0, 3).map(Number);

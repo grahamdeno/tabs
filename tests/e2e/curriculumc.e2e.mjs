@@ -317,3 +317,27 @@ test("decision 22: one New guitar card after a level pass, and not again", { ski
   await page.reload(); await page.waitForSelector(".rn-neck"); await settled(page);
   assert.equal(await page.locator(".rd-gt").count(), 0, "not again");
 });
+
+/* 5.19.0: the New guitar sheet read the old legs ("Chord switches, all 11 shows", "Next stop: Tour 3, Scales") */
+test("the New guitar sheet names the tour the guitar came from and the tour the next stop is in", { skip: skip() }, async t => {
+  const T2 = ["c:A", "c:D", "c:E", "k2.4", "k2.5", "k2.6"];
+  /* Tour 2's headline played: Club Slab, from Tour 2, and Tour 3 is next */
+  const played = onTour2({ guitars: { seen: ["open"] } });
+  played.curriculum = { ...played.curriculum, done: Object.fromEntries([...T1, ...T2].map(id => [id, 5])), won: { t1: 3, t2: 6 }, asked: 1 };
+  const page = await phone(t, played, { home: true });
+  await page.waitForSelector(".rd-gt #gt-x"); await settled(page);
+  assert.equal(await page.innerText(".rd-gt .sc-title"), "Tour 2, Open Mic");
+  assert.equal(await page.innerText(".rd-gt .sc-label"), "Club Slab");
+  assert.equal(await page.innerText(".rd-gt .sc-next"), "Next stop: Tour 3, Coffeehouse");
+  assert.doesNotMatch(await page.innerText(".rd-gt"), /Chord switches|Scales|shows/, "no old leg names");
+  /* a level pass: Swing, from Tour 4; nothing further on is playable yet, so there is no Next stop line */
+  const lv = onTour2();
+  const ALL4 = [...T1, ...T2, "c:G", "c:C", "s:G-C", "k3.4", "k3.5", "c:Am", "c:Dm", "k4.3", "k4.4", "k4.5", "k4.6"];
+  lv.curriculum = { v: 1, done: Object.fromEntries(ALL4.map(id => [id, 5])), box1: 1, asked: 1, won: { t4: 5 }, levelWon: { t4: 5 }, paid: { "k4.6": 5 }, tested: Object.fromEntries(["t1", "t2", "t3", "t4", ...ALL4.filter(x => x !== "k4.6")].map(id => [id, 5])) };
+  lv.guitars = { seen: [] };
+  const p2 = await phone(t, lv, { home: true });
+  await p2.waitForSelector(".rd-gt #gt-x"); await settled(p2);
+  assert.equal(await p2.innerText(".rd-gt .sc-title"), "Tour 4, Street Corner");
+  assert.equal(await p2.innerText(".rd-gt .sc-label"), "Swing");
+  assert.equal(await p2.locator(".rd-gt .sc-next").count(), 0);
+});
