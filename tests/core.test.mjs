@@ -4916,7 +4916,7 @@ test("release C: tested survives a backup; unknown ids and bad times are dropped
 });
 
 // The expected fans, guitars and tour states below were produced by running the same saves through next at 5.18.0 (before Release C).
-test("release C: nine old saves show the same fans, guitars and tour states as on next", () => {
+test("release C: twelve old saves show the same fans, guitars and tour states as next", () => {
   const sk = (...ids) => ({ done: Object.fromEntries(ids.map(id => [id, { n: 1, best: 0, at: 5 }])), last: 5 });
   const T1 = ["k1.1", "k1.2", "c:Em", "k1.4", "k1.5", "k1.6"], T2 = ["c:A", "c:D", "c:E", "k2.4"];
   const base = (x = {}) => ({ songs: [], sets: [], trash: [], settings: {}, opening: { step: 9, v: 3, done: 1, seen: 1 }, boxes: { opened: [] }, ...x });
@@ -4928,12 +4928,48 @@ test("release C: nine old saves show the same fans, guitars and tour states as o
  t2done:base({skills:sk("c:Em","c:A","c:D","c:E","s:D-A","s:A-E"),curriculum:{v:1,done:Object.fromEntries([...T1,...T2,"k2.5","k2.6"].map(i=>[i,7])),won:{t1:3,t2:8},paid:{"k2.5":7}}}),
  t4won:base({skills:sk("c:Em","c:A","c:D","c:E","s:D-A","s:A-E","c:G","c:C","s:G-C","s:C-D","s:G-D","c:Am","c:Dm","s:Em-Am","s:Am-C"),curriculum:{v:1,done:Object.fromEntries(["k2.5","k2.6","k3.5","k4.4","k4.5","k4.6"].map(i=>[i,7])),won:{t1:1,t2:2,t3:3,t4:4}}}),
  carried:base({skills:sk("c:Em","c:A","c:D","c:E"),curriculum:{v:1,done:{"k2.4":5,"k2.5":5},won:{t1:2}}}),
+ oldLeg:base({skills:sk("c:G","c:C","c:D","c:Em","c:Am","c:E","c:A","k:open"),guitars:{seen:["open"]}}),
+ oldSongTour:base({skills:sk("c:G","c:C","c:D","c:Em"),songs:[{id:"x",title:"X",body:"[Verse]\nG   C\nla la\nD   Em\nla la"}],songTour:{v:1,legs:{open:{pick:null,song:"x",done:["r1","r2"],solid:true}}}}),
+ skippedOpening:{songs:[],sets:[],trash:[],settings:{},opening:{step:0,v:3,skipped:5}},
  unlock:base({settings:{unlockAll:true}}),
  boxes:base({skills:sk("c:Em"),boxes:{opened:["b:t1"]},curriculum:{v:1,done:{},settled:["b:t2"]}}),
   };
-  const expected = {"fresh": [0, ["open"], "nowlockedlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "opening3": [0, ["open"], "nowlockedlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "opened": [0, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "lessons": [25, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "t2done": [35, ["open", "switch", "scales"], "donedonenowlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "t4won": [75, ["open", "switch", "scales", "strum", "pick"], "donedonedonedoneopenopenopenopenopenopenopenopenopenopenopenopenopenopenlocked"], "carried": [20, ["open", "switch"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "unlock": [0, ["open"], "openopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopen"], "boxes": [30, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"]};
+  const expected = {"fresh": [0, ["open"], "nowlockedlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "opening3": [0, ["open"], "nowlockedlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "opened": [0, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "lessons": [25, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "t2done": [35, ["open", "switch", "scales"], "donedonenowlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "t4won": [75, ["open", "switch", "scales", "strum", "pick"], "donedonedonedoneopenopenopenopenopenopenopenopenopenopenopenopenopenopenlocked"], "carried": [20, ["open", "switch"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "oldLeg": [40, ["open", "switch"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "oldSongTour": [20, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "skippedOpening": [0, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "unlock": [0, ["open"], "openopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopen"], "boxes": [30, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"]};
   for (const [k, d] of Object.entries(saves)) {
     const got = [C.fansOf(d), C.roadGuitars(d).map(x => x.id ?? x.li ?? x), C.curriculumState(d).tours.map(t => t.state).join("")];
     assert.deepEqual(got, expected[k], k);
   }
+});
+
+test("release C fixes: a box that becomes ready only through a tested-out stop pays nothing", () => {
+  const d = veteran({ curriculum: { v: 1, done: { "c:A": 5, "c:D": 5 } } });
+  const f0 = C.fansOf(d);
+  C.checkPassed(d, { kind: "stop", stop: "c:E" }, { now: 9 });
+  assert.ok(d.curriculum.settled.includes("b:t2"), "the box is settled");
+  assert.equal(C.curriculumBoxOpen(d, "b:t2"), false, "and cannot be opened for fans");
+  assert.equal(C.fansOf(d), f0);
+  const e = veteran({ curriculum: { v: 1, done: { "c:A": 5, "c:D": 5, "c:E": 5 } } });
+  C.checkPassed(e, { kind: "stop", stop: "k2.4" }, { now: 9 });
+  assert.equal((e.curriculum.settled || []).includes("b:t2"), false, "a box earned by playing is left alone");
+});
+
+test("release C fixes: a tour check keeps a box that was already earned by playing openable", () => {
+  const d = veteran({ curriculum: { v: 1, done: { "c:A": 5, "c:D": 5, "c:E": 5 } } });
+  assert.ok(C.checkPassed(d, { kind: "tour", tour: "t2" }, { now: 9 }));
+  assert.equal((d.curriculum.settled || []).includes("b:t2"), false);
+  const f0 = C.fansOf(d);
+  assert.equal(C.curriculumBoxOpen(d, "b:t2"), true, "it opens");
+  assert.equal(C.fansOf(d) - f0, C.FANS.box, "and pays");
+  const n = newbie(); C.levelAnswered(n, 1);
+  C.checkPassed(n, { kind: "level", level: "open" }, { now: 9 });
+  assert.ok(n.curriculum.settled.includes("b:t2"), "a box passed over without being earned is settled");
+});
+
+test("release C fixes: only Tours 1 to 4 can be tested, and a locked tour cannot", () => {
+  const d = veteran();
+  assert.equal(C.checkPassed(d, { kind: "tour", tour: "t3" }), null, "Tour 3 is locked behind Tour 2");
+  assert.equal(C.checkPassed(d, { kind: "tour", tour: "t5" }), null, "Tour 5 has no playable headline");
+  assert.equal(C.checkPassed(d, { kind: "tour", tour: "t14" }), null);
+  assert.deepEqual(d.curriculum, { v: 1, done: {} }, "nothing written but the empty shell the Tour always makes");
+  assert.ok(C.checkPassed(d, { kind: "tour", tour: "t2" }, { now: 3 }), "Tour 2 is open and can be tested");
 });

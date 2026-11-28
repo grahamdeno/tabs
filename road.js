@@ -109,7 +109,7 @@ function csCard(stop) {
   let body, act = "", cls = stop.state;
   if (stop.row) body = `${stop.routeOpen ? "Coming soon." : `Opens after Tour ${stop.after}.`} ${stop.skill}.`;
   else if (stop.kind === "box") body = "Boxes stay shut while Unlock all tours is on, so nothing is paid.";
-  else if (stop.soon) { cls = "soon"; body = stop.tourId === "t5" ? `Coming soon. Tours 5 and up are on the way. Songs and Gigs keep playing. ${stop.skill}.` : `Coming soon. ${stop.skill}. ${csPass(stop)}`; }
+  else if (stop.soon) { cls = "soon"; body = stop.tourId === "t5" ? `Coming soon. Tours 5 and up are on the way. Songs and Gigs keep playing. ${stop.skill}. ${csPass(stop)}` : `Coming soon. ${stop.skill}. ${csPass(stop)}`; }
   else if (locked) { body = "Finish the stop before it first."; act = testOutBtn(stop); }
   else {
     body = `${stop.skill}. ${csPass(stop)}${off ? " Unlock all tours is on: nothing is paid or saved." : ""}`;
