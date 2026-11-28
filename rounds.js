@@ -34,7 +34,8 @@ const guitarBand = (ctx, src) => {
   src.connect(a); a.connect(b);
   return b;
 };
-const kicker = s => s.kind === "drill" ? `DRILL · ${s.bpm} BPM` : s.piece ? `TOUR ${+s.tour.slice(1)} · ${s.kind === "headline" ? "HEADLINE" : "PIECE"}` : s.kind === "headline" ? "SONG TOUR · HEADLINE" : `SONG TOUR · ROUND ${s.n} OF ${s.of}`;
+/* Song tours are part of the tours since 5.18.0, so a carried-over round names its tour too */
+const kicker = s => s.kind === "drill" ? `DRILL · ${s.bpm} BPM` : `TOUR ${+String(s.tour).slice(1)} · ${s.kind === "headline" ? "HEADLINE" : s.piece ? "PIECE" : `ROUND ${s.n} OF ${s.of}`}`;
 /* a drill's Speed is its tempo; a round's is a share of the song's */
 const speeds = r => r.drill ? drillTempos(r.drill.to || 80) : speedsFor(r.song);
 const nameOf = (r, v) => r.drill ? `${v} BPM` : speedName(v);
@@ -58,7 +59,7 @@ export function openRound(stop, { onClose } = {}) {
   try { sound({ mic: true }); micP = getMic(micOptions()).catch(() => null); } catch { micP = Promise.resolve(null); }
   const el = document.createElement("div");
   el.className = "rnd"; el.id = "round"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
-  el.setAttribute("aria-label", `${kicker(stop).replace("SONG TOUR · ", "").toLowerCase()}, ${stop.sub || ""}`);
+  el.setAttribute("aria-label", `${kicker(stop).toLowerCase()}, ${stop.sub || ""}`);
   document.body.appendChild(el);
   document.getElementById("app")?.setAttribute("inert", "");
   R = { stop, song, el, onClose, speed: stop.state === "done" ? 1 : speedsFor(song)[stop.piece && stop.kind === "headline" ? 1 : 0], micP, gen: 0 };

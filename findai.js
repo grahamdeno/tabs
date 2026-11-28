@@ -416,7 +416,7 @@ export function getSong(q, preset = {}) {
       const r = tourAttach(tourData(data), preset.tour, s);
       if (!r.ok) tourSwap(tourData(data), preset.tour);
       Tabs.save(data); go("#/");
-      return toast(r.ok ? `Added ${c.title}. Your tour starts with playing it now` : /^t\d/.test(preset.tour) ? (r.opens ? `Not yet: ${c.title} opens at Tour ${r.opens}. It's in your Songbook` : `${c.title} has chords this tour doesn't allow, so Louie is picking another song`) : `${c.title} has ${r.new.length} new chords, so Louie is picking another song for the tour`);
+      return toast(r.ok ? `Added ${c.title}. Your tour starts with playing it now` : /^t\d/.test(preset.tour) ? (r.opens ? `Not yet: ${c.title} opens at Tour ${r.opens}. It will wait for you there.` : `${c.title} has chords this tour doesn't allow, so Louie is picking another song`) : `${c.title} has ${r.new.length} new chords, so Louie is picking another song for the tour`);
     }
     /* 4.28.0: from Play next's Learn, on to the new chord's lesson, but only when the fetched sheet really
        has that chord (the AI's chord list can be wrong: Hotel California came back with a C# it doesn't have) */

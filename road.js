@@ -101,7 +101,8 @@ const tagOf = s => s.cs && s.kind !== "box" && !s.chord && !s.a ? s.name : s.kin
    streak colour with Start (or, at a headline, Play and the song that fits); any other pick's is a quiet one */
 /* a stop from the curriculum that is not a plain chord or switch lesson: Coming soon, a locked row, an Opening night step,
    a stop with two lessons, or a box while Unlock all tours is on */
-const csPass = s => s.pass === "played" ? "Louie can't judge this one. You're the judge." : "Louie listens for it.";
+/* Decision 2's words, Heard or Played through (wording check of PR #275, 2026-11-27) */
+const csPass = s => s.pass === "played" ? "Played through: Louie can't hear strumming yet, so it counts when you play it through." : "Heard: Louie listens for the chords.";
 function csCard(stop) {
   const title = stopTitle(stop), locked = stop.state === "locked", off = !rewardsOn(data);
   let body, act = "", cls = stop.state;
@@ -145,7 +146,7 @@ function pieceCard(stop) {
   let line, acts = "";
   if (own) {
     const { sg } = own, capo = own.t.capo || 0, band = capo > 0 && capoAnswer(data) !== true;
-    line = `${stop.headline ? `Play the whole of ${sg.title}. Pass at ${speedName(passSpeed({ ...sg, bandOnly: band }))}. 1.0x makes it Solid.` : `Play a piece of ${sg.title}. Louie marks the strums with your chords; the rest are rests.`}`
+    line = `${stop.headline ? `Play all of ${sg.title}. Pass at ${speedName(passSpeed({ ...sg, bandOnly: band }))}. 1.0x makes it Solid.` : `Play a piece of ${sg.title}. Strum on the marked beats and rest on the others.`}`
       + `${own.t.simplified ? " This is the simplified version." : ""}${capo > 0 ? (band ? ` It needs a capo at fret ${capo}, so Louie's band plays it.` : ` Capo at fret ${capo}.`) : ""} ${csPass(stop)}${off ? " Unlock all tours is on: nothing is paid or saved." : ""}`;
     acts = `${!off && piecePays(data, stop.id) ? `<div class="rd-earn"><span>+${FANS.lesson} fans</span></div>` : ""}<button class="btn primary rd-start" data-go="${esc(stop.id)}">${stop.state === "done" && !off ? "PLAY AGAIN" : "PLAY"}</button>`
       + (own.t.simplified || capo > 0 ? `<button class="rd-other" data-chart="${esc(sg.id)}">See the real chart</button>` : "")
@@ -186,7 +187,7 @@ function chooseSong(tourId) {
     close();
     if (r.ok) { Tabs.save(data); toast(`${sg.title} is this tour's song${r.simplified ? ", simplified" : ""}`); return renderRoad(); }
     if (r.opens) { tv.curriculum = { v: 1, done: {}, ...(tv.curriculum || {}) }; tv.curriculum.waiting = { ...(tv.curriculum.waiting || {}), [sg.id]: r.opens }; Tabs.save(data); }
-    toast(r.opens ? `Not yet: this opens at Tour ${r.opens}. It waits there` : "This song needs chords the early tours don't teach");
+    toast(r.opens ? `Not yet: this song opens at Tour ${r.opens}. It will wait for you there.` : "This song needs chords the early tours don't teach");
   });
 }
 const askPick = id => {

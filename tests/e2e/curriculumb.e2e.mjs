@@ -68,7 +68,7 @@ test("B2: a song that fits a later tour says Not yet, names the tour, and waits 
   await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
   await page.click('.rd-pop [data-tchoose]'); await page.waitForSelector('[data-pick="far"]');
   await page.click('[data-pick="far"]');
-  assert.match(await toastText(page), /Not yet: this opens at Tour \d+/);
+  assert.match(await toastText(page), /Not yet: this song opens at Tour \d+\. It will wait for you there\./);
   await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).curriculum?.waiting?.far >= 3, null, { timeout: 5000 });
   const after = await stored(page);
   assert.equal(after.songTour?.legs?.t2?.song, undefined, "it is not this tour's song");
@@ -159,4 +159,15 @@ test("fix 11: the guitar stand names the tours that earned each guitar, Tour 4's
   assert.equal(by.switch[1], "Cornerstone, earned on Tour 1, Opening Night");
   assert.match(by.pick[1], /earned on Tour 4, /);
   for (const i of items) if (/earned on/.test(i[1])) assert.match(i[1], new RegExp("earned on Tour (\\d+), "), i[1]);
+});
+
+test("Wording check: the capo answers are two equal buttons, 44 pt or taller, with a gap", { skip: skip() }, async t => {
+  const l1 = JSON.parse(JSON.stringify(LIB)); l1.guitars = { seen: ["open"] };
+  const page = await phone(t, l1, { home: true });
+  await page.waitForSelector(".rn-neck"); await settled(page);
+  await tap(page, "k1.4"); await page.waitForSelector(".rd-pop [data-capo]");
+  const [y, n] = await page.$$eval(".rd-pop [data-capo]", bs => bs.map(b => { const r = b.getBoundingClientRect(); return { l: r.left, r: r.right, w: r.width, h: r.height }; }));
+  assert.ok(y.h >= 44 && n.h >= 44, `44 pt tall (${y.h}, ${n.h})`);
+  assert.ok(Math.abs(y.w - n.w) <= 1 && y.w >= 90, `equal and wide (${y.w}, ${n.w})`);
+  assert.ok(n.l - y.r >= 8, `a gap between them (${n.l - y.r})`);
 });
