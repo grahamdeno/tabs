@@ -23,7 +23,7 @@
 //                 the current one, and a callout beside the current one
 //   Louie         peeking in from the left edge, a picture (art/louie), not a button
 import { piecePays, roadTour, TOUR_LEG, allowedChords, capoAnswer, songbookFor, tour1Song, tourPicked, tourSetSong, tourSwap, cleanMe, ME_DEFAULT, guitarShown, roadHit, KNOW_PLAYS, chordPlays, songsWith, VERSION, boxesSeed, guitarNew, openBox, venueNow, lifetimePlays, openingAdvance, openingSkip, openingStep, openingView, pickNudge, playSongs, playableSongs, roadPath, skillState, streakOf, FANS, OPENING, Tabs } from "./core.js";
-import { curriculumRoad, curriculumSeed, playNext, rewardsOn, tourData } from "./core.js";
+import { TOURS, nextStop, curriculumRoad, curriculumSeed, playNext, rewardsOn, tourData } from "./core.js";
 import { TEST_LEVELS, testLevel, headlineOf, stopById, levelAsk, levelAnswered, levelsOpen, testUpOn, startHere, openingOn, tourNumber } from "./core.js";
 import { app, ask, esc, haptic, icon, layer, toast } from "./ui.js";
 import { holdSheet, micSheet, notesSheet, songFor, stringsSheet } from "./opening.js";
@@ -824,7 +824,7 @@ export function renderRoad() {
   }
   if (plays) fillScene(st);
   headlinerEarned(oldRoad);
-  guitarEarned(oldRoad);
+  guitarEarned();
   guitaristAsk();
   markTested(path, all);
   reopenCheck?.();
@@ -854,19 +854,21 @@ function headlinerEarned() {}
 
 /* 4.82.0: the first Road shown after a leg's headline show is done tells you the next guitar is yours. Said once;
    if the Headliner sheet is up, it waits for the next Road. */
-function guitarEarned(road) {
+function guitarEarned() {
   if (layer.innerHTML) return;
   const gn = guitarNew(data);
   if (!gn) return;
   data.guitars = { seen: gn.done }; Tabs.save(data);
-  const was = road.legs.find(l => l.id === gn.leg) || road.legs.find(l => TOUR_LEG[l.id] === gn.leg), lg = road.legs.find(l => l.id === gn.next) || (was ? road.legs[road.legs.indexOf(was) + 1] : null);
+  /* 5.19.0: the sheet names the tour the guitar came from and the tour the next stop is in (it read the old legs before) */
+  const wasT = TOURS.find(t => TOUR_LEG[t.id] === gn.leg), ns = nextStop(data, "main"), nextT = ns ? TOURS.find(t => t.id === ns.tour) : null;
+  const was = wasT ? { n: wasT.number, name: wasT.name } : null, lg = nextT ? { n: nextT.number, name: nextT.name } : null;
   /* Road Ready: the new guitar in the stand, neighbours peeking, Louie and the name under it, then Rock on */
   if (rrLook()) {
     const owned = collectionOf(data, gn.next), at = standIndex(owned, gn.next);
     layer.innerHTML = `<div class="scrim" id="gt-scrim"></div><div class="panel de-sheet rd-hl rd-gt rr-case" role="dialog" aria-label="New guitar earned"><div class="grab"></div>
     <div class="pbody">
       <p class="sc-over">HEADLINE SHOW</p>
-      <h2 class="sc-title">${was ? `${esc(was.name)}, all ${was.stops.length} shows` : "Tour done"}</h2>
+      <h2 class="sc-title">${was ? `Tour ${was.n}, ${esc(was.name)}` : "Tour done"}</h2>
       <p class="sc-new">New guitar earned</p>
       ${standHTML(owned, { active: at, variant: "sheet" })}
       <div class="sc-who"><span class="sc-louie">${louie("cheer", { size: 76 })}</span><span class="sc-label">${esc(gn.guitar.name)}</span></div>
