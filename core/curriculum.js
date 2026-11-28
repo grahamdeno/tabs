@@ -307,11 +307,13 @@ export function cleanCurriculum(raw) {
   for (const [id, at] of Object.entries(isObj(raw.tested) ? raw.tested : {})) if ((STOP_BY[id] || TOUR_BY[id]) && +at > 0) tested[id] = Math.floor(+at);
   const refresher = {};
   for (const [c, at] of Object.entries(isObj(raw.refresher) ? raw.refresher : {})) if (CHORD_SET().has(c) && +at > 0) refresher[c] = Math.floor(+at);
+  const levelWon = {};
+  for (const [id, at] of Object.entries(isObj(raw.levelWon) ? raw.levelWon : {})) if (TOUR_LEG[id] && won[id] && +at > 0) levelWon[id] = Math.floor(+at);
   const asked = +raw.asked > 0 ? Math.floor(+raw.asked) : 0;
   const start = TOUR_BY[raw.start]?.route === "main" && raw.start !== "t1" ? raw.start : "";
   const waiting = {};
   for (const [id, n] of Object.entries(isObj(raw.waiting) ? raw.waiting : {}).slice(0, 20)) if (/^[\w.-]{1,64}$/.test(id) && Number.isInteger(n) && n >= 1 && n <= 4) waiting[id] = n;
-  return { v: CURRICULUM_V, done, ...(raw.box1 ? { box1: 1 } : {}), ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}), ...(Object.keys(waiting).length ? { waiting } : {}), ...(Object.keys(paid).length ? { paid } : {}), ...(Object.keys(tested).length ? { tested } : {}), ...(Object.keys(refresher).length ? { refresher } : {}), ...(asked ? { asked } : {}), ...(start ? { start } : {}) };
+  return { v: CURRICULUM_V, done, ...(raw.box1 ? { box1: 1 } : {}), ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}), ...(Object.keys(waiting).length ? { waiting } : {}), ...(Object.keys(paid).length ? { paid } : {}), ...(Object.keys(levelWon).length ? { levelWon } : {}), ...(Object.keys(tested).length ? { tested } : {}), ...(Object.keys(refresher).length ? { refresher } : {}), ...(asked ? { asked } : {}), ...(start ? { start } : {}) };
 }
 /* Unlock mode writes nothing. Otherwise the stops done by the old fields are remembered (once each). True when something was added. */
 export function curriculumSeed(data, now = Date.now()) {
@@ -344,7 +346,7 @@ function seedCore(data, now) {
   if (!cur && !add.length && !data.skills && !data.opening && !data.songTour) { data.curriculum = { v: CURRICULUM_V, done: {} }; return true; }
   /* The first time only: a new box behind where the player stands shows as opened and pays nothing (`settled`); boxes ahead pay. */
   const settled = cur ? cur.settled : curriculumState(data).tours.filter(t => t.route === "main" && t.stops.length > BOX_AFTER && boxState(data, t, new Set()) === "now").map(t => boxId(t.number));
-  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), ...(cur?.waiting ? { waiting: cur.waiting } : {}), ...(cur?.paid ? { paid: cur.paid } : {}), ...(cur?.tested ? { tested: cur.tested } : {}), ...(cur?.refresher ? { refresher: cur.refresher } : {}), ...(cur?.asked ? { asked: cur.asked } : {}), ...(cur?.start ? { start: cur.start } : {}), box1: 1, v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
+  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), ...(cur?.waiting ? { waiting: cur.waiting } : {}), ...(cur?.paid ? { paid: cur.paid } : {}), ...(cur?.levelWon ? { levelWon: cur.levelWon } : {}), ...(cur?.tested ? { tested: cur.tested } : {}), ...(cur?.refresher ? { refresher: cur.refresher } : {}), ...(cur?.asked ? { asked: cur.asked } : {}), ...(cur?.start ? { start: cur.start } : {}), box1: 1, v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
   return true;
 }
 const doneSet = data => new Set([...mappedDone(data), ...Object.keys(data.curriculum?.done || {}).filter(id => STOP_BY[id])]);
@@ -482,7 +484,7 @@ export function checkPassed(data, check, { rate = 1, now = Date.now() } = {}) {
   const pays = piecePays(data, hl.id) && !cur.won?.[top.id];
   if (!before.has(hl.id)) cur.done[hl.id] = now;
   if (pays) cur.paid = { ...(cur.paid || {}), [hl.id]: now };
-  if (!cur.won?.[top.id]) cur.won = { ...(cur.won || {}), [top.id]: now };
+  if (!cur.won?.[top.id]) { cur.won = { ...(cur.won || {}), [top.id]: now }; if (check.kind === "level") cur.levelWon = { ...(cur.levelWon || {}), [top.id]: now }; }
   const t = data.songTour?.legs?.[top.id];
   if (rate >= 1 - 1e-9 && t?.song) { t.solid = true; const song = (data.songs || []).find(x => x.id === t.song); if (song && song.status !== "got") song.status = "solid"; }
   if (Object.keys(tested).length) cur.tested = tested;

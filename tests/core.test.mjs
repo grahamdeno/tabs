@@ -4978,11 +4978,41 @@ test("release C decision 22: a level check earns one guitar, the check tour's, a
   const d = newbie(); C.levelAnswered(d, 1);
   C.checkPassed(d, { kind: "level", level: "open" }, { now: 9 });
   assert.deepEqual(Object.keys(d.curriculum.won), ["t4"], "won holds only Tour 4");
-  assert.deepEqual(C.roadGuitars(d).map(g => g.id), ["open", "strum", "pick"], "Tours 2 and 3 do not give their guitars");
+  assert.deepEqual(C.roadGuitars(d).map(g => g.id), ["open", "pick"], "Tour 4's guitar only: Swing");
+  assert.deepEqual(Object.keys(d.curriculum.levelWon), ["t4"], "the win is recorded as from a level check");
   const gn = C.guitarNew(d);
   assert.equal(gn.next, "pick");
   d.guitars = { seen: gn.done };
   assert.equal(C.guitarNew(d), null, "one card, then none");
+  /* kept through a backup and a reload, and cleaned */
+  const back = C.cleanCurriculum(JSON.parse(JSON.stringify(d.curriculum)));
+  assert.deepEqual(back.levelWon, d.curriculum.levelWon);
+  assert.equal(C.cleanCurriculum({ v: 1, done: {}, levelWon: { t4: 5, t9: 1, t3: 4 } }).levelWon, undefined, "only a won tour with a guitar is kept");
+});
+
+test("release C decision 22: a played headline or a tour check keeps the full rule", () => {
+  const d = newbie(); C.levelAnswered(d, 1);
+  C.curriculumWon(d, "t2", 5);
+  assert.deepEqual(C.roadGuitars(d).map(g => g.id), ["open", "switch", "scales"], "a skipped Opening night, then Tour 2: Cornerstone and Club Slab");
+  const e = veteran();
+  C.checkPassed(e, { kind: "tour", tour: "t2" }, { now: 3 });
+  assert.ok(C.roadGuitars(e).map(g => g.id).includes("switch"), "Test out of this tour keeps its own guitar");
+  assert.equal(e.curriculum.levelWon, undefined);
+});
+
+test("release C decision 22: after a level pass, Tours 3 and 2 played later still earn their guitars, each with its own card", () => {
+  const d = newbie(); C.levelAnswered(d, 1);
+  C.checkPassed(d, { kind: "level", level: "open" }, { now: 9 });
+  d.guitars = { seen: C.guitarNew(d).done };
+  C.curriculumWon(d, "t3", 20);
+  assert.deepEqual(C.roadGuitars(d).map(g => g.id), ["open", "scales", "strum", "pick"]);
+  const g3 = C.guitarNew(d);
+  assert.equal(g3.next, "strum", "Hollow Hill");
+  d.guitars = { seen: g3.done };
+  assert.equal(C.guitarNew(d), null);
+  C.curriculumWon(d, "t2", 30);
+  assert.deepEqual(C.roadGuitars(d).map(g => g.id), ["open", "switch", "scales", "strum", "pick"], "Cornerstone and Club Slab");
+  assert.equal(C.guitarNew(d).next, "scales", "Club Slab gets its own card");
 });
 
 test("release C decision 23: a box settles as soon as any of its first three stops is tested out, and pays nothing even when the rest are played", () => {

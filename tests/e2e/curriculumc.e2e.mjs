@@ -260,7 +260,13 @@ test("C1: a check played slower than the pass speed says to play quicker and cha
   for (let i = 0; i < 4 && Number(await page.getAttribute("#round .rnd-speed", "data-speed")) >= Number(start); i++) await page.click("#round .rnd-speed");
   assert.ok(Number(await page.getAttribute("#round .rnd-speed", "data-speed")) < Number(start), "the speed is slower than the pass speed");
   await follow(page);
-  const c = await cardText(page);
+  /* on a busy machine a missed round shows another card first: play again (the speed stays slow) */
+  let c = "";
+  for (let k = 0; k < 4; k++) {
+    c = await cardText(page);
+    if (/passes at/.test(c)) break;
+    if (k < 3) { await page.click('#round [data-rnd="again"]'); await page.waitForFunction(() => document.querySelector("#round .rnd-card")?.hidden); }
+  }
   assert.match(c, /passes at .* or faster\. Play it again a little quicker/);
   const s = await stored(page);
   assert.equal(s.curriculum.tested, undefined);
@@ -303,7 +309,7 @@ test("decision 25: with no song that fits and no key the check says so, and Star
 
 test("decision 22: one New guitar card after a level pass, and not again", { skip: skip() }, async t => {
   const d = onTour2({ guitars: { seen: ["open"] } });
-  d.curriculum.tested = { t2: 5, t3: 5, t4: 5, "c:A": 5 }; d.curriculum.won = { t4: 5 };
+  d.curriculum.tested = { t2: 5, t3: 5, t4: 5, "c:A": 5 }; d.curriculum.won = { t4: 5 }; d.curriculum.levelWon = { t4: 5 };
   const page = await phone(t, d, { home: true });
   await page.waitForSelector(".rd-gt"); await settled(page);
   assert.equal(await page.locator(".rd-gt").count(), 1, "one card");
