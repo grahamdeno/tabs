@@ -4785,3 +4785,155 @@ test("fix B: an old song carried to a tour is fitted to it, with its capo", () =
   assert.equal(C.carrySongTours(d2), true);
   assert.equal(d2.songTour.legs.t3.capo, 0); assert.equal(d2.songTour.legs.t3.simplified, false);
 });
+
+// ---------- Curriculum Release C: testing up, testing out, credit ----------
+const newbie = (extra = {}) => cur({ opening: { step: 0, v: 3 }, boxes: { opened: [] }, ...extra });
+const veteran = (extra = {}) => cur({ opening: { step: 9, v: 3, done: 1, seen: 1 }, boxes: { opened: [] }, ...extra });
+const guitarsOf = d => JSON.stringify(C.roadGuitars(d).map(g => g.id ?? g.li ?? g));
+
+test("release C: the level question is asked to a new player once, never to anyone else, never under Unlock all tours", () => {
+  const d = newbie();
+  assert.equal(C.levelAsk(d), true, "a new player is asked");
+  assert.equal(C.levelAnswered(d, 10), true);
+  assert.equal(d.curriculum.asked, 10);
+  assert.equal(C.levelAsk(d), false, "never again");
+  C.levelAnswered(d, 99);
+  assert.equal(d.curriculum.asked, 10, "the first answer stands");
+  assert.equal(C.levelAsk(veteran()), false, "a player past Opening night is not asked");
+  assert.equal(C.levelAsk(newbie({ curriculum: { v: 1, done: { "k1.1": 5 } } })), false, "nor one with Tour 1 progress");
+  const u = newbie({ settings: { unlockAll: true } });
+  assert.equal(C.levelAsk(u), false, "Unlock all tours never asks");
+  assert.equal(C.levelAnswered(u), false);
+  assert.equal("curriculum" in u, false, "and writes nothing");
+});
+
+test("release C: Test up shows for everyone who has been asked, and not under Unlock all tours", () => {
+  const n = newbie();
+  assert.equal(C.testUpOn(n), false, "a new player sees the question first");
+  C.levelAnswered(n, 5);
+  assert.equal(C.testUpOn(n), true);
+  assert.equal(C.testUpOn(veteran()), true);
+  assert.equal(C.testUpOn(veteran({ settings: { unlockAll: true } })), false, "hidden under Unlock all tours");
+  assert.deepEqual(C.TEST_LEVELS.map(l => [l.id, l.tour, l.start]), [["few", "t1", "t2"], ["open", "t4", "t5"]]);
+});
+
+test("release C: each level's check passes once, pays only the headline, and earns its guitar once", () => {
+  for (const [level, top, hl] of [["few", "t1", "k1.6"], ["open", "t4", "k4.6"]]) {
+    const d = newbie(); C.levelAnswered(d, 1); const f0 = C.fansOf(d);
+    const r = C.checkPassed(d, { kind: "level", level }, { rate: 1, now: 50 });
+    assert.equal(r.pays, true, level);
+    assert.equal(r.headline, hl);
+    assert.equal(C.fansOf(d) - f0, C.FANS.lesson, `${level}: only the headline pays, once`);
+    assert.ok(d.curriculum.won[top], `${level}: the tour is won`);
+    const again = C.checkPassed(d, { kind: "level", level }, { rate: 1, now: 60 });
+    assert.equal(again.pays, false, `${level}: a second pass pays nothing`);
+    assert.equal(C.fansOf(d) - f0, C.FANS.lesson);
+    assert.equal(d.curriculum.won[top], 50, "and the guitar's time does not move");
+    for (const t of C.curriculumState(d).tours.filter(t => t.route === "main" && t.number <= C.tourNumber(top))) assert.equal(t.state, "done", `${level}: ${t.id} is done`);
+  }
+  const d = newbie(); C.levelAnswered(d, 1);
+  C.checkPassed(d, { kind: "level", level: "open" }, { now: 5 });
+  assert.equal(C.testedOut(d, "t2"), true);
+  assert.equal(C.testedOut(d, "c:A"), true, "a tested stop says so");
+  assert.equal(C.testedOut(d, "k4.6"), false, "the played headline does not");
+  assert.equal(C.curriculumBoxOpen(d, "b:t1"), false, "a settled box is closed and pays nothing");
+  assert.equal(C.fansOf(d), C.FANS.lesson);
+});
+
+test("release C: a check that did not pass changes nothing, and Unlock all tours writes nothing", () => {
+  const d = veteran(); const before = JSON.stringify(d);
+  assert.equal(C.checkPassed(d, { kind: "level", level: "nope" }), null);
+  assert.equal(C.checkPassed(d, null), null);
+  assert.equal(JSON.stringify(d), before);
+  const u = veteran({ settings: { unlockAll: true } }); const b2 = JSON.stringify(u);
+  assert.equal(C.checkPassed(u, { kind: "level", level: "few" }), null);
+  assert.equal(C.startHere(u, "open"), false);
+  assert.equal(JSON.stringify(u), b2, "nothing written");
+});
+
+test("release C: Start here anyway opens the tours, marks nothing done and pays nothing", () => {
+  const d = newbie(); C.levelAnswered(d, 1);
+  const f0 = C.fansOf(d), g0 = guitarsOf(d);
+  assert.equal(C.startHere(d, "open"), true);
+  assert.equal(d.curriculum.start, "t5");
+  assert.deepEqual(Object.keys(d.curriculum.done || {}), [], "nothing done");
+  assert.equal(C.fansOf(d), f0);
+  assert.equal(guitarsOf(d), g0);
+  assert.notEqual(stopState(d, "c:A"), "locked", "the earlier tours are open");
+  assert.equal(C.tourNumber(d.curriculum.start), 5);
+  C.startHere(d, "few");
+  assert.equal(d.curriculum.start, "t5", "a lower start never moves it back");
+});
+
+test("release C: a tested-out lesson stop pays on its first normal play and not twice; a tested piece pays through paid", () => {
+  const d = veteran();
+  C.checkPassed(d, { kind: "stop", stop: "c:A" }, { now: 5 });
+  assert.equal(C.testedOut(d, "c:A"), true);
+  const f0 = C.fansOf(d);
+  assert.equal(f0, 0, "testing out pays nothing");
+  d.skills = skillsDone("c:A");
+  assert.equal(C.testedOut(d, "c:A"), false, "played: the label goes");
+  assert.equal(C.fansOf(d) - f0, C.FANS.lesson, "the lesson pays when played");
+  d.skills.done["c:A"].n = 1;
+  assert.equal(C.fansOf(d) - f0, C.FANS.lesson, "and not again");
+  const p = veteran({ curriculum: { v: 1, done: Object.fromEntries(["c:A", "c:D", "c:E", "k2.4"].map(id => [id, 3])) } });
+  assert.equal(C.checkPassed(p, { kind: "stop", stop: "k2.5" }, { now: 9 }).pays, false);
+  assert.equal(C.fansOf(p), 0);
+  const first = C.piecePlayed(p, "k2.5", { rate: 1, now: 20 });
+  assert.equal(first.pays, true, "first normal play pays");
+  assert.equal(C.fansOf(p), C.FANS.lesson);
+  assert.equal(C.testedOut(p, "k2.5"), false);
+  assert.equal(C.piecePlayed(p, "k2.5", { rate: 1, now: 30 }).pays, false, "never twice");
+  assert.equal(C.fansOf(p), C.FANS.lesson);
+});
+
+test("release C: the refresher is offered for a tested-out chord, and No thanks is kept", () => {
+  const d = newbie(); C.levelAnswered(d, 1);
+  assert.equal(C.refresherFor(d, "A"), null, "nothing tested out yet");
+  C.checkPassed(d, { kind: "level", level: "open" }, { now: 5 });
+  const o = C.refresherFor(d, "A");
+  assert.ok(o && o.chord === "A" && o.tour === 2, JSON.stringify(o));
+  assert.equal(C.refresherDeclined(d, "A", 7), true);
+  assert.equal(C.refresherFor(d, "A"), null, "not offered again for that chord");
+  assert.equal(C.refresherDeclined(d, "Zz", 8), false, "an unknown chord is not kept");
+  assert.equal(C.refresherFor(veteran({ settings: { unlockAll: true } }), "Em"), null);
+});
+
+test("release C: tested survives a backup; unknown ids and bad times are dropped", () => {
+  const d = newbie(); C.checkPassed(d, { kind: "level", level: "open" }, { now: 40 });
+  d.curriculum.asked = 3; d.curriculum.start = "t5"; d.curriculum.refresher = { Em: 9 };
+  const file = JSON.parse(JSON.stringify(C.backupOf(d)));
+  const back = C.cleanImport(file).data;
+  assert.deepEqual(back.curriculum.tested, d.curriculum.tested, "tested comes back");
+  assert.equal(back.curriculum.asked, 3);
+  assert.equal(back.curriculum.start, "t5");
+  assert.deepEqual(back.curriculum.refresher, { Em: 9 });
+  const bad = C.cleanCurriculum({ v: 1, done: {}, tested: { "c:A": 5, nope: 5, "c:D": "x", "c:E": -1, t3: 8 }, asked: "x", start: "t1", refresher: { Em: 1, Zz: 1 } });
+  assert.deepEqual(bad.tested, { "c:A": 5, t3: 8 });
+  assert.equal(bad.asked, undefined);
+  assert.equal(bad.start, undefined);
+  assert.deepEqual(bad.refresher, { Em: 1 });
+});
+
+// The expected fans, guitars and tour states below were produced by running the same saves through next at 5.18.0 (before Release C).
+test("release C: nine old saves show the same fans, guitars and tour states as on next", () => {
+  const sk = (...ids) => ({ done: Object.fromEntries(ids.map(id => [id, { n: 1, best: 0, at: 5 }])), last: 5 });
+  const T1 = ["k1.1", "k1.2", "c:Em", "k1.4", "k1.5", "k1.6"], T2 = ["c:A", "c:D", "c:E", "k2.4"];
+  const base = (x = {}) => ({ songs: [], sets: [], trash: [], settings: {}, opening: { step: 9, v: 3, done: 1, seen: 1 }, boxes: { opened: [] }, ...x });
+  const saves = {
+ fresh:{songs:[],sets:[],trash:[],settings:{}},
+ opening3:base({opening:{step:3,v:3}}),
+ opened:base(),
+ lessons:base({skills:sk("c:Em","c:A","c:D","c:E","s:D-A")}),
+ t2done:base({skills:sk("c:Em","c:A","c:D","c:E","s:D-A","s:A-E"),curriculum:{v:1,done:Object.fromEntries([...T1,...T2,"k2.5","k2.6"].map(i=>[i,7])),won:{t1:3,t2:8},paid:{"k2.5":7}}}),
+ t4won:base({skills:sk("c:Em","c:A","c:D","c:E","s:D-A","s:A-E","c:G","c:C","s:G-C","s:C-D","s:G-D","c:Am","c:Dm","s:Em-Am","s:Am-C"),curriculum:{v:1,done:Object.fromEntries(["k2.5","k2.6","k3.5","k4.4","k4.5","k4.6"].map(i=>[i,7])),won:{t1:1,t2:2,t3:3,t4:4}}}),
+ carried:base({skills:sk("c:Em","c:A","c:D","c:E"),curriculum:{v:1,done:{"k2.4":5,"k2.5":5},won:{t1:2}}}),
+ unlock:base({settings:{unlockAll:true}}),
+ boxes:base({skills:sk("c:Em"),boxes:{opened:["b:t1"]},curriculum:{v:1,done:{},settled:["b:t2"]}}),
+  };
+  const expected = {"fresh": [0, ["open"], "nowlockedlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "opening3": [0, ["open"], "nowlockedlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "opened": [0, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "lessons": [25, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "t2done": [35, ["open", "switch", "scales"], "donedonenowlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "t4won": [75, ["open", "switch", "scales", "strum", "pick"], "donedonedonedoneopenopenopenopenopenopenopenopenopenopenopenopenopenopenlocked"], "carried": [20, ["open", "switch"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"], "unlock": [0, ["open"], "openopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopenopen"], "boxes": [30, ["open"], "donenowlockedlockedlockedopenopenopenopenopenopenopenopenlockedopenopenlockedopenlocked"]};
+  for (const [k, d] of Object.entries(saves)) {
+    const got = [C.fansOf(d), C.roadGuitars(d).map(x => x.id ?? x.li ?? x), C.curriculumState(d).tours.map(t => t.state).join("")];
+    assert.deepEqual(got, expected[k], k);
+  }
+});
