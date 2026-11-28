@@ -454,16 +454,15 @@ export function checkPassed(data, check, { rate = 1, now = Date.now() } = {}) {
   if (!valid) return null;
   const cur = curOf(data), before = doneSet(data), tested = cur.tested || {};
   const opened = new Set(data.boxes?.opened || []);
-  const readyAt = (t, set) => stopsOf(t.id).length > BOX_AFTER && !opened.has(boxId(t.number)) && stopsOf(t.id).slice(0, BOX_AFTER).every(x => set.has(x.id));
-  const readyBefore = new Set(TOURS.filter(t => readyAt(t, before)).map(t => t.id));
+  /* a merch box settles (shows as opened, pays nothing) as soon as any of its first three stops is tested out */
+  const boxSettled = t => stopsOf(t.id).length > BOX_AFTER && !opened.has(boxId(t.number)) && stopsOf(t.id).slice(0, BOX_AFTER).some(x => tested[x.id]);
   const mark = (s, test) => { if (before.has(s.id) || !playable(s) || s.held) return false; cur.done[s.id] = now; if (test) tested[s.id] = now; return true; };
   if (check.kind === "stop") {
     const s = STOP_BY[check.stop];
     if (!s || s.headline || !mark(s, true)) return null;
     cur.tested = tested;
-    /* a box that became ready only because a stop was tested out pays nothing */
-    const t = TOUR_BY[s.tour], after = doneSet(data);
-    if (t && !readyBefore.has(t.id) && readyAt(t, after)) cur.settled = [...new Set([...(cur.settled || []), boxId(t.number)])];
+    const t = TOUR_BY[s.tour];
+    if (t && boxSettled(t)) cur.settled = [...new Set([...(cur.settled || []), boxId(t.number)])];
     return { stop: s.id, tours: [], tour: s.tour, pays: false, headline: null };
   }
   const lv = check.kind === "level" ? testLevel(check.level) : null;
@@ -477,8 +476,7 @@ export function checkPassed(data, check, { rate = 1, now = Date.now() } = {}) {
     let any = false;
     for (const s of stopsOf(t.id)) if (s.id !== hl.id && mark(s, true)) any = true;
     if (any) { tested[t.id] = now; out.push(t.id); }
-    /* a box already earned by playing stays openable and pays; any other box the check passes over is settled */
-    if (stopsOf(t.id).length > BOX_AFTER && !opened.has(boxId(t.number)) && !readyBefore.has(t.id)) settled.add(boxId(t.number));
+    if (boxSettled(t)) settled.add(boxId(t.number));
   }
   if (settled.size) cur.settled = [...settled];
   const pays = piecePays(data, hl.id) && !cur.won?.[top.id];

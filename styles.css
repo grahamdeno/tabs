@@ -6427,3 +6427,6 @@ body:has(.pastecard) :is(#tabs, .cmd.float) { visibility: hidden; } /* the knob 
 .rnd-refresh .rd-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .rnd-refresh .rd-pair .btn { min-height: 44px; width: 100%; }
 .rd-pop .rd-other[data-gocheck] { display: block; width: 100%; min-height: 44px; margin-top: 6px; text-align: center; }
+
+/* 5.19.0 (Release C): Test up sits beside Skip in the Opening night header; at 320 wide the two share the line, so each gives up some side padding (the 44 pt targets stay) */
+.rn-legbar #rn-testup, .rn-legbar.on-night .rn-skip { padding: 0 6px; font-size: calc(var(--type-subhead) * .92); }

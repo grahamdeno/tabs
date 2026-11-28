@@ -37,6 +37,7 @@ test("C1: a new player is asked once whether they have played before, and the an
   const page = await phone(t, rookie(), { home: true });
   await page.waitForSelector(".rd-level"); await settled(page);
   assert.match(await page.textContent(".rd-level"), /Have you played guitar before\?/);
+  assert.match(await page.textContent(".rd-level"), /Tell Louie and he'll start you in the right place\. You can change your mind later: Test up is at the top of the Tour\./);
   assert.equal(await page.isVisible("#lq-new"), true);
   assert.equal(await page.isVisible("#lq-play"), true);
   await page.click("#lq-new");
@@ -58,9 +59,12 @@ test("C1: I already play opens the levels, and without a microphone the check of
   assert.match(lv[0], /A few chords/); assert.match(lv[1], /Open chords and strumming/);
   await page.click('[data-level="few"]');
   await page.waitForSelector(".rd-check [data-tsong]");
+  assert.match(await page.textContent(".rd-check"), /Test up/);
+  assert.match(await page.textContent(".rd-check .rd-pop"), /Your check song/);
+  assert.match(await page.textContent(".rd-check .rd-pop"), /Louie checks you with one whole song\. Slow Tide fits\./);
   await page.click(".rd-check [data-tsong]");
   await page.waitForSelector(".rd-check [data-gocheck]");
-  assert.match(await page.textContent(".rd-check"), /Test up/);
+  assert.match(await page.textContent(".rd-check .rd-pop"), /^The check/);
   await page.click(".rd-check [data-gocheck]");
   await page.waitForFunction(() => /needs the microphone/.test(document.body.innerText), null, { timeout: 15000 });
   assert.match(await text(page), /Testing up needs the microphone/);
@@ -136,6 +140,7 @@ const startTourCheck = async page => {
 test("C2: a passed tour check tests out the tour, pays the headline once and earns the guitar once", { skip: skip() }, async t => {
   const page = await phone(t, withTour(), { home: true, prepare: p => p.addInitScript(FAKE_MIC) });
   await startTourCheck(page);
+  assert.match(await page.textContent("#round .rnd-ti small"), /TOUR 2 · TEST OUT/);
   await follow(page);
   const c = await passCheck(page);
   assert.match(c, /tested out/i, c);
@@ -156,12 +161,15 @@ test("C1: a check that is not heard changes nothing, and after two tries a level
   await page.click('[data-level="few"]'); await page.waitForSelector(".rd-check [data-gocheck]");
   await page.click(".rd-check [data-gocheck]");
   await page.waitForSelector("#round .rnd-hw", { timeout: 15000 }); await settled(page);
+  assert.match(await page.textContent("#round .rnd-ti small"), /LEVEL CHECK/);
   let c = await cardText(page);
   assert.match(c, /Louie heard 0 of/);
+  assert.match(c, /Louie needs to hear 3 in 4 chords to pass\./);
   assert.doesNotMatch(c, /Start here anyway/, "one try: just play again");
   await page.click('#round [data-rnd="again"]'); await page.waitForFunction(() => document.querySelector("#round .rnd-card")?.hidden);
   c = await cardText(page);
   assert.match(c, /Start here anyway/, "two tries: the choices");
+  assert.match(c, /Louie needs to hear 3 in 4 chords to pass\. Nothing is lost/);
   assert.match(c, /Start from Tour 1/);
   const mid = await stored(page);
   assert.equal(mid.curriculum.tested, undefined, "a failed check changes nothing");
@@ -183,6 +191,7 @@ test("C2: a stop is tested out by playing its piece once; it pays nothing then, 
   await tap(page, "k2.5"); await page.waitForSelector(".rd-pop");
   await page.click('.rd-pop [data-gocheck="stop:k2.5"]');
   await page.waitForSelector("#round .rnd-hw", { timeout: 15000 }); await settled(page);
+  assert.equal((await page.textContent("#round .rnd-ti small")).trim(), "TEST OUT");
   await follow(page);
   const c = await passCheck(page);
   assert.match(c, /Tested out/);
@@ -256,4 +265,49 @@ test("C1: a check played slower than the pass speed says to play quicker and cha
   const s = await stored(page);
   assert.equal(s.curriculum.tested, undefined);
   assert.equal(s.curriculum.won, undefined);
+});
+
+test("decision 24: after I already play and Close, Test up sits beside Skip in the Opening night header; Unlock all tours hides it", { skip: skip() }, async t => {
+  const page = await phone(t, rookie(), { home: true });
+  await page.waitForSelector("#lq-play"); await settled(page);
+  assert.equal(await page.locator("#rn-testup").count(), 0, "not before the question is answered");
+  await page.click("#lq-play"); await page.waitForSelector("#lp-x"); await settled(page);
+  await page.click("#lp-x");
+  await page.waitForSelector("#rn-testup");
+  assert.equal(await page.isVisible("#on-skip"), true, "Skip is still there");
+  const box = await page.evaluate(() => { const r = document.getElementById("rn-testup").getBoundingClientRect(); return [r.width, r.height]; });
+  assert.ok(box[0] >= 44 && box[1] >= 44, "a 44 point target");
+  await page.click("#rn-testup"); await page.waitForSelector("[data-level]");
+  const u = await phone(t, rookie({ settings: { ...LIB.settings, unlockAll: true } }), { home: true });
+  await u.waitForSelector("#on-skip, .rn-neck"); await settled(u);
+  assert.equal(await u.locator("#rn-testup").count(), 0);
+});
+
+test("decision 25: with no song that fits and no key the check says so, and Start here anyway marks and pays nothing", { skip: skip() }, async t => {
+  const d = rookie(); d.songs = [{ ...SONG }]; /* A, D and E do not fit Tour 1 */
+  const page = await phone(t, d, { home: true });
+  await page.waitForSelector("#lq-play"); await settled(page);
+  await page.click("#lq-play"); await page.waitForSelector('[data-level="few"]');
+  await page.click('[data-level="few"]'); await page.waitForSelector(".rd-check .rd-pop");
+  const c = await page.textContent(".rd-check .rd-pop");
+  assert.match(c, /No song fits this check yet\./);
+  assert.match(c, /Choose from your Songbook/);
+  assert.match(c, /Start here anyway/);
+  await page.click("[data-gohere]");
+  await page.waitForFunction(() => JSON.parse(localStorage.getItem("tabs-v1")).curriculum?.start === "t2", null, { timeout: 5000 });
+  const s = await stored(page);
+  assert.equal(s.curriculum.tested, undefined);
+  assert.equal(s.curriculum.paid, undefined);
+  assert.equal(s.curriculum.won, undefined);
+});
+
+test("decision 22: one New guitar card after a level pass, and not again", { skip: skip() }, async t => {
+  const d = onTour2({ guitars: { seen: ["open"] } });
+  d.curriculum.tested = { t2: 5, t3: 5, t4: 5, "c:A": 5 }; d.curriculum.won = { t4: 5 };
+  const page = await phone(t, d, { home: true });
+  await page.waitForSelector(".rd-gt"); await settled(page);
+  assert.equal(await page.locator(".rd-gt").count(), 1, "one card");
+  await page.click("#gt-x"); await page.waitForFunction(() => !document.querySelector(".rd-gt"));
+  await page.reload(); await page.waitForSelector(".rn-neck"); await settled(page);
+  assert.equal(await page.locator(".rd-gt").count(), 0, "not again");
 });

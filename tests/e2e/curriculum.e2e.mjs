@@ -40,9 +40,10 @@ test("5.17.0: a Coming soon stop opens a card that says so and plays nothing; a 
   const soon = await page.textContent(".rd-pop");
   assert.match(soon, /Coming soon/); assert.match(soon, /The capo/);
   assert.equal(await page.locator(".rd-pop .rd-start").count(), 0, "no Start button");
-  assert.match(soon, /Heard: Louie listens for the chords/, "a stop Louie can hear says so");
+  assert.match(soon, /Coming soon: Tours 5 and up are on the way\. Until then, songs and Gigs keep counting\./, "Tour 5 says what is on the way");
+  assert.doesNotMatch(soon, /Heard:|Played through:/, "a Coming soon card has no pass line");
   await tap(page, "k6.3"); await page.waitForSelector(".rd-pop");
-  assert.match(await page.textContent(".rd-pop"), /Played through: Louie can't hear strumming yet/, "a stop Louie cannot hear says so");
+  assert.doesNotMatch(await page.textContent(".rd-pop"), /Heard:|Played through:/, "nor does a later Coming soon card");
   await tap(page, "k1.4"); await page.waitForSelector(".rd-pop");
   const card1 = await page.textContent(".rd-pop");
   assert.match(card1, /piece of one song/); assert.match(card1, /USE ELEANOR RIGBY/, "Tour 1 offers a hand-checked song"); assert.match(card1, /Do you have a capo\?/, "and asks about a capo once");

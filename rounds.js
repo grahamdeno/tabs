@@ -35,7 +35,7 @@ const guitarBand = (ctx, src) => {
   return b;
 };
 /* Song tours are part of the tours since 5.18.0, so a carried-over round names its tour too */
-const kicker = s => s.kind === "drill" ? `DRILL · ${s.bpm} BPM` : `TOUR ${+String(s.tour).slice(1)} · ${s.kind === "headline" ? "HEADLINE" : s.piece ? "PIECE" : `ROUND ${s.n} OF ${s.of}`}`;
+const kicker = s => s.check ? (s.check.kind === "level" ? "LEVEL CHECK" : s.check.kind === "tour" ? `TOUR ${+String(s.tour).slice(1)} · TEST OUT` : "TEST OUT") : s.kind === "drill" ? `DRILL · ${s.bpm} BPM` : `TOUR ${+String(s.tour).slice(1)} · ${s.kind === "headline" ? "HEADLINE" : s.piece ? "PIECE" : `ROUND ${s.n} OF ${s.of}`}`;
 /* a drill's Speed is its tempo; a round's is a share of the song's */
 const speeds = r => r.drill ? drillTempos(r.drill.to || 80) : speedsFor(r.song);
 const nameOf = (r, v) => r.drill ? `${v} BPM` : speedName(v);
@@ -291,7 +291,7 @@ function drillCard(r, { n, total, listened, passed }) {
   const st = r.drill, bpm = r.speed, steps = drillTempos(st.to || 80), up = steps.find(v => v > bpm);
   if (passed && !up) { const done = r.onDone; closeRound(true); done?.(bpm, listened ? `Louie heard ${n} of ${total} at ${bpm} BPM.` : `Played through at ${bpm} BPM.`); return; }
   const title = listened ? `Louie heard ${n} of ${total}` : "Louie wasn't listening";
-  const sub = passed ? `That counts at ${bpm} BPM. Next: ${up} BPM.` : `Louie needs 3 in 4. Stay at ${bpm} BPM and get there a beat early.`;
+  const sub = passed ? `That counts at ${bpm} BPM. Next: ${up} BPM.` : `Louie needs to hear 3 in 4 chords to pass. Stay at ${bpm} BPM and get there a beat early.`;
   r.nextBpm = passed ? up : null;
   const el = r.el.querySelector(".rnd-card");
   el.hidden = false;
@@ -349,7 +349,7 @@ function checkFinish(r, { n, total, listened, passed }) {
   fails.set(c.key, tries + 1);
   const two = tries + 1 >= 2 && c.kind === "level";
   const idx = TEST_LEVELS.findIndex(l => l.id === c.level);
-  checkCardHTML(r, { title: `Louie heard ${n} of ${total}`, sub: two ? "Louie needs 3 in 4. Nothing is lost. You can try the level below, or start here anyway: nothing is marked done and nothing is paid." : "Louie needs 3 in 4 to pass. Nothing is lost.",
+  checkCardHTML(r, { title: `Louie heard ${n} of ${total}`, sub: two ? "Louie needs to hear 3 in 4 chords to pass. Nothing is lost. You can try the level below, or start here anyway: nothing is marked done and nothing is paid." : "Louie needs to hear 3 in 4 chords to pass. Nothing is lost.",
     buttons: two ? `<button class="btn primary" data-rnd="below">${idx > 0 ? "Try the level below" : "Start from Tour 1"}</button><button class="btn" data-rnd="here">Start here anyway</button><button class="btn" data-rnd="again">Play it again</button>`
       : `<button class="btn primary" data-rnd="again">Play it again</button><button class="btn" data-rnd="back">Back to the Tour</button>` });
 }
@@ -363,7 +363,7 @@ function card(r, { n, total, listened, passed, result }) {
     : slow ? `The headline passes at ${speedName(passSpeed(r.song))} or faster. Play it again a little quicker.`
     : passed && r.stop.piece ? (r.stop.kind === "headline" ? (result?.solid ? `${tourData(data).songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now.` : "The headline show is done. Play it at 1.0x to make the song Solid.") : "That counts.")
     : passed ? (r.stop.kind === "headline" ? `${r.part && tourData(data).songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now and its chords count as yours.` : "That counts. Each round adds a chord.")
-    : "Louie needs 3 in 4 to count a round. Nothing is lost.";
+    : "Louie needs to hear 3 in 4 chords to pass. Nothing is lost.";
   const rf = !passed && listened ? refreshOffer(r) : null;
   const el = r.el.querySelector(".rnd-card");
   el.hidden = false;

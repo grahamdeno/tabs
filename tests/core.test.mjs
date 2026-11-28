@@ -4973,3 +4973,28 @@ test("release C fixes: only Tours 1 to 4 can be tested, and a locked tour cannot
   assert.deepEqual(d.curriculum, { v: 1, done: {} }, "nothing written but the empty shell the Tour always makes");
   assert.ok(C.checkPassed(d, { kind: "tour", tour: "t2" }, { now: 3 }), "Tour 2 is open and can be tested");
 });
+
+test("release C decision 22: a level check earns one guitar, the check tour's, and shows one New guitar card", () => {
+  const d = newbie(); C.levelAnswered(d, 1);
+  C.checkPassed(d, { kind: "level", level: "open" }, { now: 9 });
+  assert.deepEqual(Object.keys(d.curriculum.won), ["t4"], "won holds only Tour 4");
+  assert.deepEqual(C.roadGuitars(d).map(g => g.id), ["open", "strum", "pick"], "Tours 2 and 3 do not give their guitars");
+  const gn = C.guitarNew(d);
+  assert.equal(gn.next, "pick");
+  d.guitars = { seen: gn.done };
+  assert.equal(C.guitarNew(d), null, "one card, then none");
+});
+
+test("release C decision 23: a box settles as soon as any of its first three stops is tested out, and pays nothing even when the rest are played", () => {
+  const d = veteran();
+  C.checkPassed(d, { kind: "stop", stop: "c:A" }, { now: 5 });
+  assert.ok(d.curriculum.settled.includes("b:t2"), "one tested stop settles the box");
+  C.checkPassed(d, { kind: "stop", stop: "c:D" }, { now: 6 });
+  d.curriculum.done["c:E"] = 7;
+  const f0 = C.fansOf(d);
+  assert.equal(C.curriculumBoxOpen(d, "b:t2"), false);
+  assert.equal(C.fansOf(d), f0, "the box pays nothing");
+  const e = veteran();
+  C.checkPassed(e, { kind: "tour", tour: "t2" }, { now: 5 });
+  assert.ok(e.curriculum.settled.includes("b:t2"), "a tour check settles it too");
+});

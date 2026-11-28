@@ -109,7 +109,7 @@ function csCard(stop) {
   let body, act = "", cls = stop.state;
   if (stop.row) body = `${stop.routeOpen ? "Coming soon." : `Opens after Tour ${stop.after}.`} ${stop.skill}.`;
   else if (stop.kind === "box") body = "Boxes stay shut while Unlock all tours is on, so nothing is paid.";
-  else if (stop.soon) { cls = "soon"; body = stop.tourId === "t5" ? `Coming soon. Tours 5 and up are on the way. Songs and Gigs keep playing. ${stop.skill}. ${csPass(stop)}` : `Coming soon. ${stop.skill}. ${csPass(stop)}`; }
+  else if (stop.soon) { cls = "soon"; body = stop.tourId === "t5" ? `Coming soon: Tours 5 and up are on the way. Until then, songs and Gigs keep counting. ${stop.skill}.` : `Coming soon. ${stop.skill}.`; }
   else if (locked) { body = "Finish the stop before it first."; act = testOutBtn(stop); }
   else {
     body = `${stop.skill}. ${csPass(stop)}${off ? " Unlock all tours is on: nothing is paid or saved." : ""}`;
@@ -142,7 +142,7 @@ const tourBusy = new Set(), tourErr = new Map();
 const tourNo = stop => +String(stop.tourId).replace(/^t/, "");
 const songOfTour = stop => { const t = tourData(data).songTour?.legs?.[stop.tourId], sg = t?.song && data.songs.find(x => x.id === t.song); return sg ? { t, sg } : null; };
 function pieceCard(stop, check = null) {
-  const title = stop.headline ? "Headline show" : stop.name, off = !rewardsOn(data), id = esc(stop.tourId);
+  const title = check ? (songOfTour(stop) ? "The check" : "Your check song") : stop.headline ? "Headline show" : stop.name, off = !rewardsOn(data), id = esc(stop.tourId);
   const tv = tourData(data), own = songOfTour(stop), t = tv.songTour?.legs?.[stop.tourId], sb = own ? null : songbookFor(tv, stop.tourId);
   const wait = !own && Object.entries(tv.curriculum?.waiting || {}).find(([sid, n]) => n === tourNo(stop) && data.songs.some(x => x.id === sid));
   let line, acts = "";
@@ -156,15 +156,18 @@ function pieceCard(stop, check = null) {
       + (own.t.simplified || capo > 0 ? `<button class="rd-other" data-chart="${esc(sg.id)}">See the real chart</button>` : "")
       + `<button class="rd-other" data-tswap="${id}">Use another song</button>`;
   } else if (sb) {
-    line = `Every stop in this tour is a piece of one song. ${sb.song.title} fits${sb.fit.simplified ? ", simplified" : ""}${sb.fit.capo ? `, with a capo at fret ${sb.fit.capo}` : ""}.`;
+    line = check ? `Louie checks you with one whole song. ${sb.song.title} fits${sb.fit.simplified ? ", simplified" : ""}${sb.fit.capo ? `, with a capo at fret ${sb.fit.capo}` : ""}.` : `Every stop in this tour is a piece of one song. ${sb.song.title} fits${sb.fit.simplified ? ", simplified" : ""}${sb.fit.capo ? `, with a capo at fret ${sb.fit.capo}` : ""}.`;
     acts = `<button class="btn primary rd-start" data-tsong="${id}">USE ${esc(sb.song.title.toUpperCase())}</button>`;
   } else if (wait) {
     const sg = data.songs.find(x => x.id === wait[0]);
     line = `${sg.title} was waiting for this tour. Use it now.`;
     acts = `<button class="btn primary rd-start" data-twait="${id}" data-song-id="${esc(sg.id)}">USE ${esc(sg.title.toUpperCase())}</button>`;
-  } else if (t?.pick) {
+  } else if (t?.pick && !(check && !aiKey())) {
     line = `Louie picked ${t.pick.title}${t.pick.artist ? `, ${t.pick.artist}` : ""}. Get it, then play it a piece at a time.`;
     acts = `<button class="btn primary rd-start" data-tget="${id}">GET IT</button>${tourErr.has(stop.tourId) ? `<p class="rd-alt">${esc(tourErr.get(stop.tourId))}</p>` : ""}`;
+  } else if (check && !aiKey()) {
+    line = "No song fits this check yet.";
+    acts = `<button class="btn primary rd-start" data-tchoose="${id}">Choose from your Songbook</button>${check.kind === "level" ? `<button class="rd-other" data-gohere="${esc(check.level)}">Start here anyway</button>` : ""}`;
   } else {
     const l1 = stop.tourId === "t1" ? tour1Song(data, []) : null;
     line = "Every stop in this tour is a piece of one song. Pick the song for the tour.";
@@ -216,6 +219,8 @@ const testOutBtn = stop => canTestOut(stop) ? `<button class="rd-other" data-goc
 const testUpBtn = () => testUpOn(data) ? `<button type="button" class="rn-skip" id="rn-testup" aria-label="Test up: play one song to start further on">Test up</button>` : "";
 let reopenCheck = null; /* redraws the check sheet when the Tour is redrawn under it (a song was chosen or fetched) */
 const closeCheck = () => { reopenCheck = null; layer.innerHTML = ""; };
+/* closing a sheet: the header is drawn again when the answer to the first-open question has just made Test up appear */
+const closeSheet = () => { closeCheck(); if (testUpOn(data) && !document.getElementById("rn-testup")) renderRoad(); };
 function startCheck(check) {
   const tid = check.tourId, own = tourData(data).songTour?.legs?.[tid], hl = headlineOf(tid);
   if (!hl) return;
@@ -245,7 +250,7 @@ function openCheckSheet(check) {
     <div class="ph"><button class="tb" id="ck-x">Close</button><h2>${esc(lv ? "Test up" : "Test out")}</h2><span style="width:56px"></span></div>
     <div class="pbody"><h3 class="rd-chk-t">${esc(title)}</h3>${pieceCard(stop, check)}</div></div>`;
   reopenCheck = () => openCheckSheet(check);
-  document.getElementById("ck-scrim").onclick = closeCheck; document.getElementById("ck-x").onclick = closeCheck;
+  document.getElementById("ck-scrim").onclick = closeSheet; document.getElementById("ck-x").onclick = closeSheet;
   layer.querySelector(".rd-check").addEventListener("click", songActs);
   layer.querySelector(".rd-start, .rd-check .btn")?.focus();
 }
@@ -253,7 +258,7 @@ function openCheckSheet(check) {
 function levelQuestion() {
   if (layer.innerHTML || !levelAsk(data)) return;
   layer.innerHTML = `<div class="scrim"></div><div class="panel de-sheet rd-others rd-level" role="dialog" aria-modal="true" aria-label="Have you played guitar before?"><div class="grab"></div>
-    <div class="pbody"><h2 class="rd-chk-t">Have you played guitar before?</h2><p class="easy-note">Tell me and I will start you in the right place. You can change your mind later: Test up is at the top of the Tour.</p>
+    <div class="pbody"><h2 class="rd-chk-t">Have you played guitar before?</h2><p class="easy-note">Tell Louie and he'll start you in the right place. You can change your mind later: Test up is at the top of the Tour.</p>
     <button class="btn primary rd-start" id="lq-new">New to guitar</button><button class="btn rd-start" id="lq-play">I already play</button></div></div>`;
   document.getElementById("lq-new").focus();
   document.getElementById("lq-new").onclick = () => { levelAnswered(data); Tabs.save(data); closeCheck(); renderRoad(); };
@@ -268,7 +273,7 @@ function levelPicker() {
     ${open.map(l => `<button class="btn rd-start" data-level="${l.id}"><b>${esc(l.name)}</b><small>Play a Tour ${tourNumber(l.tour)} song, start at Tour ${tourNumber(l.start)}</small></button>`).join("")}
     <button class="btn rd-start" id="lp-new">New to guitar</button></div></div>`;
   reopenCheck = null;
-  document.getElementById("lp-scrim").onclick = closeCheck; document.getElementById("lp-x").onclick = closeCheck;
+  document.getElementById("lp-scrim").onclick = closeSheet; document.getElementById("lp-x").onclick = closeSheet;
   document.getElementById("lp-new").onclick = () => { closeCheck(); renderRoad(); };
   layer.querySelectorAll("[data-level]").forEach(b => b.onclick = () => openCheckSheet(checkOf("level", b.dataset.level)));
 }
@@ -286,6 +291,7 @@ function songActs(e) {
   if ((b = q("[data-tchoose]"))) return chooseSong(b.dataset.tchoose);
   if ((b = q("[data-tswap]"))) { tourSwap(tourData(data), b.dataset.tswap); Tabs.save(data); tourErr.delete(b.dataset.tswap); return renderRoad(); }
   if ((b = q("[data-capo]"))) { data.settings = { ...data.settings, capo: b.dataset.capo === "1" }; Tabs.save(data); return renderRoad(); }
+  if ((b = q("[data-gohere]"))) return startAnyway(b.dataset.gohere);
   if ((b = q("[data-gocheck]"))) { const v = b.dataset.gocheck, i = v.indexOf(":"); return startCheck(checkOf(v.slice(0, i), v.slice(i + 1))); }
   if ((b = q("[data-chart]"))) return go("#/song/" + encodeURIComponent(b.dataset.chart));
 }
@@ -354,6 +360,7 @@ function renderOpening(view) {
   $("rd-sign")?.addEventListener("click", () => go("#/playmap"));
   homeHooks.refresh = null;
   $("on-next")?.addEventListener("click", () => renderRoad());
+  $("rn-testup")?.addEventListener("click", levelPicker);
   $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
     () => { openingSkip(data); if (!data.me) data.me = cleanMe(ME_DEFAULT); /* 4.99.0: skipping means no sheets; change it on Your profile */ Tabs.save(data); renderRoad(); }));
   const path = $("rd-path");
@@ -386,9 +393,10 @@ function fitLine(el) {
 function fitRoadText() {
   const bar = document.querySelector(".rn-legbar");
   const line = document.getElementById("rn-legline");
-  const skip = bar?.querySelector(".rn-skip:not([hidden])");
+  const skips = [...(bar?.querySelectorAll(".rn-skip:not([hidden])") || [])]; /* Skip, and Test up beside it in Opening night */
+  const skip = skips[0];
   const tx = document.querySelector(".rn-now-tx");
-  if (skip) skip.style.fontSize = "";
+  skips.forEach(x => { x.style.fontSize = ""; });
   fitLine(line);
   fitLine(tx);
   if (line && skip) {
@@ -397,7 +405,7 @@ function fitRoadText() {
       const next = Math.round((size - 0.5) * 10) / 10;
       if (next < 12) break;
       size = next;
-      skip.style.fontSize = size + "px";
+      skips.forEach(x => { x.style.fontSize = size + "px"; });
       fitLine(line);
     }
   }
@@ -480,7 +488,7 @@ function rrOpening(done, step) {
   });
   app.innerHTML = `
     ${rrRow()}
-    ${legBar({ title: "Opening night", sub: "First steps", cls: "on-night", aria: "Opening night" }, btn)}
+    ${legBar({ title: "Opening night", sub: "First steps", cls: "on-night", aria: "Opening night" }, testUpBtn() + btn)}
     <div class="rr-stage rn-stage">
       <div class="rd-path rr rn on-path" id="rd-path">${neck}</div>
     </div>
@@ -490,6 +498,7 @@ function rrOpening(done, step) {
   $("rd-sign")?.addEventListener("click", () => go("#/playmap"));
   homeHooks.refresh = null;
   $("on-next")?.addEventListener("click", () => renderRoad());
+  $("rn-testup")?.addEventListener("click", levelPicker);
   $("on-skip")?.addEventListener("click", () => ask({ title: "Skip opening night?", text: "You can replay it any time from Settings > Help > Tips & gestures.", ok: "Skip it", keep: "Keep going" },
     () => { openingSkip(data); if (!data.me) data.me = cleanMe(ME_DEFAULT); /* 4.99.0: skipping means no sheets; change it on Your profile */ Tabs.save(data); renderRoad(); }));
   const path = $("rd-path");
