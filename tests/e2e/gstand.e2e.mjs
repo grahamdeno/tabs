@@ -118,7 +118,7 @@ for (const theme of ["dark", "light"]) {
     await page.locator(".gs-item.is-on").focus();
     await page.keyboard.press("ArrowRight");
     await page.waitForFunction(() => document.querySelector(".gs-count")?.textContent === "3 of 6");
-    assert.equal(await page.locator(".gs-item.is-on").getAttribute("aria-label"), "Club Slab, earned on Tour 2, Chord switches");
+    assert.equal(await page.locator(".gs-item.is-on").getAttribute("aria-label"), "Club Slab, earned on Tour 2, Open Mic");
   });
 }
 

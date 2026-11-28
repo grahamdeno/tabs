@@ -1,6 +1,6 @@
 // The Road: core logic, Version 4's game: the Road, Tour quests, Charts, Your band, Rehearse, song duels, the Gig and the Merch table.
 // Re-exported from core.js, so other files import it from there.
-import { DAY, chordModel, curriculumBoxOpen, curriculumBoxesOpened, dayKey, heardMatch, isCurriculumBox, isObj, norm, playDays, playSongs, playsThisWeek, rewardsOn, shapeSteps, songChanges, streakOf } from "../core.js";
+import { DAY, TOUR_LEG, curriculumWon, toursWon, chordModel, curriculumBoxOpen, curriculumBoxesOpened, dayKey, heardMatch, isCurriculumBox, isObj, norm, playDays, playSongs, playsThisWeek, rewardsOn, shapeSteps, songChanges, streakOf } from "../core.js";
 import { chordShape, isChord, parseBlocks, transposeChord } from "./chords.js";
 import { skillState } from "./neck.js";
 import { VENUES, lifetimePlays, venueName, venueOf } from "./turf.js";
@@ -102,6 +102,7 @@ export function openingAdvance(data, id, now = Date.now()) {
   o.v = OPENING_VER;
   if (!o.replay && id !== "show" && id !== "who") o.fans = (o.fans || 0) + FANS.lesson;
   if (o.step >= OPENING.length) o.done = now;
+  if (id === "show" && !o.replay) curriculumWon(data, "t1", now); /* 5.18.0: the show played is Tour 1's headline */
   return true;
 }
 /* Road Ready 9a: each leg's guitar is one of Grok's pictures (art/guitars/<body>-*.webp). `body` is the picture's name;
@@ -278,22 +279,28 @@ export function roadHit(pts, tap, cur = -1) {
 }
 /* The legs whose headline show is done, in road order. guitarNew uses it to know what to announce; for the
    guitars a player owns, use guitarsOwned. */
-export const guitarsEarned = (data, now = Date.now()) => roadPath(data, now).legs.filter(l => l.done).map(l => l.id);
-/* The Road guitars you own (2026-11-23), the one rule for the Guitar case, the builder and buildSave: each
-   headlined leg's own guitar plus the next leg's guitar (the one guitarNew announces, "Cornerstone is yours").
-   { id, li } in road order; li is the index of the leg that earned it (the first headlined leg that did).
-   5.5.0 (Graham, 2026-11-24): you need a guitar to play at all, so the first leg's guitar (Porch, the worn
-   starter) is yours from the first launch, with li -1. Headlining Leg 1 then earns Cornerstone. */
+export const guitarsEarned = (data, now = Date.now()) => {
+  /* 5.18.0 (B4): the old headlined legs, and the tours whose headline was played (Tour 1 stands for the first leg, and so on) */
+  const set = new Set(roadPath(data, now).legs.filter(l => l.done).map(l => l.id));
+  for (const t of toursWon(data)) set.add(TOUR_LEG[t]);
+  return GUITAR_ORDER.filter(id => set.has(id));
+};
+const GUITAR_ORDER = ["open", "switch", "scales", "strum", "pick", "finger", "encore"];
 export const GUITAR_START = -1;
 export function roadGuitars(data, now = Date.now()) {
-  const legs = roadPath(data, now).legs, won = new Map();
-  if (legs[0]) won.set(legs[0].id, GUITAR_START);
+  const legs = roadPath(data, now).legs, won = new Map([["open", GUITAR_START]]);
   legs.forEach((l, li) => {
     if (!l.done) return;
     if (!won.has(l.id)) won.set(l.id, li);
     const nx = legs[li + 1]; if (nx && !won.has(nx.id)) won.set(nx.id, li);
   });
-  return legs.filter(l => won.has(l.id)).map(l => ({ id: l.id, li: won.get(l.id) }));
+  /* 5.18.0 (B4): a played headline of Tours 1 to 4 earns the tour's guitar: Cornerstone, Club Slab, Hollow Hill, Swing */
+  for (const t of toursWon(data)) {
+    const id = TOUR_LEG[t], li = GUITAR_ORDER.indexOf(id), nx = GUITAR_ORDER[li + 1];
+    if (!won.has(id)) won.set(id, li);
+    if (nx && !won.has(nx)) won.set(nx, li);
+  }
+  return GUITAR_ORDER.filter(id => won.has(id)).map(id => ({ id, li: won.get(id) }));
 }
 export const guitarsOwned = (data, now = Date.now()) => roadGuitars(data, now).map(g => g.id);
 export function cleanGuitars(raw) {
@@ -305,8 +312,8 @@ export function cleanGuitars(raw) {
 export function guitarNew(data, now = Date.now()) {
   const done = guitarsEarned(data, now), last = done.at(-1);
   if (!last || (data.guitars?.seen || []).includes(last)) return null;
-  const legs = roadPath(data, now).legs, next = legs[legs.findIndex(l => l.id === last) + 1];
-  return next ? { leg: last, next: next.id, guitar: guitarFor(next.id), done } : null;
+  const next = GUITAR_ORDER[GUITAR_ORDER.indexOf(last) + 1];
+  return next && roadGuitars(data, now).some(g => g.id === next) ? { leg: last, next, guitar: guitarFor(next), done } : null;
 }
 /* ---------- Your guitarist (painted only, 2026-11-23): the player is one of 24 paintings ----------
    data.me = { genre, who, lefty }. genre is one of ME_GENRE, who is m or w, lefty mirrors the painting. A missing or
@@ -371,7 +378,7 @@ export function openingSkip(data, now = Date.now()) { data.opening = { ...(isObj
 export function openingReplay(data, now = Date.now()) { data.opening = { step: 1, v: OPENING_VER, fans: data.opening?.fans || 0, replay: true, started: now }; }
 export function fansOf(data, now = Date.now()) {
   const lessons = Object.values(data.skills?.done || {}).reduce((n, x) => n + (x.n || 0), 0);
-  const rounds = Object.values(data.songTour?.legs || {}).reduce((n, t) => n + (t.done || []).filter(x => /^[rh]:/.test(x)).length, 0);
+  const rounds = Object.values(data.songTour?.legs || {}).reduce((n, t) => n + (t.done || []).filter(x => /^[rh]:/.test(x)).length, 0) + Object.keys(data.curriculum?.paid || {}).length;
   const boxes = roadPath(data, now).legs.reduce((n, l) => n + l.stops.filter(s => s.kind === "box" && s.state === "done").length, 0) + curriculumBoxesOpened(data);
   return lifetimePlays(data) * FANS.play + (lessons + rounds) * FANS.lesson + boxes * FANS.box + (data.gig?.fans || 0) + (data.quests?.fans || 0) + (data.charts?.fans || 0) + (data.opening?.fans || 0);
 }

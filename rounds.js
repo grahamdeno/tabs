@@ -10,7 +10,7 @@
 //   listening  the same strum detector and chord check as the chord lessons (core/neck.js); a strum near a marked one
 //              (from half a beat before to one beat after) is checked once, for the chord marked
 //   passing    Louie heard at least 3 in 4 of the strums
-import { CHORD_FIT, FANS, Tabs, journalRound, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, drillPlan, drillTempos, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM } from "./core.js";
+import { CHORD_FIT, FANS, Tabs, tourData, journalRound, VERSION, chordSpots, chromaOf, nearStrum, parseBlocks, roundNext, roundPassed, roundPlan, roundSay, drillPlan, drillTempos, slotTimes, songPart, strumDetector, strumFit, songTourStops, tourPlayed, wholeSong, DEFAULT_BPM, capoAnswer, rewardsOn, piecePlayed, simplifyBody, tourAllowed, transposeChord } from "./core.js";
 import { esc, getMic, icon, onLeave, sound, toast } from "./ui.js";
 import { drum, strumAt, tempoFor } from "./audio.js";
 import { musicClock, musicLead, pauseMusic, recordingOn, startMusic } from "./listen.js";
@@ -21,8 +21,10 @@ import { chordColor } from "./timeline.js";
 const PX_BEAT = 56;
 /* 5.16.0: a YouTube recording slows without changing pitch, but only to 0.5x and 0.75x; so with one the speeds are those,
    and you hear the song at every speed. Otherwise 0.6x and 0.8x play with Louie's band, and 1.0x with the recording. */
-const slows = song => usesMusic(song) && recordingOn(song) === "youtube";
+const slows = song => !song.bandOnly && usesMusic(song) && recordingOn(song) === "youtube";
 export const speedsFor = song => slows(song) ? [0.5, 0.75, 1] : [0.6, 0.8, 1];
+/* the speed a headline passes at: the song's middle speed */
+export const passSpeed = song => speedsFor(song)[1];
 export const speedName = v => v === 1 ? "1.0x" : `${+v.toFixed(2)}x`;
 let R = null; // the round on screen
 
@@ -32,7 +34,8 @@ const guitarBand = (ctx, src) => {
   src.connect(a); a.connect(b);
   return b;
 };
-const kicker = s => s.kind === "drill" ? `DRILL · ${s.bpm} BPM` : s.kind === "headline" ? "SONG TOUR · HEADLINE" : `SONG TOUR · ROUND ${s.n} OF ${s.of}`;
+/* Song tours are part of the tours since 5.18.0, so a carried-over round names its tour too */
+const kicker = s => s.kind === "drill" ? `DRILL · ${s.bpm} BPM` : `TOUR ${+String(s.tour).slice(1)} · ${s.kind === "headline" ? "HEADLINE" : s.piece ? "PIECE" : `ROUND ${s.n} OF ${s.of}`}`;
 /* a drill's Speed is its tempo; a round's is a share of the song's */
 const speeds = r => r.drill ? drillTempos(r.drill.to || 80) : speedsFor(r.song);
 const nameOf = (r, v) => r.drill ? `${v} BPM` : speedName(v);
@@ -41,17 +44,25 @@ const nameOf = (r, v) => r.drill ? `${v} BPM` : speedName(v);
    tap that starts the round, so the phone lets the microphone and the sound start. */
 export function openRound(stop, { onClose } = {}) {
   closeRound();
-  const t = data.songTour?.legs?.[stop.tour], song = (data.songs || []).find(s => s.id === t?.song);
-  if (!song) return toast("Get the song first");
+  const t = tourData(data).songTour?.legs?.[stop.tour], real = (data.songs || []).find(s => s.id === t?.song);
+  if (!real) return toast("Get the song first");
+  /* 5.18.0 (B2): a piece of a tour's song plays the sheet as fitted: the shapes under the capo, the swaps made. With no capo to
+     put on, a song that needs one plays with Louie's band (never the recording, which is in the real key). */
+  let song = real;
+  if (stop.piece) {
+    const capo = t.capo || 0;
+    song = { ...real, body: t.simplified || capo ? simplifyBody(real.body, capo, tourAllowed(+stop.tour.slice(1)), stop.tour === "t1") : real.body };
+    if (capo > 0) { if (capoAnswer(data) === true) song.capoUp = capo; else song.bandOnly = true; }
+  }
   /* the tap: ask for the microphone and wake the sound before anything is awaited */
   let micP = null;
   try { sound({ mic: true }); micP = getMic(micOptions()).catch(() => null); } catch { micP = Promise.resolve(null); }
   const el = document.createElement("div");
   el.className = "rnd"; el.id = "round"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true");
-  el.setAttribute("aria-label", `${kicker(stop).replace("SONG TOUR · ", "").toLowerCase()}, ${stop.sub || ""}`);
+  el.setAttribute("aria-label", `${kicker(stop).toLowerCase()}, ${stop.sub || ""}`);
   document.body.appendChild(el);
   document.getElementById("app")?.setAttribute("inert", "");
-  R = { stop, song, el, onClose, speed: stop.state === "done" ? 1 : speedsFor(song)[0], micP, gen: 0 };
+  R = { stop, song, el, onClose, speed: stop.state === "done" ? 1 : speedsFor(song)[stop.piece && stop.kind === "headline" ? 1 : 0], micP, gen: 0 };
   begin();
 }
 
@@ -112,10 +123,10 @@ async function begin() {
   const beats = song?.beats || 4, rate = r.drill ? 1 : r.speed;
   const part = r.drill ? { name: `${r.drill.a} to ${r.drill.b}` } : stop.kind === "headline" ? wholeSong(song.body, { bpm, beats }) : songPart(song.body, { bpm, beats });
   if (!part) { closeRound(); return toast("This song has no chords to play along with"); }
-  const lined = !r.drill && usesMusic(song) && (rate === 1 || slows(song)) ? slotTimes(song, chordSpots(parseBlocks(song.body))) : null;
+  const lined = !r.drill && usesMusic(song) && !song.bandOnly && (rate === 1 || slows(song)) ? slotTimes(song, chordSpots(parseBlocks(song.body))) : null;
   const plan = r.drill ? drillPlan(r.drill.a, r.drill.b, { bpm }) : roundPlan(part.bars, stop.chords, { bpm, beats, rate, times: lined });
   r.clk = null; r.plan = plan; r.part = part; r.heard = new Set(); r.taken = new Set(); r.pending = []; r.paused = false; r.at = 0; r.bar = -1; r.finished = false;
-  r.recording = !r.drill && plan.recorded && usesMusic(song);
+  r.recording = !r.drill && plan.recorded && usesMusic(song) && !song.bandOnly;
   paint();
   /* the microphone: ready by now, or not allowed (then a round counts when it is played through) */
   const stream = await r.micP;
@@ -200,7 +211,7 @@ function listen(r) {
   if (open) {
     r.spec.getFloatFrequencyData(r.db);
     const cr = chromaOf(r.db, ctx.sampleRate, r.spec.fftSize);
-    if (cr) for (const p of r.pending) { const f = strumFit(cr, r.plan.strums[p.id].chord); if (f != null && f > p.best) p.best = f; }
+    if (cr) for (const p of r.pending) { const f = strumFit(cr, r.song.capoUp ? transposeChord(r.plan.strums[p.id].chord, r.song.capoUp) : r.plan.strums[p.id].chord); if (f != null && f > p.best) p.best = f; }
   }
   r.pending = r.pending.filter(p => {
     if (now < p.until) return true;
@@ -262,9 +273,9 @@ function finish(r) {
   let result = null;
   if (r.drill) { r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null; return drillCard(r, { n, total, listened, passed }); }
   if (passed) {
-    result = tourPlayed(data, r.stop);
+    result = r.stop.piece ? piecePlayed(data, r.stop.id, { rate: r.speed, need: passSpeed(r.song) }) : tourPlayed(data, r.stop);
     journalRound(data, r.plan.secs, Date.now(), !!result);
-    if (result) result.fans = FANS.lesson;
+    if (result && (!r.stop.piece || result.pays)) result.fans = FANS.lesson;
     Tabs.save(data);
   }
   r.stream?.getTracks().forEach(x => { try { x.stop(); } catch { /* already stopped */ } }); r.stream = null;
@@ -287,11 +298,14 @@ function drillCard(r, { n, total, listened, passed }) {
 }
 
 function card(r, { n, total, listened, passed, result }) {
-  const nextStop = passed ? songTourStops(data, r.stop.tour).find(x => x.state === "now") || null : null;
+  const nextStop = passed && !r.stop.piece ? songTourStops(data, r.stop.tour).find(x => x.state === "now") || null : null;
+  const slow = passed && r.stop.piece && r.stop.kind === "headline" && !result && rewardsOn(data);
   r.next = nextStop;
   const title = listened ? `Louie heard ${n} of ${total}` : "Louie wasn't listening";
   const sub = !listened ? "The microphone is off, so this round counts when you play it through."
-    : passed ? (r.stop.kind === "headline" ? `${r.part && data.songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now and its chords count as yours.` : "That counts. Each round adds a chord.")
+    : slow ? `The headline passes at ${speedName(passSpeed(r.song))} or faster. Play it again a little quicker.`
+    : passed && r.stop.piece ? (r.stop.kind === "headline" ? (result?.solid ? `${tourData(data).songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now.` : "The headline show is done. Play it at 1.0x to make the song Solid.") : "That counts.")
+    : passed ? (r.stop.kind === "headline" ? `${r.part && tourData(data).songTour.legs[r.stop.tour].pick?.title || "The song"} is Solid now and its chords count as yours.` : "That counts. Each round adds a chord.")
     : "Louie needs 3 in 4 to count a round. Nothing is lost.";
   const el = r.el.querySelector(".rnd-card");
   el.hidden = false;

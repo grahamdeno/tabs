@@ -316,7 +316,9 @@ const MID = doneOf(T3);
 const BOXES = { opened: Array.from({ length: 13 }, (_, i) => `b:t${i + 1}`) };
 /* the whole first leg done, its headline show too: the second leg starts fresh */
 const LEG1 = doneOf([...OPEN, "k:open"]);
-const roadLib = (theme, skills, extra = {}) => ({ ...LIB, ...(skills ? { skills } : {}), boxes: BOXES, ...extra, settings: { ...LIB.settings, v: 6, theme } });
+/* 5.18.0: Down-ups and the headlines of Tours 2 and 3 are pieces of a song, so a player at Tour 4 has played them */
+const PIECES3 = { v: 1, box1: 1, done: { "k2.5": AT, "k2.6": AT, "k3.5": AT } };
+const roadLib = (theme, skills, extra = {}) => ({ ...LIB, ...(skills ? { skills } : {}), ...(skills === MID ? { curriculum: PIECES3 } : {}), boxes: BOXES, ...extra, settings: { ...LIB.settings, v: 6, theme } });
 async function road(t, theme, skills, opts = {}, extra) {
   const page = await phone(t, roadLib(theme, skills, extra), { home: true, ...opts });
   await page.waitForSelector(".rr-head .rr-stats"); await settled(page);
@@ -498,7 +500,7 @@ test("Road Ready 02: large text keeps the header to one row, with nothing cut of
 test("Road Ready 02: the current stop breathes and a new step of the line draws itself on; with Reduce Motion nothing moves", { skip: skip() }, async t => {
   const BOX = doneOf(["c:Em"]); /* Tour 1's first three stops are done: its merch box waits */
   for (const reduce of [false, true]) {
-    const page = await road(t, "dark", BOX, { reducedMotion: reduce ? "reduce" : "no-preference" }, { boxes: { opened: [] }, curriculum: { v: 1, done: {} } });
+    const page = await road(t, "dark", BOX, { reducedMotion: reduce ? "reduce" : "no-preference" }, { boxes: { opened: [] }, curriculum: { v: 1, done: {}, box1: 1 } });
     await page.waitForSelector(".rd-node.box.now");
     await page.click(".rd-node.box.now");
     await page.waitForSelector(".rd-node.cur:not(.box) .rr-glow", { timeout: 6000 }); /* the Road is drawn again with the next stop current */

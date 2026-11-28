@@ -44,6 +44,7 @@ export const LIB = {
     { id: "b", title: "Harbor Lights", artist: "Me", key: "G", format: "chords", body: "[Verse]\nG   C\nLights on the water" }
   ],
   sets: [], trash: [], opening: { step: 6, v: 2, done: 1, seen: 1 }, /* 4.40.0: Opening night already played */
+  curriculum: { v: 1, done: {}, box1: 1, settled: ["b:t1"] }, /* 5.18.1: already moved to 5.18.0, so Cornerstone and Tour 1's box are not backfilled again */
   me: { genre: "rock", who: "m" }, /* 4.85.0: a guitarist already made, so the Road has no sheet to ask for one */
   settings: { v: 5, controls: "bar", nudge: false, streakMoment: false, tipsSeen: { library: true, song: true, edit: true, add: true, map: true, pause: true, chord: true, play: true, line: true, tap: true, paste: true, menu: true, strobe: true, searchInvite: true, search: true, nn: true, swipe: true }, sampleAdded: true, lastBackup: "2099-01-01T00:00:00Z", countIn: false, plainPlay: true, plainChords: true } /* 5.12.0: the older tests read the letters over the words; timeline.e2e and the main path test the timeline */
 };

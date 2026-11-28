@@ -6408,3 +6408,7 @@ body:has(#gig.done, #gig .on-count) .app.viewer .dock { visibility: hidden; } /*
 .pastecard .actions #p-edit, .pastecard .actions #p-clean { width: 100%; min-height: 48px; white-space: nowrap; font-size: var(--type-callout, 16px); }
 .pastecard .actions #p-edit:only-of-type, .pastecard .actions:not(:has(#p-clean)) #p-edit { grid-column: 1 / -1; }
 body:has(.pastecard) :is(#tabs, .cmd.float) { visibility: hidden; } /* the knob bar peeked out around the card like a second card */
+
+/* 5.18.0 the capo question's answers (wording check of PR #275): two equal buttons across the card, 44 pt or taller, with a gap */
+.rd-pop .rd-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+.rd-pop .rd-pair .btn { width: 100%; min-height: 44px; margin: 0; justify-content: center; }
