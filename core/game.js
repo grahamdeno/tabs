@@ -282,9 +282,11 @@ export function roadHit(pts, tap, cur = -1) {
 export const guitarsEarned = (data, now = Date.now()) => {
   /* 5.18.0 (B4): the old headlined legs, and the tours whose headline was played (Tour 1 stands for the first leg, and so on) */
   const set = new Set(roadPath(data, now).legs.filter(l => l.done).map(l => l.id));
-  for (const t of toursWon(data)) set.add(TOUR_LEG[t]);
+  for (const t of toursWon(data)) if (!levelOnly(data, t)) set.add(TOUR_LEG[t]);
   return GUITAR_ORDER.filter(id => set.has(id));
 };
+/* A tour won by a level check (data.curriculum.levelWon) gives only its reward guitar, the next one in GUITAR_ORDER, not its own. */
+const levelOnly = (data, t) => !!data.curriculum?.levelWon?.[t];
 const GUITAR_ORDER = ["open", "switch", "scales", "strum", "pick", "finger", "encore"];
 export const GUITAR_START = -1;
 export function roadGuitars(data, now = Date.now()) {
@@ -297,7 +299,7 @@ export function roadGuitars(data, now = Date.now()) {
   /* 5.18.0 (B4): a played headline of Tours 1 to 4 earns the tour's guitar: Cornerstone, Club Slab, Hollow Hill, Swing */
   for (const t of toursWon(data)) {
     const id = TOUR_LEG[t], li = GUITAR_ORDER.indexOf(id), nx = GUITAR_ORDER[li + 1];
-    if (!won.has(id)) won.set(id, li);
+    if (!won.has(id) && !levelOnly(data, t)) won.set(id, li);
     if (nx && !won.has(nx)) won.set(nx, li);
   }
   return GUITAR_ORDER.filter(id => won.has(id)).map(id => ({ id, li: won.get(id) }));
@@ -310,10 +312,13 @@ export function cleanGuitars(raw) {
 /* The next guitar to announce: the guitar after the last headlined leg, once. Showing it marks every headlined
    leg as told, so a player arriving with several legs done hears about one guitar, not a queue. */
 export function guitarNew(data, now = Date.now()) {
-  const done = guitarsEarned(data, now), last = done.at(-1);
-  if (!last || (data.guitars?.seen || []).includes(last)) return null;
-  const next = GUITAR_ORDER[GUITAR_ORDER.indexOf(last) + 1];
-  return next && roadGuitars(data, now).some(g => g.id === next) ? { leg: last, next, guitar: guitarFor(next), done } : null;
+  /* a level-won tour is told under its own key ("strum-lv"), so a later played Tour 3 or 2 still gets its own card */
+  const keys = [...guitarsEarned(data, now).map(id => ({ key: id, leg: id })), ...toursWon(data).filter(t => levelOnly(data, t)).map(t => ({ key: `${TOUR_LEG[t]}-lv`, leg: TOUR_LEG[t] }))]
+    .sort((a, b) => GUITAR_ORDER.indexOf(a.leg) - GUITAR_ORDER.indexOf(b.leg) || a.key.length - b.key.length);
+  const seen = data.guitars?.seen || [], fresh = keys.filter(k => !seen.includes(k.key)), last = fresh.at(-1);
+  if (!last) return null;
+  const next = GUITAR_ORDER[GUITAR_ORDER.indexOf(last.leg) + 1], done = keys.map(k => k.key);
+  return next && roadGuitars(data, now).some(g => g.id === next) ? { leg: last.leg, next, guitar: guitarFor(next), done } : null;
 }
 /* ---------- Your guitarist (painted only, 2026-11-23): the player is one of 24 paintings ----------
    data.me = { genre, who, lefty }. genre is one of ME_GENRE, who is m or w, lefty mirrors the painting. A missing or

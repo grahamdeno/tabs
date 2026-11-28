@@ -291,6 +291,7 @@ export function carrySongTours(data) {
 export const piecePays = (data, stopId) => rewardsOn(data) && !data.curriculum?.paid?.[stopId] && !oldSongStops(data).has(stopId);
 /* The old song tours became the tours' own song stops: Open chords' song tour is Tour 3's headline, Chord switches' is Tour 4's. */
 const OLD_SONG_TOUR = { open: "k3.5", switch: "k4.6" };
+const CHORD_SET = () => new Set(curriculumChords());
 /* data.curriculum is only what was mapped: it keeps a stop done once it was, so replaying or clearing an old field loses nothing. */
 export function cleanCurriculum(raw) {
   if (!isObj(raw)) return null;
@@ -300,10 +301,19 @@ export function cleanCurriculum(raw) {
   const won = {};
   for (const [id, at] of Object.entries(isObj(raw.won) ? raw.won : {})) if (/^t\d{1,2}$/.test(id) && TOUR_BY[id] && +at > 0) won[id] = Math.floor(+at);
   const paid = {};
-  for (const [id, at] of Object.entries(isObj(raw.paid) ? raw.paid : {})) if (STOP_BY[id]?.play?.piece && +at > 0) paid[id] = Math.floor(+at);
+  for (const [id, at] of Object.entries(isObj(raw.paid) ? raw.paid : {})) if ((STOP_BY[id]?.play?.piece || STOP_BY[id]?.headline) && +at > 0) paid[id] = Math.floor(+at);
+  /* 5.19.0 (Release C): what was tested out (a stop or tour id and when), the chords whose refresher was declined, the question asked, where Start here anyway began */
+  const tested = {};
+  for (const [id, at] of Object.entries(isObj(raw.tested) ? raw.tested : {})) if ((STOP_BY[id] || TOUR_BY[id]) && +at > 0) tested[id] = Math.floor(+at);
+  const refresher = {};
+  for (const [c, at] of Object.entries(isObj(raw.refresher) ? raw.refresher : {})) if (CHORD_SET().has(c) && +at > 0) refresher[c] = Math.floor(+at);
+  const levelWon = {};
+  for (const [id, at] of Object.entries(isObj(raw.levelWon) ? raw.levelWon : {})) if (TOUR_LEG[id] && won[id] && +at > 0) levelWon[id] = Math.floor(+at);
+  const asked = +raw.asked > 0 ? Math.floor(+raw.asked) : 0;
+  const start = TOUR_BY[raw.start]?.route === "main" && raw.start !== "t1" ? raw.start : "";
   const waiting = {};
   for (const [id, n] of Object.entries(isObj(raw.waiting) ? raw.waiting : {}).slice(0, 20)) if (/^[\w.-]{1,64}$/.test(id) && Number.isInteger(n) && n >= 1 && n <= 4) waiting[id] = n;
-  return { v: CURRICULUM_V, done, ...(raw.box1 ? { box1: 1 } : {}), ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}), ...(Object.keys(waiting).length ? { waiting } : {}), ...(Object.keys(paid).length ? { paid } : {}) };
+  return { v: CURRICULUM_V, done, ...(raw.box1 ? { box1: 1 } : {}), ...(settled.length ? { settled } : {}), ...(Object.keys(won).length ? { won } : {}), ...(Object.keys(waiting).length ? { waiting } : {}), ...(Object.keys(paid).length ? { paid } : {}), ...(Object.keys(levelWon).length ? { levelWon } : {}), ...(Object.keys(tested).length ? { tested } : {}), ...(Object.keys(refresher).length ? { refresher } : {}), ...(asked ? { asked } : {}), ...(start ? { start } : {}) };
 }
 /* Unlock mode writes nothing. Otherwise the stops done by the old fields are remembered (once each). True when something was added. */
 export function curriculumSeed(data, now = Date.now()) {
@@ -336,7 +346,7 @@ function seedCore(data, now) {
   if (!cur && !add.length && !data.skills && !data.opening && !data.songTour) { data.curriculum = { v: CURRICULUM_V, done: {} }; return true; }
   /* The first time only: a new box behind where the player stands shows as opened and pays nothing (`settled`); boxes ahead pay. */
   const settled = cur ? cur.settled : curriculumState(data).tours.filter(t => t.route === "main" && t.stops.length > BOX_AFTER && boxState(data, t, new Set()) === "now").map(t => boxId(t.number));
-  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), ...(cur?.waiting ? { waiting: cur.waiting } : {}), ...(cur?.paid ? { paid: cur.paid } : {}), box1: 1, v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
+  data.curriculum = { ...(cur?.won ? { won: cur.won } : {}), ...(cur?.waiting ? { waiting: cur.waiting } : {}), ...(cur?.paid ? { paid: cur.paid } : {}), ...(cur?.levelWon ? { levelWon: cur.levelWon } : {}), ...(cur?.tested ? { tested: cur.tested } : {}), ...(cur?.refresher ? { refresher: cur.refresher } : {}), ...(cur?.asked ? { asked: cur.asked } : {}), ...(cur?.start ? { start: cur.start } : {}), box1: 1, v: CURRICULUM_V, done: { ...have, ...Object.fromEntries(add.map(id => [id, now])) }, ...(settled?.length ? { settled } : {}) };
   return true;
 }
 const doneSet = data => new Set([...mappedDone(data), ...Object.keys(data.curriculum?.done || {}).filter(id => STOP_BY[id])]);
@@ -349,7 +359,8 @@ const doneSet = data => new Set([...mappedDone(data), ...Object.keys(data.curric
    Unlock all tours: every tour and stop is "open". */
 export function curriculumState(data) {
   const done = doneSet(data), all = !rewardsOn(data), cleared = {}, routes = {}, tours = [], nowOn = {};
-  for (const t of TOURS) cleared[t.id] = stopsOf(t.id).every(s => s.held || done.has(s.id) || !playable(s));
+  const sn = all ? 0 : startNum(data); /* 5.19.0: Start here anyway opens the main tours before this one, marking nothing done */
+  for (const t of TOURS) cleared[t.id] = (t.route === "main" && t.number < sn) || stopsOf(t.id).every(s => s.held || done.has(s.id) || !playable(s));
   for (const r of Object.keys(ROUTES)) routes[r] = { ...ROUTES[r], open: all || (r !== "held" && (ROUTES[r].opens === null || cleared[ROUTES[r].opens])) };
   for (const t of TOURS) {
     const held = t.route === "held", open = all || (!held && (t.opens === null || cleared[t.opens]));
@@ -358,6 +369,7 @@ export function curriculumState(data) {
       let state;
       if (all) state = "open";
       else if (done.has(s.id)) state = "done";
+      else if (t.route === "main" && t.number < sn) state = "open";
       else if (!reached) state = "locked";
       else if (!playable(s)) state = "open";
       else if (!nowOn[t.route]) { state = "now"; nowOn[t.route] = s.id; reached = false; }
@@ -376,6 +388,118 @@ export function nextStop(data, route = "main") {
   if (!st.routes[route]?.open && !st.unlocked) return null;
   for (const t of st.tours) if (t.route === route) { const s = t.stops.find(x => x.state === "now"); if (s) return s; }
   return null;
+}
+
+
+// ---------- Release C (5.19.0): test up, test out ----------
+/* The levels a player who already plays can skip to by playing one song well: the check piece is the headline song of `tour`,
+   played with Louie's band; passing it tests out every tour up to there and starts the player at `start`. */
+export const TEST_LEVELS = [
+  { id: "few", name: "A few chords", tour: "t1", start: "t2" },
+  { id: "open", name: "Open chords and strumming", tour: "t4", start: "t5" }
+];
+export const testLevel = id => TEST_LEVELS.find(l => l.id === id) || null;
+export const headlineOf = tourId => stopsOf(tourId).find(s => s.headline) || null;
+export const tourNumber = tourId => TOUR_BY[tourId]?.number || 0;
+const startNum = data => tourNumber(data.curriculum?.start);
+/* A new player: nothing done on Tour 1 and no old Opening night progress. */
+export function newPlayer(data) {
+  const o = data.opening;
+  if (isObj(o) && (o.skipped || o.done || o.replay || (o.step || 0) > 0)) return false;
+  if (Object.keys(data.curriculum?.done || {}).some(id => STOP_BY[id]?.tour === "t1")) return false;
+  return ![...mappedDone(data)].some(id => STOP_BY[id]?.tour === "t1");
+}
+/* "Have you played guitar before?" is asked once, to a new player (never under Unlock all tours, which writes nothing). */
+export const levelAsk = data => rewardsOn(data) && !data.curriculum?.asked && newPlayer(data);
+/* Test up is offered to everyone but a new player who has not been asked, until Tour 4 is done. */
+export function testUpOn(data) {
+  if (!rewardsOn(data) || (newPlayer(data) && !data.curriculum?.asked)) return false;
+  return TEST_LEVELS.some(l => curriculumState(data).tours.find(t => t.id === l.tour)?.state !== "done");
+}
+export const levelsOpen = data => TEST_LEVELS.filter(l => curriculumState(data).tours.find(t => t.id === l.tour)?.state !== "done");
+const curOf = data => data.curriculum && isObj(data.curriculum) ? data.curriculum : (data.curriculum = { v: CURRICULUM_V, done: {} });
+/* The answer to the first-open question, kept once whatever it was. */
+export function levelAnswered(data, now = Date.now()) {
+  if (!rewardsOn(data)) return false;
+  const cur = curOf(data);
+  if (!cur.asked) cur.asked = now;
+  return true;
+}
+/* Played the stop normally since it was tested out: a lesson done, or a piece paid. Tour 1's steps are never replayed. */
+const playedNormally = (data, s) => {
+  if (s.play?.piece) return !!data.curriculum?.paid?.[s.id] || oldSongStops(data).has(s.id);
+  if (s.play?.lessons) return s.play.lessons.every(id => !!data.skills?.done?.[id]);
+  return false;
+};
+/* Tested out and not played since: the label "Tested out" stands in for the check mark. */
+export const testedOut = (data, id) => {
+  const s = STOP_BY[id];
+  if (s) return !!data.curriculum?.tested?.[id] && !playedNormally(data, s);
+  return !!TOUR_BY[id] && !!data.curriculum?.tested?.[id] && stopsOf(id).some(x => testedOut(data, x.id));
+};
+/* Where "Start here anyway" begins: opens the main tours before `levelOrTour`, marks nothing done, pays nothing. */
+export function startHere(data, levelId) {
+  const lv = testLevel(levelId);
+  if (!lv || !rewardsOn(data)) return false;
+  const cur = curOf(data);
+  if (tourNumber(lv.start) > startNum(data)) cur.start = lv.start;
+  return true;
+}
+/* A check piece passed. `check` is { kind: "level", level } (every tour up to the level's), { kind: "tour", tour } or
+   { kind: "stop", stop }. Every stop it covers is done and "tested out", except a headline that was played: the check tour's
+   headline, which pays FANS.lesson once and earns the tour's guitar once (`won`). Tested stops pay nothing until played
+   normally (a lesson pays from skills.done, a piece from `paid`), and the tours' boxes are settled, so testing out never pays
+   more than playing the tour. Returns { tours, tour, pays, headline } or null. */
+export function checkPassed(data, check, { rate = 1, now = Date.now() } = {}) {
+  if (!rewardsOn(data) || !check) return null;
+  const valid = check.kind === "stop" ? !!STOP_BY[check.stop] : check.kind === "level" ? !!testLevel(check.level) : check.kind === "tour" && TOUR_BY[check.tour]?.route === "main";
+  if (!valid) return null;
+  const cur = curOf(data), before = doneSet(data), tested = cur.tested || {};
+  const opened = new Set(data.boxes?.opened || []);
+  /* a merch box settles (shows as opened, pays nothing) as soon as any of its first three stops is tested out */
+  const boxSettled = t => stopsOf(t.id).length > BOX_AFTER && !opened.has(boxId(t.number)) && stopsOf(t.id).slice(0, BOX_AFTER).some(x => tested[x.id]);
+  const mark = (s, test) => { if (before.has(s.id) || !playable(s) || s.held) return false; cur.done[s.id] = now; if (test) tested[s.id] = now; return true; };
+  if (check.kind === "stop") {
+    const s = STOP_BY[check.stop];
+    if (!s || s.headline || !mark(s, true)) return null;
+    cur.tested = tested;
+    const t = TOUR_BY[s.tour];
+    if (t && boxSettled(t)) cur.settled = [...new Set([...(cur.settled || []), boxId(t.number)])];
+    return { stop: s.id, tours: [], tour: s.tour, pays: false, headline: null };
+  }
+  const lv = check.kind === "level" ? testLevel(check.level) : null;
+  const top = TOUR_BY[check.kind === "level" ? lv?.tour : check.tour];
+  if (!top || top.route !== "main") return null;
+  const tours = check.kind === "level" ? TOURS.filter(t => t.route === "main" && t.number <= top.number) : [top];
+  const hl = headlineOf(top.id);
+  if (!hl || !playable(hl) || (check.kind === "tour" && curriculumState(data).tours.find(x => x.id === top.id)?.state === "locked")) return null;
+  const out = [], settled = new Set(cur.settled || []);
+  for (const t of tours) {
+    let any = false;
+    for (const s of stopsOf(t.id)) if (s.id !== hl.id && mark(s, true)) any = true;
+    if (any) { tested[t.id] = now; out.push(t.id); }
+    if (boxSettled(t)) settled.add(boxId(t.number));
+  }
+  if (settled.size) cur.settled = [...settled];
+  const pays = piecePays(data, hl.id) && !cur.won?.[top.id];
+  if (!before.has(hl.id)) cur.done[hl.id] = now;
+  if (pays) cur.paid = { ...(cur.paid || {}), [hl.id]: now };
+  if (!cur.won?.[top.id]) { cur.won = { ...(cur.won || {}), [top.id]: now }; if (check.kind === "level") cur.levelWon = { ...(cur.levelWon || {}), [top.id]: now }; }
+  const t = data.songTour?.legs?.[top.id];
+  if (rate >= 1 - 1e-9 && t?.song) { t.solid = true; const song = (data.songs || []).find(x => x.id === t.song); if (song && song.status !== "got") song.status = "solid"; }
+  if (Object.keys(tested).length) cur.tested = tested;
+  return { tours: out, tour: top.id, pays, headline: hl.id };
+}
+/* Two failed rounds on a chord from a tested-out stop earn an offer of a refresher; "No thanks" is kept so it is not offered again. */
+export function refresherFor(data, chord) {
+  if (!rewardsOn(data) || data.curriculum?.refresher?.[chord]) return null;
+  const s = STOPS.find(x => x.chords.includes(chord) && testedOut(data, x.id));
+  return s ? { chord, tour: TOUR_BY[s.tour].number, lesson: s.play?.lessons?.find(id => id === `c:${chord}`) || null } : null;
+}
+export function refresherDeclined(data, chord, now = Date.now()) {
+  if (!rewardsOn(data) || !CHORD_SET().has(chord)) return false;
+  const cur = curOf(data); cur.refresher = { ...(cur.refresher || {}), [chord]: now };
+  return true;
 }
 
 // ---------- Merch boxes on the new tour ----------
@@ -404,7 +528,7 @@ export const curriculumBoxesOpened = data => (data.boxes?.opened || []).filter(i
 
 // ---------- What the Tour draws ----------
 /* a stop as the Tour draws it (the same shape the old Road stops have, so its taps and cards keep working) */
-function drawn(s, state) {
+function drawn(s, state, extra = {}) {
   const lesson = s.play?.lessons?.length === 1;
   const stop = { id: s.id, kind: s.kind, name: s.title, state, cs: true, tourId: s.tour, skill: s.skill, pass: s.pass, strum: s.strum, soon: !playable(s) };
   if (lesson && s.kind === "chord") stop.chord = s.play.lessons[0].slice(2);
@@ -412,7 +536,7 @@ function drawn(s, state) {
   if (s.play) stop.play = s.play;
   if (s.play?.piece) stop.piece = true;
   if (s.headline) stop.headline = true;
-  return stop;
+  return Object.assign(stop, extra);
 }
 /* The Tour as the Road draws it: legs of { id, n, name, note, stops, done }, the main line in full with a box after each
    tour's third stop, then one locked row each for the
@@ -421,9 +545,9 @@ export function curriculumRoad(data) {
   const st = curriculumState(data), opened = new Set(data.boxes?.opened || []);
   const legs = [];
   const make = t => {
-    const stops = t.stops.filter(s => !s.held).map(s => drawn(s, s.state));
+    const stops = t.stops.filter(s => !s.held).map(s => drawn(s, s.state, { tourOpen: t.state !== "locked", ...(testedOut(data, s.id) ? { tested: true } : {}) }));
     if (stops.length > BOX_AFTER) stops.splice(BOX_AFTER, 0, { id: boxId(t.number), kind: "box", name: "Merch box", state: st.unlocked ? "open" : boxState(data, t, opened), cs: true, tourId: t.id });
-    return { id: t.id, n: t.number, name: t.name, note: t.stops[0]?.skill || "", route: t.route, stops, done: t.state === "done", state: t.state };
+    return { id: t.id, n: t.number, name: t.name, note: t.stops[0]?.skill || "", route: t.route, stops, done: t.state === "done", state: t.state, ...(testedOut(data, t.id) ? { tested: true } : {}) };
   };
   for (const t of st.tours.filter(x => x.route === "main")) {
     legs.push(make(t));

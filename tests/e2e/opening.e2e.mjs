@@ -5,7 +5,7 @@ import { skip, LIB, SONG, phone, settled, useBrowser } from "./harness.mjs";
 useBrowser();
 
 const { opening: _done, me: _me, ...BASE } = LIB;
-const FRESH = { ...BASE, songs: [{ id: "h", title: "Harbor Lights", artist: "Sample song", sample: true, key: "A", format: "chords", body: SONG, duration: 60 }], settings: { ...LIB.settings, plainPlay: false, gigScore: false } };
+const FRESH = { ...BASE, curriculum: { v: 1, done: {}, asked: 1 }, /* 5.19.0: the first-open question has been answered */ songs: [{ id: "h", title: "Harbor Lights", artist: "Sample song", sample: true, key: "A", format: "chords", body: SONG, duration: 60 }], settings: { ...LIB.settings, plainPlay: false, gigScore: false } };
 const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem("tabs-v1")).opening || {});
 const stepIs = (page, n) => page.waitForFunction(n => (JSON.parse(localStorage.getItem("tabs-v1")).opening || {}).step === n, n);
 
