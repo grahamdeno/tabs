@@ -1,5 +1,5 @@
 // Tabs Settings and Recently deleted screens.
-import { LANGS, SPEEDS, TRASH_DAYS, Tabs, VERSION, html, langChosen, langOf, looksOwned, shownTheme, raw } from "./core.js";
+import { LANGS, SPEEDS, TRASH_DAYS, Tabs, tourVisitClear, VERSION, html, langChosen, langOf, looksOwned, shownTheme, raw } from "./core.js";
 import { $, app, ask, esc, icon, toast } from "./ui.js";
 import { coverPut } from "./sets.js";
 import { ago, backupNow, clearProblems, copyDiagnostics, dailyCopies, DAY_KEEP, needsBackup, problems, restoreDay, storageKept, where } from "./store.js";
@@ -62,6 +62,12 @@ function renderSettings() {
       <div class="set">
         <span class="tile">${icon("lock")}</span><span class="name">Unlock all tours<small class="sub">Every tour and stop opens and plays what it has. Nothing is paid, saved or marked known while it is on.</small></span>
         <button class="toggle ${s.unlockAll === true ? "on" : ""}" id="s-unlock" role="switch" aria-checked="${s.unlockAll === true}" aria-label="Unlock all tours"></button>
+      </div>
+      <div class="set">
+        <span class="tile">${icon("sliders")}</span><span class="name">Do you have a capo?<small class="sub">Songs that need one play with Louie's band until you do.</small></span><span class="val">${s.capo === true ? "Yes" : s.capo === false ? "No" : "Not answered"}</span>${icon("chev", "chev")}
+        <select id="s-capo" aria-label="Do you have a capo?">
+          ${[["", "Not answered"], ["yes", "Yes"], ["no", "No"]].map(([v, t]) => `<option value="${v}" ${v === (s.capo === true ? "yes" : s.capo === false ? "no" : "") ? "selected" : ""}>${t}</option>`).join("")}
+        </select>
       </div>
       <div class="set">
         <span class="tile">${icon("focus")}</span><span class="name">Focus current line</span><span class="val">${{ always: "Always", playing: "While playing", off: "Off" }[s.focus] || "Always"}</span>${icon("chev", "chev")}
@@ -266,7 +272,8 @@ function renderSettings() {
   $("s-streak").onclick = () => { s.streakMoment = s.streakMoment === false; Tabs.save(data); renderSettings(); };
   /* Road Ready 05: the playing controls stay on screen instead of hiding after 3 s */
   $("s-keepctl").onclick = () => { s.keepControls = s.keepControls !== true; Tabs.save(data); renderSettings(); };
-  $("s-unlock").onclick = () => { s.unlockAll = s.unlockAll !== true; Tabs.save(data); renderSettings(); };
+  $("s-capo").onchange = e => { if (e.target.value === "") delete s.capo; else s.capo = e.target.value === "yes"; Tabs.save(data); renderSettings(); };
+  $("s-unlock").onclick = () => { s.unlockAll = s.unlockAll !== true; tourVisitClear(); Tabs.save(data); renderSettings(); };
   app.querySelectorAll("#s-beat [data-m]").forEach(b => b.onclick = () => { const m = b.dataset.m; s.metronome = m !== "off"; if (m !== "off") s.metroSound = m === "click" ? "click" : "kick"; Tabs.save(data); renderSettings(); if (m !== "off") metroPreview(); });
   /* The volume saves as it moves; letting go plays a bar's opening beat at that level. */
   $("s-metvol")?.addEventListener("input", e => { s.metroVol = +e.target.value / 100; e.target.style.setProperty("--fill", Math.round(e.target.value / 1.5) + "%"); Tabs.save(data); });

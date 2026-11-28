@@ -378,8 +378,12 @@ const OPEN = {
   "Gsus4": ["330013", "230014"], "Gadd9": ["300203", "200103"],
   "A": ["x02220", "001230"], "Am": ["x02210", "002310"], "A7": ["x02020", "002030"], "Am7": ["x02010", "002010"],
   "Amaj7": ["x02120", "002130"], "Asus2": ["x02200", "001200"], "Asus4": ["x02230", "001230"], "A5": ["x022xx", "001200"],
-  "B7": ["x21202", "021304"], "Bm7": ["x20202", "010203"], "Fmaj7": ["xx3210", "003210"]
+  "B7": ["x21202", "021304"], "Bm7": ["x20202", "010203"], "Fmaj7": ["xx3210", "003210"],
+  /* 5.18.0 (B5): open A7sus4, the easy D6/9 (no third, one finger) and the open D5 */
+  "A7sus4": ["x02030", "001020"], "D6/9": ["xx0200", "000100"], "D5": ["xx023x", "000120"]
 };
+/* 5.18.0 (B5): the small four-string shapes a stop can ask for (`chordShape(name, { small: true })`); the plain call keeps the full shape */
+const SMALL = { "F": ["xx3211", "003211"], "Fm": ["xx3111", "003111"] };
 
 // Movable shapes as fret offsets from the root fret (null = muted) with fingers.
 const E_SHAPE = {
@@ -450,7 +454,33 @@ function finish(shape) {
 }
 
 // Fingering for a chord name such as "F#m", "Bb7", "D/F#". Returns null if unknown.
-export function chordShape(name) {
+export function chordShape(name, opts = {}) {
+  const base = chordShapeBase(name, opts);
+  const slash = String(name).match(/^[A-G][#b]?[^/]*\/([A-G][#b]?)$/);
+  return base && slash && ROOTS[slash[1]] !== undefined ? withBass(base, ROOTS[slash[1]]) : base;
+}
+/* 5.18.0 (B5): a slash chord draws its bass note: the lowest string that reaches it within four frets takes it and the strings under it are muted.
+   D/F# is 2x0232, G/B is x20003, C/G is 332010. `bass` is the string it sits on. */
+const STRING_PC = [4, 9, 2];
+function withBass(shape, pc) {
+  const frets = shape.frets.slice(), fingers = shape.fingers.slice();
+  for (let st = 0; st < 3; st++) {
+    const f = (pc - STRING_PC[st] + 12) % 12;
+    if (f > 4) continue;
+    for (let i = 0; i < st; i++) { frets[i] = -1; fingers[i] = 0; }
+    if (frets[st] !== f) { frets[st] = f; fingers[st] = 0; }
+    const out = { frets, fingers, bass: st };
+    if (shape.barre && shape.barre.from >= st) out.barre = { ...shape.barre };
+    return finish(out);
+  }
+  return shape;
+}
+function chordShapeBase(name, opts) {
+  const six9 = String(name).match(/^([A-G][#b]?)6\/9$/);
+  if (six9 && ROOTS[six9[1]] !== undefined) {
+    const hit = OPEN[six9[1] + "6/9"];
+    return hit ? finish(fromStrings(hit[0], hit[1])) : chordShapeBase(six9[1] + "6", opts);
+  }
   const m = String(name).match(/^([A-G][#b]?)([^/]*)(?:\/.*)?$/);
   if (!m || ROOTS[m[1]] === undefined) return null;
   const root = ROOTS[m[1]];
@@ -458,7 +488,9 @@ export function chordShape(name) {
   const sharpRoot = SHARP_NAMES[root];
   const flatRoot = ["C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"][root];
   const qName = { "": "", m: "m", "7": "7", m7: "m7", maj7: "maj7", sus2: "sus2", sus4: "sus4", "7sus4": "7sus4", dim: "dim", m7b5: "m7b5", "6": "6", "5": "5", add9: "add9" }[q];
-  for (const r of [sharpRoot, flatRoot, m[1]]) {
+  /* `small`: the four-string shape; `up`: the movable shape ("E" or "A") even where an open shape exists (G at 3, A at 5) */
+  if (opts.small) for (const r of [sharpRoot, flatRoot, m[1]]) { const hit = SMALL[r + qName]; if (hit) return finish(fromStrings(hit[0], hit[1])); }
+  if (!opts.up) for (const r of [sharpRoot, flatRoot, m[1]]) {
     const hit = OPEN[r + qName];
     if (hit) return finish(fromStrings(hit[0], hit[1]));
   }
@@ -471,6 +503,10 @@ export function chordShape(name) {
   if (A_SHAPE[q]) options.push([A_SHAPE[q], aFret]);
   if (!options.length) options.push([E_SHAPE[q.startsWith("m") ? "m" : ""], eFret]);
   options.sort((a, b) => a[1] - b[1]);
+  if (opts.up === "E" || opts.up === "A") {
+    const want = opts.up === "E" ? [E_SHAPE[q], eFret] : [A_SHAPE[q], aFret];
+    if (want[0]) options.unshift(want);
+  }
   const [[offs, fingers, barre], r] = options[0];
   const frets = offs.map(o => o === null ? -1 : o + r);
   const shape = { frets, fingers: fingers.slice() };

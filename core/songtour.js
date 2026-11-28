@@ -8,6 +8,7 @@
 import { isObj, rewardsOn } from "../core.js";
 import { chordShape, parseBlocks } from "./chords.js";
 import { knownChords, roadPath, sheetChords } from "./game.js";
+import { tourSetSong } from "./fit.js";
 
 export const TOUR_NEW = [2, 4];
 const CH = /^[A-G][#b]?[A-Za-z0-9#+()-]{0,7}(\/[A-G][#b]?)?$/;
@@ -43,19 +44,23 @@ const cleanPick = raw => {
 export function cleanSongTour(raw) {
   if (!isObj(raw) || !isObj(raw.legs)) return null;
   const legs = {};
-  for (const [id, t] of Object.entries(raw.legs).slice(0, 6)) {
-    if (!/^[a-z]{2,12}$/.test(id) || !isObj(t)) continue;
+  for (const [id, t] of Object.entries(raw.legs).slice(0, 12)) {
+    if (!/^([a-z]{2,12}|t\d{1,2})$/.test(id) || !isObj(t)) continue;
     legs[id] = {
       pick: cleanPick(t.pick),
       song: typeof t.song === "string" && /^[\w.-]{1,64}$/.test(t.song) ? t.song : "",
       skipped: (Array.isArray(t.skipped) ? t.skipped : []).filter(x => typeof x === "string").slice(-40).map(x => x.slice(0, 150)),
       /* 5.10.0: the p: ids of 5.9.0 play stops mean nothing now; rounds are r:<tour>-<n> */
       done: [...new Set((Array.isArray(t.done) ? t.done : []).filter(x => typeof x === "string" && DONE_ID.test(x) && !x.startsWith("p:")))].slice(0, 40),
-      ...(t.solid === true ? { solid: true } : {})
+      ...(t.solid === true ? { solid: true } : {}),
+      /* 5.18.0: a tour's own song (t1 to t4): the capo fret it is played at and whether it is the simplified version */
+      ...(Number.isInteger(t.capo) && t.capo >= 0 && t.capo <= 5 ? { capo: t.capo } : {}),
+      ...(t.simplified === true ? { simplified: true } : {})
     };
   }
   return Object.keys(legs).length ? { v: 1, legs } : null;
 }
+export const tourEntry = (data, id) => data.songTour?.legs?.[id] || null;
 const entry = (data, id, make = false) => {
   const st = data.songTour || (make ? (data.songTour = { v: 1, legs: {} }) : null);
   return st ? (st.legs[id] || (make ? (st.legs[id] = { pick: null, song: "", skipped: [], done: [] }) : null)) : null;
@@ -300,6 +305,7 @@ export function tourSwap(data, legId) {
 export function tourAttach(data, legId, song, now = Date.now()) {
   const t = entry(data, legId);
   if (!t?.pick || !song) return { ok: false };
+  if (/^t\d{1,2}$/.test(legId)) { const r = tourSetSong(data, legId, song); return { ok: r.ok, new: [], opens: r.opens ?? null }; } /* 5.18.0: a tour's own song, fitted */
   const fit = tourFit(sheetChords(song.body), knownChords(data, now));
   if (!fit.ok) return { ok: false, new: fit.new };
   t.song = song.id; t.pick = { ...t.pick, chords: sheetChords(song.body).slice(0, 14), new: fit.new };
